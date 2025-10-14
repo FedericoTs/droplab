@@ -904,3 +904,369 @@ export function getAllCampaignsExportData() {
   const campaigns = getAllCampaigns();
   return campaigns;
 }
+
+// ==================== ANALYTICS & VISUALIZATIONS ====================
+
+export interface TimeSeriesData {
+  date: string;
+  pageViews: number;
+  conversions: number;
+  uniqueVisitors: number;
+}
+
+export interface CampaignTimeSeriesData {
+  campaignId: string;
+  campaignName: string;
+  data: TimeSeriesData[];
+}
+
+export interface FunnelData {
+  stage: string;
+  count: number;
+  percentage: number;
+}
+
+/**
+ * Get time-series analytics data for all campaigns
+ */
+export function getTimeSeriesAnalytics(
+  startDate?: string,
+  endDate?: string
+): TimeSeriesData[] {
+  const db = getDatabase();
+
+  // Default to last 30 days if no dates provided
+  const end = endDate || new Date().toISOString().split("T")[0];
+  const start =
+    startDate ||
+    new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+
+  // Get daily page views
+  const pageViewsStmt = db.prepare(`
+    SELECT
+      DATE(created_at) as date,
+      COUNT(*) as count
+    FROM events
+    WHERE event_type = 'page_view'
+      AND DATE(created_at) BETWEEN ? AND ?
+    GROUP BY DATE(created_at)
+    ORDER BY date ASC
+  `);
+
+  // Get daily conversions
+  const conversionsStmt = db.prepare(`
+    SELECT
+      DATE(created_at) as date,
+      COUNT(DISTINCT tracking_id) as count
+    FROM conversions
+    WHERE DATE(created_at) BETWEEN ? AND ?
+    GROUP BY DATE(created_at)
+    ORDER BY date ASC
+  `);
+
+  // Get daily unique visitors
+  const visitorsStmt = db.prepare(`
+    SELECT
+      DATE(created_at) as date,
+      COUNT(DISTINCT tracking_id) as count
+    FROM events
+    WHERE event_type = 'page_view'
+      AND DATE(created_at) BETWEEN ? AND ?
+    GROUP BY DATE(created_at)
+    ORDER BY date ASC
+  `);
+
+  const pageViews = pageViewsStmt.all(start, end) as Array<{
+    date: string;
+    count: number;
+  }>;
+  const conversions = conversionsStmt.all(start, end) as Array<{
+    date: string;
+    count: number;
+  }>;
+  const visitors = visitorsStmt.all(start, end) as Array<{
+    date: string;
+    count: number;
+  }>;
+
+  // Create a map of all dates in range
+  const dateMap = new Map<string, TimeSeriesData>();
+  const currentDate = new Date(start);
+  const endDateObj = new Date(end);
+
+  while (currentDate <= endDateObj) {
+    const dateStr = currentDate.toISOString().split("T")[0];
+    dateMap.set(dateStr, {
+      date: dateStr,
+      pageViews: 0,
+      conversions: 0,
+      uniqueVisitors: 0,
+    });
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  // Fill in actual data
+  pageViews.forEach((pv) => {
+    const data = dateMap.get(pv.date);
+    if (data) data.pageViews = pv.count;
+  });
+
+  conversions.forEach((cv) => {
+    const data = dateMap.get(cv.date);
+    if (data) data.conversions = cv.count;
+  });
+
+  visitors.forEach((v) => {
+    const data = dateMap.get(v.date);
+    if (data) data.uniqueVisitors = v.count;
+  });
+
+  return Array.from(dateMap.values());
+}
+
+/**
+ * Get time-series data for specific campaign
+ */
+export function getCampaignTimeSeriesAnalytics(
+  campaignId: string,
+  startDate?: string,
+  endDate?: string
+): TimeSeriesData[] {
+  const db = getDatabase();
+
+  // Default to last 30 days if no dates provided
+  const end = endDate || new Date().toISOString().split("T")[0];
+  const start =
+    startDate ||
+    new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+
+  // Get daily page views for campaign recipients
+  const pageViewsStmt = db.prepare(`
+    SELECT
+      DATE(e.created_at) as date,
+      COUNT(*) as count
+    FROM events e
+    JOIN recipients r ON e.tracking_id = r.tracking_id
+    WHERE r.campaign_id = ?
+      AND e.event_type = 'page_view'
+      AND DATE(e.created_at) BETWEEN ? AND ?
+    GROUP BY DATE(e.created_at)
+    ORDER BY date ASC
+  `);
+
+  // Get daily conversions for campaign recipients
+  const conversionsStmt = db.prepare(`
+    SELECT
+      DATE(cv.created_at) as date,
+      COUNT(DISTINCT cv.tracking_id) as count
+    FROM conversions cv
+    JOIN recipients r ON cv.tracking_id = r.tracking_id
+    WHERE r.campaign_id = ?
+      AND DATE(cv.created_at) BETWEEN ? AND ?
+    GROUP BY DATE(cv.created_at)
+    ORDER BY date ASC
+  `);
+
+  // Get daily unique visitors for campaign recipients
+  const visitorsStmt = db.prepare(`
+    SELECT
+      DATE(e.created_at) as date,
+      COUNT(DISTINCT e.tracking_id) as count
+    FROM events e
+    JOIN recipients r ON e.tracking_id = r.tracking_id
+    WHERE r.campaign_id = ?
+      AND e.event_type = 'page_view'
+      AND DATE(e.created_at) BETWEEN ? AND ?
+    GROUP BY DATE(e.created_at)
+    ORDER BY date ASC
+  `);
+
+  const pageViews = pageViewsStmt.all(campaignId, start, end) as Array<{
+    date: string;
+    count: number;
+  }>;
+  const conversions = conversionsStmt.all(campaignId, start, end) as Array<{
+    date: string;
+    count: number;
+  }>;
+  const visitors = visitorsStmt.all(campaignId, start, end) as Array<{
+    date: string;
+    count: number;
+  }>;
+
+  // Create a map of all dates in range
+  const dateMap = new Map<string, TimeSeriesData>();
+  const currentDate = new Date(start);
+  const endDateObj = new Date(end);
+
+  while (currentDate <= endDateObj) {
+    const dateStr = currentDate.toISOString().split("T")[0];
+    dateMap.set(dateStr, {
+      date: dateStr,
+      pageViews: 0,
+      conversions: 0,
+      uniqueVisitors: 0,
+    });
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  // Fill in actual data
+  pageViews.forEach((pv) => {
+    const data = dateMap.get(pv.date);
+    if (data) data.pageViews = pv.count;
+  });
+
+  conversions.forEach((cv) => {
+    const data = dateMap.get(cv.date);
+    if (data) data.conversions = cv.count;
+  });
+
+  visitors.forEach((v) => {
+    const data = dateMap.get(v.date);
+    if (data) data.uniqueVisitors = v.count;
+  });
+
+  return Array.from(dateMap.values());
+}
+
+/**
+ * Get funnel data for all campaigns or specific campaign
+ */
+export function getFunnelData(campaignId?: string): FunnelData[] {
+  const db = getDatabase();
+
+  let totalRecipients: number;
+  let totalVisitors: number;
+  let totalConversions: number;
+
+  if (campaignId) {
+    // Get data for specific campaign
+    const recipientsStmt = db.prepare(`
+      SELECT COUNT(*) as count
+      FROM recipients
+      WHERE campaign_id = ?
+    `);
+    totalRecipients = (recipientsStmt.get(campaignId) as { count: number }).count;
+
+    const visitorsStmt = db.prepare(`
+      SELECT COUNT(DISTINCT e.tracking_id) as count
+      FROM events e
+      JOIN recipients r ON e.tracking_id = r.tracking_id
+      WHERE r.campaign_id = ?
+        AND e.event_type = 'page_view'
+    `);
+    totalVisitors = (visitorsStmt.get(campaignId) as { count: number }).count;
+
+    const conversionsStmt = db.prepare(`
+      SELECT COUNT(DISTINCT cv.tracking_id) as count
+      FROM conversions cv
+      JOIN recipients r ON cv.tracking_id = r.tracking_id
+      WHERE r.campaign_id = ?
+    `);
+    totalConversions = (conversionsStmt.get(campaignId) as { count: number })
+      .count;
+  } else {
+    // Get data for all campaigns
+    const recipientsStmt = db.prepare("SELECT COUNT(*) as count FROM recipients");
+    totalRecipients = (recipientsStmt.get() as { count: number }).count;
+
+    const visitorsStmt = db.prepare(`
+      SELECT COUNT(DISTINCT tracking_id) as count
+      FROM events
+      WHERE event_type = 'page_view'
+    `);
+    totalVisitors = (visitorsStmt.get() as { count: number }).count;
+
+    const conversionsStmt = db.prepare(`
+      SELECT COUNT(DISTINCT tracking_id) as count
+      FROM conversions
+    `);
+    totalConversions = (conversionsStmt.get() as { count: number }).count;
+  }
+
+  return [
+    {
+      stage: "Recipients",
+      count: totalRecipients,
+      percentage: 100,
+    },
+    {
+      stage: "Visitors",
+      count: totalVisitors,
+      percentage:
+        totalRecipients > 0
+          ? parseFloat(((totalVisitors / totalRecipients) * 100).toFixed(1))
+          : 0,
+    },
+    {
+      stage: "Conversions",
+      count: totalConversions,
+      percentage:
+        totalRecipients > 0
+          ? parseFloat(((totalConversions / totalRecipients) * 100).toFixed(1))
+          : 0,
+    },
+  ];
+}
+
+/**
+ * Get comparison data for multiple campaigns
+ */
+export function getCampaignsComparisonData(campaignIds: string[]) {
+  const db = getDatabase();
+
+  return campaignIds.map((id) => {
+    const campaign = getCampaignById(id);
+    if (!campaign) return null;
+
+    // Get metrics for this campaign
+    const recipientsStmt = db.prepare(`
+      SELECT COUNT(*) as count
+      FROM recipients
+      WHERE campaign_id = ?
+    `);
+    const totalRecipients = (recipientsStmt.get(id) as { count: number }).count;
+
+    const visitorsStmt = db.prepare(`
+      SELECT COUNT(DISTINCT e.tracking_id) as count
+      FROM events e
+      JOIN recipients r ON e.tracking_id = r.tracking_id
+      WHERE r.campaign_id = ?
+        AND e.event_type = 'page_view'
+    `);
+    const uniqueVisitors = (visitorsStmt.get(id) as { count: number }).count;
+
+    const pageViewsStmt = db.prepare(`
+      SELECT COUNT(*) as count
+      FROM events e
+      JOIN recipients r ON e.tracking_id = r.tracking_id
+      WHERE r.campaign_id = ?
+        AND e.event_type = 'page_view'
+    `);
+    const totalPageViews = (pageViewsStmt.get(id) as { count: number }).count;
+
+    const conversionsStmt = db.prepare(`
+      SELECT COUNT(DISTINCT cv.tracking_id) as count
+      FROM conversions cv
+      JOIN recipients r ON cv.tracking_id = r.tracking_id
+      WHERE r.campaign_id = ?
+    `);
+    const totalConversions = (conversionsStmt.get(id) as { count: number }).count;
+
+    const conversionRate =
+      totalRecipients > 0
+        ? parseFloat(((totalConversions / totalRecipients) * 100).toFixed(1))
+        : 0;
+
+    return {
+      id: campaign.id,
+      name: campaign.name,
+      status: campaign.status,
+      totalRecipients,
+      uniqueVisitors,
+      totalPageViews,
+      totalConversions,
+      conversionRate,
+    };
+  }).filter(Boolean);
+}
