@@ -11,8 +11,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Users, Eye, TrendingUp, Calendar, Loader2, ChevronRight, Search, Filter } from "lucide-react";
+import { Users, Eye, TrendingUp, Calendar, Loader2, ChevronRight, Search, Filter, MoreVertical, Play, Pause, CheckCircle, Copy, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 
 interface Campaign {
   id: string;
@@ -36,6 +37,7 @@ export function CampaignList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortOption, setSortOption] = useState<SortOption>("date-desc");
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadCampaigns();
@@ -53,6 +55,84 @@ export function CampaignList() {
       console.error("Failed to load campaigns:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleStatusChange = async (id: string, newStatus: "active" | "paused" | "completed") => {
+    setProcessingId(id);
+    try {
+      const response = await fetch(`/api/campaigns/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success(result.message);
+        await loadCampaigns(); // Reload campaigns
+      } else {
+        toast.error(result.error || "Failed to update status");
+      }
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast.error("Failed to update campaign status");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleDuplicate = async (id: string, name: string) => {
+    setProcessingId(id);
+    try {
+      const response = await fetch(`/api/campaigns/${id}/duplicate`, {
+        method: "POST",
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success(result.message);
+        await loadCampaigns(); // Reload campaigns
+      } else {
+        toast.error(result.error || "Failed to duplicate campaign");
+      }
+    } catch (error) {
+      console.error("Error duplicating campaign:", error);
+      toast.error("Failed to duplicate campaign");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    // Confirmation dialog
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${name}"?\n\nThis will permanently delete the campaign and all associated data (recipients, events, conversions). This action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    setProcessingId(id);
+    try {
+      const response = await fetch(`/api/campaigns/${id}`, {
+        method: "DELETE",
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success(result.message);
+        await loadCampaigns(); // Reload campaigns
+      } else {
+        toast.error(result.error || "Failed to delete campaign");
+      }
+    } catch (error) {
+      console.error("Error deleting campaign:", error);
+      toast.error("Failed to delete campaign");
+    } finally {
+      setProcessingId(null);
     }
   };
 
@@ -314,9 +394,94 @@ export function CampaignList() {
               <p className="text-sm text-slate-600 line-clamp-2">{campaign.message}</p>
             </div>
 
-            {/* View Details Button */}
-            <div className="pt-4">
-              <Link href={`/campaigns/${campaign.id}`}>
+            {/* Action Buttons */}
+            <div className="pt-4 flex flex-wrap items-center gap-2">
+              {/* Status Change Buttons */}
+              {campaign.status === "paused" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleStatusChange(campaign.id, "active")}
+                  disabled={processingId === campaign.id}
+                  className="gap-2 text-green-700 border-green-300 hover:bg-green-50"
+                >
+                  {processingId === campaign.id ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Play className="h-3.5 w-3.5" />
+                  )}
+                  Activate
+                </Button>
+              )}
+
+              {campaign.status === "active" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleStatusChange(campaign.id, "paused")}
+                  disabled={processingId === campaign.id}
+                  className="gap-2 text-yellow-700 border-yellow-300 hover:bg-yellow-50"
+                >
+                  {processingId === campaign.id ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Pause className="h-3.5 w-3.5" />
+                  )}
+                  Pause
+                </Button>
+              )}
+
+              {campaign.status !== "completed" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleStatusChange(campaign.id, "completed")}
+                  disabled={processingId === campaign.id}
+                  className="gap-2 text-slate-700 border-slate-300 hover:bg-slate-50"
+                >
+                  {processingId === campaign.id ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <CheckCircle className="h-3.5 w-3.5" />
+                  )}
+                  Mark Complete
+                </Button>
+              )}
+
+              {/* Duplicate Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleDuplicate(campaign.id, campaign.name)}
+                disabled={processingId === campaign.id}
+                className="gap-2 text-blue-700 border-blue-300 hover:bg-blue-50"
+              >
+                {processingId === campaign.id ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Copy className="h-3.5 w-3.5" />
+                )}
+                Duplicate
+              </Button>
+
+              {/* Delete Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleDelete(campaign.id, campaign.name)}
+                disabled={processingId === campaign.id}
+                className="gap-2 text-red-700 border-red-300 hover:bg-red-50"
+              >
+                {processingId === campaign.id ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3.5 w-3.5" />
+                )}
+                Delete
+              </Button>
+
+              {/* View Details Button */}
+              <Link href={`/campaigns/${campaign.id}`} className="ml-auto">
                 <Button
                   variant="outline"
                   size="sm"

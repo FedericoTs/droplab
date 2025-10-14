@@ -106,6 +106,78 @@ export function updateCampaignStatus(
   return result.changes > 0;
 }
 
+/**
+ * Delete campaign and all associated data
+ */
+export function deleteCampaign(id: string): boolean {
+  const db = getDatabase();
+
+  try {
+    // Delete in correct order to maintain referential integrity
+    // 1. Delete conversions for this campaign's recipients
+    db.prepare(`
+      DELETE FROM conversions
+      WHERE tracking_id IN (
+        SELECT tracking_id FROM recipients WHERE campaign_id = ?
+      )
+    `).run(id);
+
+    // 2. Delete events for this campaign's recipients
+    db.prepare(`
+      DELETE FROM events
+      WHERE tracking_id IN (
+        SELECT tracking_id FROM recipients WHERE campaign_id = ?
+      )
+    `).run(id);
+
+    // 3. Delete recipients
+    db.prepare("DELETE FROM recipients WHERE campaign_id = ?").run(id);
+
+    // 4. Delete campaign
+    const result = db.prepare("DELETE FROM campaigns WHERE id = ?").run(id);
+
+    return result.changes > 0;
+  } catch (error) {
+    console.error("Error deleting campaign:", error);
+    return false;
+  }
+}
+
+/**
+ * Duplicate campaign (creates a copy with new ID)
+ */
+export function duplicateCampaign(id: string): Campaign | null {
+  const db = getDatabase();
+  const original = getCampaignById(id);
+
+  if (!original) return null;
+
+  const newId = nanoid(16);
+  const created_at = new Date().toISOString();
+  const newName = `${original.name} (Copy)`;
+
+  const stmt = db.prepare(`
+    INSERT INTO campaigns (id, name, message, company_name, created_at, status)
+    VALUES (?, ?, ?, ?, ?, 'paused')
+  `);
+
+  try {
+    stmt.run(newId, newName, original.message, original.company_name, created_at);
+
+    return {
+      id: newId,
+      name: newName,
+      message: original.message,
+      company_name: original.company_name,
+      created_at,
+      status: "paused",
+    };
+  } catch (error) {
+    console.error("Error duplicating campaign:", error);
+    return null;
+  }
+}
+
 // ==================== RECIPIENTS ====================
 
 /**
