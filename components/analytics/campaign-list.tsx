@@ -172,18 +172,16 @@ export function CampaignList() {
 
             {/* View Details Button */}
             <div className="pt-4">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                onClick={() => {
-                  // TODO: Navigate to campaign detail page
-                  alert(`Campaign detail view coming soon for: ${campaign.name}`);
-                }}
-              >
-                View Details
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+              <Link href={`/campaigns/${campaign.id}`}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                >
+                  View Details
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>
