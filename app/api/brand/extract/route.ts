@@ -1,0 +1,112 @@
+import { NextRequest, NextResponse } from "next/server";
+import OpenAI from "openai";
+import { saveBrandProfile } from "@/lib/database/tracking-queries";
+
+/**
+ * POST /api/brand/extract
+ * Extract brand voice, tone, and key phrases from sample content using AI
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { content, companyName, apiKey } = body;
+
+    if (!content || !companyName) {
+      return NextResponse.json(
+        { success: false, error: "Content and company name are required" },
+        { status: 400 }
+      );
+    }
+
+    if (!apiKey) {
+      return NextResponse.json(
+        { success: false, error: "OpenAI API key is required" },
+        { status: 400 }
+      );
+    }
+
+    // Initialize OpenAI client
+    const openai = new OpenAI({ apiKey });
+
+    console.log("Analyzing brand voice with AI...");
+
+    // Use GPT-4 to extract brand intelligence
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: `You are a brand intelligence analyst. Analyze the provided marketing content and extract:
+1. Brand Voice: The overall personality and style of communication
+2. Tone: The emotional quality (professional, friendly, authoritative, playful, etc.)
+3. Key Phrases: 3-5 distinctive phrases or taglines that represent the brand
+4. Core Values: 3-5 fundamental principles or beliefs the brand emphasizes
+5. Target Audience: Who the content is aimed at
+
+Return ONLY a valid JSON object with these exact keys:
+{
+  "brandVoice": "string describing the voice",
+  "tone": "string describing the tone",
+  "keyPhrases": ["phrase1", "phrase2", "phrase3"],
+  "values": ["value1", "value2", "value3"],
+  "targetAudience": "string describing the audience"
+}`,
+        },
+        {
+          role: "user",
+          content: `Analyze this marketing content:\n\n${content}`,
+        },
+      ],
+      temperature: 0.3, // Lower temperature for more consistent analysis
+      response_format: { type: "json_object" },
+    });
+
+    const analysis = completion.choices[0].message.content;
+    if (!analysis) {
+      throw new Error("No analysis received from AI");
+    }
+
+    console.log("AI analysis complete");
+
+    // Parse the AI response
+    const extracted = JSON.parse(analysis);
+
+    // Save to database
+    const brandProfile = saveBrandProfile({
+      companyName,
+      brandVoice: extracted.brandVoice,
+      tone: extracted.tone,
+      keyPhrases: extracted.keyPhrases,
+      values: extracted.values,
+      targetAudience: extracted.targetAudience,
+      sourceContent: content.substring(0, 500), // Store first 500 chars as reference
+    });
+
+    console.log(`Brand profile saved: ${brandProfile.id}`);
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        brandVoice: extracted.brandVoice,
+        tone: extracted.tone,
+        keyPhrases: extracted.keyPhrases,
+        values: extracted.values,
+        targetAudience: extracted.targetAudience,
+        profileId: brandProfile.id,
+      },
+    });
+  } catch (error: unknown) {
+    console.error("Error extracting brand voice:", error);
+
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: `Failed to extract brand intelligence: ${errorMessage}`,
+      },
+      { status: 500 }
+    );
+  }
+}

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AgentManager } from "@/components/settings/agent-manager";
+import { BrandProfileManager } from "@/components/settings/brand-profile-manager";
 import { toast } from "sonner";
 import { Save } from "lucide-react";
 import { ElevenLabsAgent } from "@/types/settings";
@@ -192,6 +193,14 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Brand Intelligence - Only show if company name and API key are set */}
+        {formData.companyName && formData.openaiApiKey && (
+          <BrandProfileManager
+            companyName={formData.companyName}
+            apiKey={formData.openaiApiKey}
+          />
+        )}
 
         <AgentManager
           agents={formData.elevenlabsAgents || []}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateCopyVariations } from "@/lib/ai/openai";
+import { getBrandProfile } from "@/lib/database/tracking-queries";
 import { CopywritingRequest, CopywritingResponse } from "@/types/copywriting";
 
 export async function POST(request: NextRequest) {
@@ -27,10 +28,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if brand profile exists for enhanced copywriting
+    let brandProfile = null;
+    try {
+      brandProfile = getBrandProfile(companyContext.companyName);
+      if (brandProfile) {
+        console.log(`✨ Using brand profile for ${companyContext.companyName}`);
+      }
+    } catch (error) {
+      console.log("No brand profile found, using basic context");
+    }
+
     const variations = await generateCopyVariations(
       prompt,
       companyContext,
-      apiKey
+      apiKey,
+      brandProfile
     );
 
     const response: CopywritingResponse = {

@@ -117,6 +117,29 @@ function initializeSchema(database: Database.Database): void {
     ON conversions(conversion_type);
   `);
 
+  // Brand Profiles table (Phase 2: Brand Intelligence)
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS brand_profiles (
+      id TEXT PRIMARY KEY,
+      company_name TEXT NOT NULL,
+      brand_voice TEXT,
+      tone TEXT,
+      key_phrases TEXT,
+      values TEXT,
+      target_audience TEXT,
+      industry TEXT,
+      extracted_at TEXT NOT NULL DEFAULT (datetime('now')),
+      source_content TEXT,
+      is_active INTEGER NOT NULL DEFAULT 1
+    );
+  `);
+
+  // Create index on company_name
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_brand_profiles_company
+    ON brand_profiles(company_name);
+  `);
+
   console.log("✅ Database schema initialized successfully");
 }
 

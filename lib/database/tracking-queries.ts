@@ -412,3 +412,145 @@ export function getRecipientJourney(trackingId: string): RecipientJourney | null
     hasConverted: conversions.length > 0,
   };
 }
+
+// ==================== BRAND PROFILES (Phase 2: Brand Intelligence) ====================
+
+export interface BrandProfile {
+  id: string;
+  company_name: string;
+  brand_voice?: string;
+  tone?: string;
+  key_phrases?: string; // JSON string of array
+  values?: string; // JSON string of array
+  target_audience?: string;
+  industry?: string;
+  extracted_at: string;
+  source_content?: string;
+  is_active: number; // 1 or 0 (boolean in SQLite)
+}
+
+/**
+ * Create or update brand profile
+ */
+export function saveBrandProfile(data: {
+  companyName: string;
+  brandVoice?: string;
+  tone?: string;
+  keyPhrases?: string[];
+  values?: string[];
+  targetAudience?: string;
+  industry?: string;
+  sourceContent?: string;
+}): BrandProfile {
+  const db = getDatabase();
+
+  // Check if profile exists
+  const existing = db.prepare(
+    "SELECT * FROM brand_profiles WHERE company_name = ? AND is_active = 1"
+  ).get(data.companyName) as BrandProfile | undefined;
+
+  if (existing) {
+    // Update existing profile
+    const stmt = db.prepare(`
+      UPDATE brand_profiles
+      SET brand_voice = ?, tone = ?, key_phrases = ?, values = ?,
+          target_audience = ?, industry = ?, extracted_at = ?, source_content = ?
+      WHERE id = ?
+    `);
+
+    stmt.run(
+      data.brandVoice || null,
+      data.tone || null,
+      data.keyPhrases ? JSON.stringify(data.keyPhrases) : null,
+      data.values ? JSON.stringify(data.values) : null,
+      data.targetAudience || null,
+      data.industry || null,
+      new Date().toISOString(),
+      data.sourceContent || null,
+      existing.id
+    );
+
+    return {
+      ...existing,
+      brand_voice: data.brandVoice,
+      tone: data.tone,
+      key_phrases: data.keyPhrases ? JSON.stringify(data.keyPhrases) : undefined,
+      values: data.values ? JSON.stringify(data.values) : undefined,
+      target_audience: data.targetAudience,
+      industry: data.industry,
+      extracted_at: new Date().toISOString(),
+      source_content: data.sourceContent,
+    };
+  } else {
+    // Create new profile
+    const id = nanoid(16);
+    const extracted_at = new Date().toISOString();
+
+    const stmt = db.prepare(`
+      INSERT INTO brand_profiles (
+        id, company_name, brand_voice, tone, key_phrases, values,
+        target_audience, industry, extracted_at, source_content, is_active
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+    `);
+
+    stmt.run(
+      id,
+      data.companyName,
+      data.brandVoice || null,
+      data.tone || null,
+      data.keyPhrases ? JSON.stringify(data.keyPhrases) : null,
+      data.values ? JSON.stringify(data.values) : null,
+      data.targetAudience || null,
+      data.industry || null,
+      extracted_at,
+      data.sourceContent || null
+    );
+
+    return {
+      id,
+      company_name: data.companyName,
+      brand_voice: data.brandVoice,
+      tone: data.tone,
+      key_phrases: data.keyPhrases ? JSON.stringify(data.keyPhrases) : undefined,
+      values: data.values ? JSON.stringify(data.values) : undefined,
+      target_audience: data.targetAudience,
+      industry: data.industry,
+      extracted_at,
+      source_content: data.sourceContent,
+      is_active: 1,
+    };
+  }
+}
+
+/**
+ * Get active brand profile by company name
+ */
+export function getBrandProfile(companyName: string): BrandProfile | null {
+  const db = getDatabase();
+  const stmt = db.prepare(
+    "SELECT * FROM brand_profiles WHERE company_name = ? AND is_active = 1"
+  );
+  return stmt.get(companyName) as BrandProfile | null;
+}
+
+/**
+ * Get all brand profiles
+ */
+export function getAllBrandProfiles(): BrandProfile[] {
+  const db = getDatabase();
+  const stmt = db.prepare(
+    "SELECT * FROM brand_profiles WHERE is_active = 1 ORDER BY extracted_at DESC"
+  );
+  return stmt.all() as BrandProfile[];
+}
+
+/**
+ * Deactivate brand profile
+ */
+export function deactivateBrandProfile(id: string): boolean {
+  const db = getDatabase();
+  const stmt = db.prepare("UPDATE brand_profiles SET is_active = 0 WHERE id = ?");
+  const result = stmt.run(id);
+  return result.changes > 0;
+}

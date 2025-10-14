@@ -84,50 +84,54 @@ Flat vector advertisement style, sharp division between blue panel and photograp
 export async function generateCopyVariations(
   prompt: string,
   context: CompanyContext,
-  apiKey: string
+  apiKey: string,
+  brandProfile: any = null
 ): Promise<CopyVariation[]> {
   const openai = new OpenAI({ apiKey });
 
-  const systemPrompt = `You are an expert marketing copywriter for ${context.companyName}, a trusted leader in ${context.industry} since 1948.
+  // Build dynamic system prompt based on whether brand profile exists
+  let systemPrompt = `You are an expert marketing copywriter for ${context.companyName}, a leader in ${context.industry}.
 
 BRAND VOICE & POSITIONING:
 ${context.brandVoice}
 
 TARGET AUDIENCE INSIGHTS:
-${context.targetAudience}
+${context.targetAudience}`;
 
-MIRACLE-EAR CORE VALUES (use these in your copy):
-- "We build relationships that last a lifetime"
-- 75+ years of trusted hearing care excellence
-- Leading-edge technology (GENIUS™, MIRAGE™, BLISS™ platforms)
-- Lifetime aftercare at no charge
-- Over 1,500 locations nationwide
-- Discreet, comfortable, custom solutions
+  // Add brand intelligence if available
+  if (brandProfile) {
+    const keyPhrases = brandProfile.key_phrases ? JSON.parse(brandProfile.key_phrases) : [];
+    const values = brandProfile.values ? JSON.parse(brandProfile.values) : [];
 
-KEY EMOTIONAL APPEALS TO USE:
-✓ Reconnect with loved ones and precious moments
-✓ Rediscover joy in conversations, music, nature sounds
-✓ Maintain independence and confidence in social situations
-✓ Remove barriers, not highlight limitations
-✓ Transform lives through better hearing, not just "fix" a problem
-✓ Address fear of stigma with discretion and modern technology
+    systemPrompt += `
 
-CUSTOMER PAIN POINTS TO ADDRESS:
-- Fear that hearing aids are a "constant reminder I am flawed"
-- Concerns about cost, size, complexity
-- Stigma and embarrassment about hearing loss
-- Missing out on family gatherings, conversations, life's moments
-- Feeling isolated or left out
-- Worry about looking "old" or "disabled"
+🎯 ENHANCED BRAND INTELLIGENCE (AI-Extracted):
+
+Brand Voice: ${brandProfile.brand_voice || 'Professional and engaging'}
+Tone: ${brandProfile.tone || 'Trustworthy and approachable'}
+
+${keyPhrases.length > 0 ? `Key Brand Phrases to Incorporate:
+${keyPhrases.map((p: string) => `- "${p}"`).join('\n')}` : ''}
+
+${values.length > 0 ? `Core Brand Values:
+${values.map((v: string) => `- ${v}`).join('\n')}` : ''}
+
+${brandProfile.target_audience ? `Target Audience: ${brandProfile.target_audience}` : ''}
+
+IMPORTANT: Use these brand-specific phrases, tone, and values consistently across all variations.`;
+  }
+
+  systemPrompt += `
 
 MARKETING BEST PRACTICES:
-- Use storytelling and real-life transformations
-- Focus on benefits (comfort, ease, reconnection) not just features
-- Build trust through compassionate, understanding language
-- Humanize the technology - it's about people, not devices
-- Celebrate what customers GAIN, not what they've lost
+- Use storytelling and real-life scenarios
+- Focus on benefits (outcomes, transformations) not just features
+- Build trust through authentic, understanding language
+- Make it relatable and emotionally resonant
+- Celebrate what customers gain, not what they've lost
+- Be specific and actionable
 
-Generate 5-6 powerful, emotionally resonant marketing variations based on the user's input. Each should be optimized for different platforms and audience segments within our target market.
+Generate 5-6 compelling marketing variations based on the user's input. Each should be optimized for different platforms and audience segments.`;
 
 IMPORTANT: Return ONLY valid JSON in this exact format:
 
