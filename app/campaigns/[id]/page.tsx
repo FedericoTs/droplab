@@ -15,9 +15,12 @@ import {
   XCircle,
   Target,
   Mail,
-  Clock
+  Clock,
+  Download,
+  FileText
 } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 
 interface Recipient {
   id: string;
@@ -58,6 +61,7 @@ export default function CampaignDetailPage() {
   const [data, setData] = useState<CampaignDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState<"csv" | "pdf" | null>(null);
 
   useEffect(() => {
     loadCampaignDetail();
@@ -78,6 +82,40 @@ export default function CampaignDetailPage() {
       setError("Failed to load campaign details");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleExport = async (format: "csv" | "pdf") => {
+    setExporting(format);
+    try {
+      const response = await fetch(`/api/campaigns/${campaignId}/export?format=${format}`);
+
+      if (!response.ok) {
+        throw new Error("Export failed");
+      }
+
+      // Get filename from Content-Disposition header or use default
+      const contentDisposition = response.headers.get("Content-Disposition");
+      const filenameMatch = contentDisposition?.match(/filename="(.+)"/);
+      const filename = filenameMatch ? filenameMatch[1] : `campaign_export.${format}`;
+
+      // Download file
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success(`Campaign exported as ${format.toUpperCase()}`);
+    } catch (error) {
+      console.error("Error exporting campaign:", error);
+      toast.error("Failed to export campaign");
+    } finally {
+      setExporting(null);
     }
   };
 
@@ -174,6 +212,38 @@ export default function CampaignDetailPage() {
               <span>•</span>
               <span className="font-medium">{campaign.company_name}</span>
             </div>
+          </div>
+
+          {/* Export Buttons */}
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleExport("csv")}
+              disabled={exporting !== null}
+              className="gap-2"
+            >
+              {exporting === "csv" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              Export CSV
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleExport("pdf")}
+              disabled={exporting !== null}
+              className="gap-2"
+            >
+              {exporting === "pdf" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileText className="h-4 w-4" />
+              )}
+              Export PDF
+            </Button>
           </div>
         </div>
       </div>

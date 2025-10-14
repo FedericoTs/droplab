@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Users, Eye, TrendingUp, Calendar, Loader2, ChevronRight, Search, Filter, MoreVertical, Play, Pause, CheckCircle, Copy, Trash2 } from "lucide-react";
+import { Users, Eye, TrendingUp, Calendar, Loader2, ChevronRight, Search, Filter, MoreVertical, Play, Pause, CheckCircle, Copy, Trash2, Download } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -38,6 +38,7 @@ export function CampaignList() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortOption, setSortOption] = useState<SortOption>("date-desc");
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     loadCampaigns();
@@ -133,6 +134,40 @@ export function CampaignList() {
       toast.error("Failed to delete campaign");
     } finally {
       setProcessingId(null);
+    }
+  };
+
+  const handleExportAll = async () => {
+    setExporting(true);
+    try {
+      const response = await fetch("/api/analytics/campaigns/export");
+
+      if (!response.ok) {
+        throw new Error("Export failed");
+      }
+
+      // Get filename from Content-Disposition header or use default
+      const contentDisposition = response.headers.get("Content-Disposition");
+      const filenameMatch = contentDisposition?.match(/filename="(.+)"/);
+      const filename = filenameMatch ? filenameMatch[1] : "all_campaigns.csv";
+
+      // Download file
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success("Campaigns exported successfully");
+    } catch (error) {
+      console.error("Error exporting campaigns:", error);
+      toast.error("Failed to export campaigns");
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -279,10 +314,28 @@ export function CampaignList() {
             </div>
           </div>
 
-          {/* Results Count */}
-          <div className="mt-4 text-sm text-slate-600">
-            Showing <span className="font-semibold text-slate-900">{filteredAndSortedCampaigns.length}</span>{" "}
-            of <span className="font-semibold text-slate-900">{campaigns.length}</span> campaigns
+          {/* Results Count and Export Button */}
+          <div className="mt-4 flex items-center justify-between">
+            <div className="text-sm text-slate-600">
+              Showing <span className="font-semibold text-slate-900">{filteredAndSortedCampaigns.length}</span>{" "}
+              of <span className="font-semibold text-slate-900">{campaigns.length}</span> campaigns
+            </div>
+            {campaigns.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportAll}
+                disabled={exporting}
+                className="gap-2"
+              >
+                {exporting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Download className="h-3.5 w-3.5" />
+                )}
+                Export All
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

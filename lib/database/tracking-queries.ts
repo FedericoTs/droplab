@@ -788,3 +788,119 @@ export function getRecentActivity(limit: number = 20): RecentActivity[] {
 
   return combined;
 }
+
+// ==================== EXPORT DATA ====================
+
+export interface CampaignExportData {
+  campaign: Campaign;
+  recipients: Array<{
+    name: string;
+    lastname: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+    city?: string;
+    zip?: string;
+    tracking_id: string;
+    sent_date: string;
+    page_views: number;
+    events: number;
+    conversions: number;
+    status: "pending" | "engaged" | "converted";
+  }>;
+  metrics: {
+    totalRecipients: number;
+    totalPageViews: number;
+    uniqueVisitors: number;
+    totalConversions: number;
+    conversionRate: number;
+  };
+}
+
+/**
+ * Get detailed export data for a single campaign
+ */
+export function getCampaignExportData(campaignId: string): CampaignExportData | null {
+  const db = getDatabase();
+  const campaign = getCampaignById(campaignId);
+
+  if (!campaign) return null;
+
+  // Get recipients with their stats
+  const recipientsStmt = db.prepare(`
+    SELECT
+      r.name,
+      r.lastname,
+      r.email,
+      r.phone,
+      r.address,
+      r.city,
+      r.zip,
+      r.tracking_id,
+      r.created_at as sent_date,
+      COALESCE(e.event_count, 0) as events,
+      COALESCE(e.page_view_count, 0) as page_views,
+      COALESCE(cv.conversion_count, 0) as conversions
+    FROM recipients r
+    LEFT JOIN (
+      SELECT tracking_id, COUNT(*) as event_count,
+             SUM(CASE WHEN event_type = 'page_view' THEN 1 ELSE 0 END) as page_view_count
+      FROM events
+      GROUP BY tracking_id
+    ) e ON r.tracking_id = e.tracking_id
+    LEFT JOIN (
+      SELECT tracking_id, COUNT(*) as conversion_count
+      FROM conversions
+      GROUP BY tracking_id
+    ) cv ON r.tracking_id = cv.tracking_id
+    WHERE r.campaign_id = ?
+    ORDER BY r.created_at DESC
+  `);
+
+  const recipientsData = recipientsStmt.all(campaignId) as any[];
+
+  const recipients = recipientsData.map(r => ({
+    name: r.name,
+    lastname: r.lastname,
+    email: r.email,
+    phone: r.phone,
+    address: r.address,
+    city: r.city,
+    zip: r.zip,
+    tracking_id: r.tracking_id,
+    sent_date: r.sent_date,
+    page_views: r.page_views,
+    events: r.events,
+    conversions: r.conversions,
+    status: (r.conversions > 0 ? "converted" : r.page_views > 0 ? "engaged" : "pending") as "pending" | "engaged" | "converted",
+  }));
+
+  // Calculate metrics
+  const totalRecipients = recipients.length;
+  const totalPageViews = recipients.reduce((sum, r) => sum + r.page_views, 0);
+  const uniqueVisitors = recipients.filter(r => r.page_views > 0).length;
+  const totalConversions = recipients.filter(r => r.conversions > 0).length;
+  const conversionRate = totalRecipients > 0
+    ? parseFloat(((totalConversions / totalRecipients) * 100).toFixed(1))
+    : 0;
+
+  return {
+    campaign,
+    recipients,
+    metrics: {
+      totalRecipients,
+      totalPageViews,
+      uniqueVisitors,
+      totalConversions,
+      conversionRate,
+    },
+  };
+}
+
+/**
+ * Get export data for all campaigns overview
+ */
+export function getAllCampaignsExportData() {
+  const campaigns = getAllCampaigns();
+  return campaigns;
+}
