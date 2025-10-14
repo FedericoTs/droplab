@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { FileText, Mail, Phone, Settings, BarChart3, Home, Sparkles } from "lucide-react";
+import { FileText, Mail, Phone, Settings, BarChart3, Home, Sparkles, Bell } from "lucide-react";
 
 const navigation = [
   { name: "Home", href: "/", icon: Home, section: "main" },
@@ -11,6 +11,7 @@ const navigation = [
   { name: "Copywriting", href: "/copywriting", icon: FileText, section: "create" },
   { name: "DM Creative", href: "/dm-creative", icon: Mail, section: "create" },
   { name: "Analytics", href: "/analytics", icon: BarChart3, section: "analyze" },
+  { name: "Notifications", href: "/notifications", icon: Bell, section: "analyze" },
   { name: "CC Operations", href: "/cc-operations", icon: Phone, section: "advanced" },
 ];
 
