@@ -9,6 +9,7 @@ export interface CompanySettings {
   companyName: string;
   industry: string;
   brandVoice: string;
+  tone?: string;
   targetAudience: string;
   openaiApiKey: string;
   elevenlabsApiKey: string;

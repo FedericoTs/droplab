@@ -11,18 +11,94 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AgentManager } from "@/components/settings/agent-manager";
 import { BrandProfileManager } from "@/components/settings/brand-profile-manager";
 import { toast } from "sonner";
-import { Save, Building2, Key } from "lucide-react";
+import { Save, Building2, Key, Check, Sparkles } from "lucide-react";
 import { ElevenLabsAgent } from "@/types/settings";
+
+interface ExtractedProfile {
+  brandVoice: string;
+  tone: string;
+  keyPhrases: string[];
+  values: string[];
+  targetAudience: string;
+  industry?: string;
+  profileId?: string;
+  extractedAt?: string;
+}
 
 export default function SettingsPage() {
   const { settings, updateSettings, isLoaded } = useSettings();
   const [formData, setFormData] = useState(settings);
+  const [brandProfile, setBrandProfile] = useState<ExtractedProfile | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
 
   useEffect(() => {
     if (isLoaded) {
       setFormData(settings);
     }
   }, [settings, isLoaded]);
+
+  // Load brand profile from database when page mounts
+  useEffect(() => {
+    if (isLoaded && formData.companyName && formData.openaiApiKey) {
+      loadBrandProfile(formData.companyName);
+    }
+  }, [isLoaded, formData.companyName, formData.openaiApiKey]);
+
+  async function loadBrandProfile(companyName: string) {
+    setIsLoadingProfile(true);
+    try {
+      const response = await fetch(
+        `/api/brand/profile?companyName=${encodeURIComponent(companyName)}`
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          const profile = result.data;
+          setBrandProfile({
+            brandVoice: profile.brand_voice || profile.brandVoice,
+            tone: profile.tone,
+            keyPhrases: profile.keyPhrases || [],
+            values: profile.values || [],
+            targetAudience: profile.target_audience || profile.targetAudience,
+            industry: profile.industry,
+            extractedAt: profile.extracted_at || profile.extractedAt,
+          });
+
+          // Auto-fill form with profile data (only if fields are empty or match defaults)
+          setFormData(prev => ({
+            ...prev,
+            brandVoice: profile.brand_voice || profile.brandVoice || prev.brandVoice,
+            tone: profile.tone || prev.tone,
+            targetAudience: profile.target_audience || profile.targetAudience || prev.targetAudience,
+            industry: profile.industry || prev.industry,
+          }));
+
+          console.log("✅ Brand profile loaded from database");
+        }
+      }
+    } catch (error) {
+      console.error("Error loading brand profile:", error);
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  }
+
+  const handleProfileExtracted = (profile: ExtractedProfile) => {
+    // Update brand profile state
+    setBrandProfile(profile);
+
+    // Auto-fill form fields
+    setFormData(prev => ({
+      ...prev,
+      brandVoice: profile.brandVoice || prev.brandVoice,
+      tone: profile.tone || prev.tone,
+      targetAudience: profile.targetAudience || prev.targetAudience,
+      industry: profile.industry || prev.industry,
+    }));
+
+    toast.info("✨ Form auto-filled with brand intelligence! Review and save changes.");
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,10 +153,22 @@ export default function SettingsPage() {
           <TabsContent value="company" className="space-y-6 mt-6">
             <Card className="border-slate-200 shadow-sm">
               <CardHeader className="border-b border-slate-100 bg-slate-50/50">
-                <CardTitle className="text-xl">Company Information</CardTitle>
-                <CardDescription>
-                  This information will be used to personalize AI-generated content across all features
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-xl">Company Information</CardTitle>
+                    <CardDescription>
+                      This information will be used to personalize AI-generated content across all features
+                    </CardDescription>
+                  </div>
+
+                  {/* Profile Status Badge */}
+                  {brandProfile && !isLoadingProfile && (
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full">
+                      <Check className="h-3.5 w-3.5 text-green-600" />
+                      <span className="text-xs font-medium text-green-900">Profile Loaded</span>
+                    </div>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="space-y-5 pt-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -152,6 +240,76 @@ export default function SettingsPage() {
                     Define the primary audience for your marketing content
                   </p>
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="tone" className="text-sm font-medium">
+                    Brand Tone <span className="text-slate-400">(Optional)</span>
+                  </Label>
+                  <Input
+                    id="tone"
+                    name="tone"
+                    value={formData.tone || ""}
+                    onChange={handleChange}
+                    placeholder="e.g., Warm and empathetic, Bold and authoritative, Professional and reassuring"
+                    className="h-11"
+                  />
+                  <p className="text-xs text-slate-500">
+                    The emotional quality of your brand communication
+                  </p>
+                </div>
+
+                {/* AI-Extracted Brand Elements */}
+                {brandProfile && (brandProfile.keyPhrases.length > 0 || brandProfile.values.length > 0) && (
+                  <div className="pt-4 border-t border-slate-200 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-purple-600" />
+                      <h4 className="text-sm font-semibold text-slate-900">AI-Extracted Brand Elements</h4>
+                      {brandProfile.extractedAt && (
+                        <span className="text-xs text-slate-500">
+                          • Updated {new Date(brandProfile.extractedAt).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+
+                    {brandProfile.keyPhrases.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Key Brand Phrases</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {brandProfile.keyPhrases.map((phrase, index) => (
+                            <span
+                              key={index}
+                              className="px-3 py-1.5 bg-purple-50 border border-purple-200 rounded-full text-xs text-purple-900"
+                            >
+                              {phrase}
+                            </span>
+                          ))}
+                        </div>
+                        <p className="text-xs text-slate-500">
+                          These phrases will be automatically incorporated into AI-generated content
+                        </p>
+                      </div>
+                    )}
+
+                    {brandProfile.values.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Core Brand Values</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {brandProfile.values.map((value, index) => (
+                            <span
+                              key={index}
+                              className="px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-full text-xs text-blue-900"
+                            >
+                              {value}
+                            </span>
+                          ))}
+                        </div>
+                        <p className="text-xs text-slate-500">
+                          Core values that guide your brand messaging
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -160,6 +318,7 @@ export default function SettingsPage() {
               <BrandProfileManager
                 companyName={formData.companyName}
                 apiKey={formData.openaiApiKey}
+                onProfileExtracted={handleProfileExtracted}
               />
             )}
 

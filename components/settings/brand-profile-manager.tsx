@@ -11,6 +11,7 @@ import { Sparkles, Loader2, Check, Lightbulb } from "lucide-react";
 interface BrandProfileManagerProps {
   companyName: string;
   apiKey: string;
+  onProfileExtracted?: (profile: ExtractedProfile) => void;
 }
 
 interface ExtractedProfile {
@@ -19,10 +20,16 @@ interface ExtractedProfile {
   keyPhrases: string[];
   values: string[];
   targetAudience: string;
+  industry?: string;
   profileId?: string;
+  extractedAt?: string;
 }
 
-export function BrandProfileManager({ companyName, apiKey }: BrandProfileManagerProps) {
+export function BrandProfileManager({
+  companyName,
+  apiKey,
+  onProfileExtracted
+}: BrandProfileManagerProps) {
   const [content, setContent] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [extractedProfile, setExtractedProfile] = useState<ExtractedProfile | null>(null);
@@ -64,6 +71,11 @@ export function BrandProfileManager({ companyName, apiKey }: BrandProfileManager
         setExtractedProfile(result.data);
         setShowSuccess(true);
         toast.success("Brand intelligence extracted and saved!");
+
+        // Notify parent component to update form
+        if (onProfileExtracted) {
+          onProfileExtracted(result.data);
+        }
 
         // Clear success message after 3 seconds
         setTimeout(() => setShowSuccess(false), 3000);
