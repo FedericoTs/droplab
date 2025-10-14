@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateQRCode } from "@/lib/qr-generator";
-import { generateTrackingId } from "@/lib/tracking";
 import { generateDMCreativeImage } from "@/lib/ai/openai";
+import { createCampaign, createRecipient } from "@/lib/database/tracking-queries";
 // Note: Image composition moved to client-side to avoid native module issues
 import {
   DMGenerateRequest,
@@ -12,7 +12,7 @@ import {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { recipient, message, companyContext, apiKey } = body;
+    const { recipient, message, companyContext, apiKey, campaignName } = body;
 
     if (!recipient || !message) {
       return NextResponse.json(
@@ -28,8 +28,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate tracking ID
-    const trackingId = generateTrackingId();
+    // Create or get campaign
+    const companyName = companyContext?.companyName || "Unknown Company";
+    const finalCampaignName = campaignName || `DM Campaign - ${new Date().toLocaleDateString()}`;
+
+    const campaign = createCampaign({
+      name: finalCampaignName,
+      message: message,
+      companyName: companyName,
+    });
+
+    console.log(`Campaign created: ${campaign.id} - ${campaign.name}`);
+
+    // Create recipient in database (this also generates the tracking ID)
+    const dbRecipient = createRecipient({
+      campaignId: campaign.id,
+      name: recipient.name,
+      lastname: recipient.lastname,
+      address: recipient.address,
+      city: recipient.city,
+      zip: recipient.zip,
+      email: recipient.email,
+      phone: recipient.phone,
+    });
+
+    const trackingId = dbRecipient.tracking_id;
+    console.log(`Recipient created with tracking ID: ${trackingId}`);
 
     // Generate landing page URL
     const baseUrl =
@@ -66,6 +90,8 @@ export async function POST(request: NextRequest) {
     const response: DMGenerateResponse = {
       success: true,
       data: dmData,
+      campaignId: campaign.id, // Include campaign ID for reference
+      campaignName: campaign.name,
     };
 
     return NextResponse.json(response);

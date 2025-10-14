@@ -20,6 +20,7 @@ interface DMBuilderProps {
 export function DMBuilder({ onGenerated }: DMBuilderProps) {
   const { settings } = useSettings();
   const [isLoading, setIsLoading] = useState(false);
+  const [campaignInfo, setCampaignInfo] = useState<{id: string; name: string} | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     lastname: "",
@@ -27,6 +28,7 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
     city: "",
     zip: "",
     message: "",
+    campaignName: "",
   });
 
   const handleChange = (
@@ -74,6 +76,7 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
             targetAudience: settings.targetAudience,
           },
           apiKey: settings.openaiApiKey,
+          campaignName: formData.campaignName || undefined,
         }),
       });
 
@@ -104,8 +107,13 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
           visits: 0,
         });
 
+        // Store campaign info
+        if (data.campaignId && data.campaignName) {
+          setCampaignInfo({ id: data.campaignId, name: data.campaignName });
+        }
+
         onGenerated(data.data);
-        toast.success("Direct mail generated successfully!");
+        toast.success(`Direct mail generated! Campaign: ${data.campaignName || "Created"}`);
       } else {
         toast.error(data.error || "Failed to generate direct mail");
       }
@@ -121,9 +129,27 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
     <Card>
       <CardHeader>
         <CardTitle>Direct Mail Details</CardTitle>
+        {campaignInfo && (
+          <p className="text-sm text-green-600 mt-1">
+            Campaign: {campaignInfo.name}
+          </p>
+        )}
       </CardHeader>
       <CardContent>
         <form onSubmit={handleGenerate} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="campaignName">Campaign Name (Optional)</Label>
+            <Input
+              id="campaignName"
+              name="campaignName"
+              value={formData.campaignName}
+              onChange={handleChange}
+              placeholder="e.g., Summer 2025 Hearing Aid Promo"
+            />
+            <p className="text-xs text-slate-500">
+              Leave empty to auto-generate campaign name
+            </p>
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">First Name *</Label>

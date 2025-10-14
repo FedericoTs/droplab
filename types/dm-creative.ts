@@ -35,4 +35,6 @@ export interface DMGenerateResponse {
   success: boolean;
   data?: DirectMailData;
   error?: string;
+  campaignId?: string;
+  campaignName?: string;
 }

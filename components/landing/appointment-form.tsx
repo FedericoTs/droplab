@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar, Clock, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { trackFormSubmission } from "@/lib/tracking-client";
 
 interface AppointmentFormProps {
   recipientName: string;
@@ -18,6 +20,8 @@ interface AppointmentFormProps {
 }
 
 export function AppointmentForm({ recipientName, questionnaireResults }: AppointmentFormProps) {
+  const params = useParams();
+  const trackingId = params.trackingId as string;
   const [formData, setFormData] = useState({
     name: recipientName || "",
     phone: "",
@@ -28,14 +32,24 @@ export function AppointmentForm({ recipientName, questionnaireResults }: Appoint
   });
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Placeholder submission - no backend
+    // Log submission details
     console.log("Appointment Request:", {
       ...formData,
       questionnaireResults,
     });
+
+    // Track conversion in database
+    if (trackingId) {
+      await trackFormSubmission(trackingId, {
+        ...formData,
+        questionnaireResults,
+        appointmentDate: formData.preferredDate,
+        appointmentTime: formData.preferredTime,
+      });
+    }
 
     setSubmitted(true);
     toast.success("Appointment request submitted successfully!");

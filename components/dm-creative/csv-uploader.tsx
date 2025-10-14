@@ -7,8 +7,7 @@ import { Upload, Download, FileText, Loader2, CheckCircle2 } from "lucide-react"
 import { parseCSV, generateSampleCSV } from "@/lib/csv-processor";
 import { RecipientData, DirectMailData } from "@/types/dm-creative";
 import { toast } from "sonner";
-import { generateQRCode } from "@/lib/qr-generator";
-import { generateTrackingId, storeLandingPageData } from "@/lib/tracking";
+import { storeLandingPageData } from "@/lib/tracking";
 import { useSettings } from "@/lib/contexts/settings-context";
 
 interface CSVUploaderProps {
@@ -65,41 +64,47 @@ export function CSVUploader({ onBatchGenerated, message }: CSVUploaderProps) {
     setIsProcessing(true);
 
     try {
-      const dmDataList: DirectMailData[] = [];
+      // Call batch API to create campaign and recipients in database
+      const response = await fetch("/api/dm-creative/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipients,
+          message,
+          companyContext: {
+            companyName: settings.companyName,
+            industry: settings.industry,
+            brandVoice: settings.brandVoice,
+            targetAudience: settings.targetAudience,
+          },
+          campaignName: `Batch Campaign - ${new Date().toLocaleDateString()}`,
+        }),
+      });
 
-      for (const recipient of recipients) {
-        const trackingId = generateTrackingId();
-        const baseUrl =
-          process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-        const landingPageUrl = `${baseUrl}/lp/${trackingId}`;
-        const qrCodeDataUrl = await generateQRCode(landingPageUrl);
+      const result = await response.json();
 
-        const finalMessage = recipient.customMessage || message;
+      if (result.success && result.data) {
+        const dmDataList: DirectMailData[] = result.data;
 
-        const dmData: DirectMailData = {
-          trackingId,
-          recipient,
-          message: finalMessage,
-          qrCodeDataUrl,
-          landingPageUrl,
-          createdAt: new Date(),
-        };
+        // Store landing page data in localStorage for backward compatibility
+        for (const dmData of dmDataList) {
+          storeLandingPageData({
+            trackingId: dmData.trackingId,
+            recipient: dmData.recipient,
+            message: dmData.message,
+            companyName: settings.companyName,
+            createdAt: dmData.createdAt,
+            visits: 0,
+          });
+        }
 
-        // Store landing page data
-        storeLandingPageData({
-          trackingId,
-          recipient,
-          message: finalMessage,
-          companyName: settings.companyName,
-          createdAt: dmData.createdAt,
-          visits: 0,
-        });
-
-        dmDataList.push(dmData);
+        onBatchGenerated(dmDataList);
+        toast.success(
+          `Generated ${dmDataList.length} direct mails! Campaign: ${result.campaignName}`
+        );
+      } else {
+        toast.error(result.error || "Failed to generate batch");
       }
-
-      onBatchGenerated(dmDataList);
-      toast.success(`Generated ${dmDataList.length} direct mails!`);
     } catch (error) {
       console.error("Error generating batch:", error);
       toast.error("Failed to generate batch");

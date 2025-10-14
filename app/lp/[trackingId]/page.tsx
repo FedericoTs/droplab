@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { getLandingPageData, incrementPageVisit } from "@/lib/tracking";
+import { trackPageView } from "@/lib/tracking-client";
 import { LandingPageData } from "@/types/dm-creative";
 import { HearingQuestionnaire, QuestionnaireResults } from "@/components/landing/hearing-questionnaire";
 import { AppointmentForm } from "@/components/landing/appointment-form";
@@ -23,7 +24,12 @@ export default function LandingPage() {
       setLoading(false);
 
       if (data) {
+        // Track in localStorage (existing)
         incrementPageVisit(trackingId);
+
+        // Track in database (new SQLite tracking)
+        trackPageView(trackingId, `/lp/${trackingId}`);
+
         console.log(`Landing page visit tracked: ${trackingId}`);
       }
     }
