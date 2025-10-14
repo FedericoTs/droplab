@@ -10,8 +10,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AgentManager } from "@/components/settings/agent-manager";
 import { BrandProfileManager } from "@/components/settings/brand-profile-manager";
+import { IndustryModuleSettings } from "@/components/settings/industry-module-settings";
 import { toast } from "sonner";
-import { Save, Building2, Key, Check, Sparkles } from "lucide-react";
+import { Save, Building2, Key, Check, Sparkles, Layers } from "lucide-react";
 import { ElevenLabsAgent } from "@/types/settings";
 
 interface ExtractedProfile {
@@ -138,7 +139,7 @@ export default function SettingsPage() {
 
       <form onSubmit={handleSubmit}>
         <Tabs defaultValue="company" className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-2 h-auto p-1">
+          <TabsList className="grid w-full max-w-2xl grid-cols-3 h-auto p-1">
             <TabsTrigger value="company" className="gap-2 py-3">
               <Building2 className="h-4 w-4" />
               <span className="font-medium">Company & Brand</span>
@@ -146,6 +147,10 @@ export default function SettingsPage() {
             <TabsTrigger value="integrations" className="gap-2 py-3">
               <Key className="h-4 w-4" />
               <span className="font-medium">Integrations</span>
+            </TabsTrigger>
+            <TabsTrigger value="industry" className="gap-2 py-3">
+              <Layers className="h-4 w-4" />
+              <span className="font-medium">Industry Modules</span>
             </TabsTrigger>
           </TabsList>
 
@@ -427,6 +432,11 @@ export default function SettingsPage() {
                 Save Changes
               </Button>
             </div>
+          </TabsContent>
+
+          {/* Tab 3: Industry Modules */}
+          <TabsContent value="industry" className="space-y-6 mt-6">
+            <IndustryModuleSettings />
           </TabsContent>
         </Tabs>
       </form>

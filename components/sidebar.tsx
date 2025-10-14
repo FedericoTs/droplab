@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { FileText, Mail, Phone, Settings, BarChart3, Home, Sparkles, Bell } from "lucide-react";
+import { useIndustryModule } from "@/lib/contexts/industry-module-context";
+import { FileText, Mail, Phone, Settings, BarChart3, Home, Sparkles, Bell, Store, Target, TrendingUp, Brain } from "lucide-react";
 
 const navigation = [
   { name: "Home", href: "/", icon: Home, section: "main" },
@@ -22,8 +23,37 @@ const sections = [
   { id: "advanced", label: "Advanced" },
 ];
 
+// Retail module navigation items (conditionally shown)
+const retailNavigation = [
+  { name: "Stores", href: "/retail/stores", icon: Store, section: "retail", requiresFeature: "enableMultiStore" },
+  { name: "Deployments", href: "/retail/deployments", icon: Target, section: "retail", requiresFeature: "enableMultiStore" },
+  { name: "Performance", href: "/retail/performance", icon: TrendingUp, section: "retail", requiresFeature: "enableMultiStore" },
+  { name: "AI Insights", href: "/retail/insights", icon: Brain, section: "retail", requiresFeature: "enableAIRecommendations" },
+];
+
 export function Sidebar() {
   const pathname = usePathname();
+  const industryModule = useIndustryModule();
+
+  // Build navigation items based on active modules
+  const allNavigation = [...navigation];
+
+  // Add retail navigation if module is enabled
+  if (industryModule.isModuleEnabled() && industryModule.getModuleType() === 'retail') {
+    const enabledRetailItems = retailNavigation.filter(item => {
+      if (item.requiresFeature) {
+        return industryModule.isFeatureEnabled(item.requiresFeature);
+      }
+      return true;
+    });
+    allNavigation.push(...enabledRetailItems);
+  }
+
+  // Build sections array (add retail section if module is active)
+  const activeSections = [...sections];
+  if (industryModule.isModuleEnabled() && industryModule.getModuleType() === 'retail') {
+    activeSections.push({ id: "retail", label: "🏪 Retail Module" });
+  }
 
   return (
     <div className="flex h-screen w-64 flex-col border-r bg-slate-50">
@@ -36,8 +66,10 @@ export function Sidebar() {
         </div>
       </div>
       <nav className="flex-1 px-3 py-4 overflow-y-auto">
-        {sections.map((section) => {
-          const sectionItems = navigation.filter((item) => item.section === section.id);
+        {activeSections.map((section) => {
+          const sectionItems = allNavigation.filter((item) => item.section === section.id);
+          if (sectionItems.length === 0) return null;
+
           return (
             <div key={section.id} className="mb-6">
               <h3 className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">

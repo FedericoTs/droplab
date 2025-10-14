@@ -140,7 +140,202 @@ function initializeSchema(database: Database.Database): void {
     ON brand_profiles(company_name);
   `);
 
-  console.log("✅ Database schema initialized successfully");
+  // ==================== RETAIL MODULE TABLES (Phase 8A) ====================
+  // These tables are created but inactive until retail module is enabled in settings
+
+  // Retail Stores table
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS retail_stores (
+      id TEXT PRIMARY KEY,
+      store_number TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      address TEXT,
+      city TEXT,
+      state TEXT,
+      zip TEXT,
+      region TEXT,
+      district TEXT,
+      size_category TEXT,
+      demographic_profile TEXT,
+      lat REAL,
+      lng REAL,
+      timezone TEXT DEFAULT 'America/New_York',
+      is_active INTEGER DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_retail_stores_number
+    ON retail_stores(store_number);
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_retail_stores_region
+    ON retail_stores(region);
+  `);
+
+  // Retail Age Groups table
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS retail_age_groups (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      min_age INTEGER,
+      max_age INTEGER,
+      description TEXT,
+      is_active INTEGER DEFAULT 1
+    );
+  `);
+
+  // Retail Creative Variants table
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS retail_creative_variants (
+      id TEXT PRIMARY KEY,
+      campaign_id TEXT NOT NULL,
+      variant_code TEXT NOT NULL,
+      variant_name TEXT,
+      background_url TEXT,
+      headline TEXT,
+      body_copy TEXT,
+      cta_text TEXT,
+      design_tags TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE
+    );
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_retail_variants_campaign
+    ON retail_creative_variants(campaign_id);
+  `);
+
+  // Retail Campaign Deployments table
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS retail_campaign_deployments (
+      id TEXT PRIMARY KEY,
+      campaign_id TEXT NOT NULL,
+      store_id TEXT NOT NULL,
+      age_group_id TEXT,
+      creative_variant_id TEXT NOT NULL,
+      scheduled_date TEXT,
+      sent_date TEXT,
+      status TEXT NOT NULL DEFAULT 'scheduled' CHECK(status IN ('scheduled', 'sending', 'sent', 'completed')),
+      recipients_count INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE,
+      FOREIGN KEY (store_id) REFERENCES retail_stores(id),
+      FOREIGN KEY (age_group_id) REFERENCES retail_age_groups(id),
+      FOREIGN KEY (creative_variant_id) REFERENCES retail_creative_variants(id)
+    );
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_retail_deployments_campaign
+    ON retail_campaign_deployments(campaign_id);
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_retail_deployments_store
+    ON retail_campaign_deployments(store_id);
+  `);
+
+  // Retail Deployment Recipients table (links to existing recipients)
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS retail_deployment_recipients (
+      id TEXT PRIMARY KEY,
+      deployment_id TEXT NOT NULL,
+      recipient_id TEXT NOT NULL,
+      FOREIGN KEY (deployment_id) REFERENCES retail_campaign_deployments(id) ON DELETE CASCADE,
+      FOREIGN KEY (recipient_id) REFERENCES recipients(id) ON DELETE CASCADE
+    );
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_retail_deployment_recipients_deployment
+    ON retail_deployment_recipients(deployment_id);
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_retail_deployment_recipients_recipient
+    ON retail_deployment_recipients(recipient_id);
+  `);
+
+  // Retail Store Performance Aggregates table
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS retail_store_performance_aggregates (
+      id TEXT PRIMARY KEY,
+      store_id TEXT NOT NULL,
+      age_group_id TEXT,
+      creative_variant_id TEXT,
+      time_period TEXT,
+      campaigns_count INTEGER DEFAULT 0,
+      recipients_count INTEGER DEFAULT 0,
+      visitors_count INTEGER DEFAULT 0,
+      conversions_count INTEGER DEFAULT 0,
+      conversion_rate REAL,
+      avg_time_to_conversion REAL,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (store_id) REFERENCES retail_stores(id)
+    );
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_retail_performance_store
+    ON retail_store_performance_aggregates(store_id);
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_retail_performance_period
+    ON retail_store_performance_aggregates(time_period);
+  `);
+
+  // Retail Creative Patterns table (ML insights)
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS retail_creative_patterns (
+      id TEXT PRIMARY KEY,
+      pattern_type TEXT NOT NULL,
+      pattern_value TEXT NOT NULL,
+      success_score REAL,
+      sample_size INTEGER,
+      confidence_level REAL,
+      applicable_stores TEXT,
+      applicable_age_groups TEXT,
+      examples TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_retail_patterns_type
+    ON retail_creative_patterns(pattern_type);
+  `);
+
+  // Retail Campaign Recommendations table
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS retail_recommendations (
+      id TEXT PRIMARY KEY,
+      store_id TEXT NOT NULL,
+      age_group_id TEXT,
+      recommended_variant_id TEXT,
+      confidence_score REAL,
+      reasoning TEXT,
+      predicted_conversion_rate REAL,
+      based_on_campaigns TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (store_id) REFERENCES retail_stores(id),
+      FOREIGN KEY (recommended_variant_id) REFERENCES retail_creative_variants(id)
+    );
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_retail_recommendations_store
+    ON retail_recommendations(store_id);
+  `);
+
+  console.log("✅ Database schema initialized successfully (including retail module tables)");
 }
 
 /**
