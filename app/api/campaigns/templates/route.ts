@@ -4,6 +4,7 @@ import {
   createCampaignTemplate,
   initializeSystemTemplates,
 } from '@/lib/database/campaign-management';
+import { copyAssets } from '@/lib/database/asset-management';
 
 /**
  * GET /api/campaigns/templates
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, description, category, templateData } = body;
+    const { name, description, category, templateData, campaignId } = body;
 
     if (!name || !templateData) {
       return NextResponse.json(
@@ -65,12 +66,26 @@ export async function POST(request: NextRequest) {
       isSystemTemplate: false,
     });
 
+    // Copy assets from campaign if campaignId provided
+    if (campaignId) {
+      try {
+        copyAssets({
+          sourceCampaignId: campaignId,
+          targetTemplateId: template.id,
+        });
+      } catch (error) {
+        console.error('Error copying campaign assets to template:', error);
+        // Continue anyway - template is created, just without assets
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data: {
         ...template,
         template_data: JSON.parse(template.template_data),
       },
+      message: 'Template created successfully',
     });
   } catch (error) {
     console.error('Error creating template:', error);

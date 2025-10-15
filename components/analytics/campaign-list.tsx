@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Users, Eye, TrendingUp, Calendar, Loader2, ChevronRight, Search, Filter, MoreVertical, Play, Pause, CheckCircle, Copy, Trash2, Download } from "lucide-react";
+import { Users, Eye, TrendingUp, Calendar, Loader2, ChevronRight, Search, Filter, MoreVertical, Play, Pause, CheckCircle, Copy, Trash2, Download, Bookmark, Square, CheckSquare, Archive } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { CampaignStoreStats } from "@/components/analytics/campaign-store-stats";
@@ -40,6 +40,8 @@ export function CampaignList() {
   const [sortOption, setSortOption] = useState<SortOption>("date-desc");
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [selectedCampaigns, setSelectedCampaigns] = useState<string[]>([]);
+  const [bulkProcessing, setBulkProcessing] = useState(false);
 
   useEffect(() => {
     loadCampaigns();
@@ -138,6 +140,62 @@ export function CampaignList() {
     }
   };
 
+  const handleSaveAsTemplate = async (campaign: Campaign) => {
+    const templateName = window.prompt(
+      `Save "${campaign.name}" as a template.\n\nEnter template name:`,
+      `${campaign.name} Template`
+    );
+
+    if (!templateName) return;
+
+    const templateDescription = window.prompt(
+      "Enter template description (optional):",
+      `Based on successful ${campaign.name} campaign`
+    );
+
+    const category = window.prompt(
+      "Enter category (general, retail, seasonal, promotional):",
+      "general"
+    ) as "general" | "retail" | "seasonal" | "promotional" | null;
+
+    if (!category || !["general", "retail", "seasonal", "promotional"].includes(category)) {
+      toast.error("Invalid category. Template not saved.");
+      return;
+    }
+
+    setProcessingId(campaign.id);
+    try {
+      const response = await fetch("/api/campaigns/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: templateName,
+          description: templateDescription || null,
+          category,
+          templateData: {
+            message: campaign.message,
+            targetAudience: "General audience",
+            tone: "Professional",
+          },
+          campaignId: campaign.id, // For asset copying
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success("Campaign saved as template! View it in the Templates tab.");
+      } else {
+        toast.error(result.error || "Failed to save template");
+      }
+    } catch (error) {
+      console.error("Error saving template:", error);
+      toast.error("Failed to save campaign as template");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   const handleExportAll = async () => {
     setExporting(true);
     try {
@@ -169,6 +227,68 @@ export function CampaignList() {
       toast.error("Failed to export campaigns");
     } finally {
       setExporting(false);
+    }
+  };
+
+  const toggleCampaignSelection = (id: string) => {
+    setSelectedCampaigns((prev) =>
+      prev.includes(id) ? prev.filter((cid) => cid !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedCampaigns.length === filteredAndSortedCampaigns.length) {
+      setSelectedCampaigns([]);
+    } else {
+      setSelectedCampaigns(filteredAndSortedCampaigns.map((c) => c.id));
+    }
+  };
+
+  const handleBulkAction = async (action: "activate" | "pause" | "archive" | "delete") => {
+    if (selectedCampaigns.length === 0) {
+      toast.error("Please select campaigns first");
+      return;
+    }
+
+    const actionNames = {
+      activate: "activate",
+      pause: "pause",
+      archive: "archive",
+      delete: "delete",
+    };
+
+    if (action === "delete") {
+      const confirmed = window.confirm(
+        `Are you sure you want to delete ${selectedCampaigns.length} campaign(s)?\n\nThis will permanently delete all associated data. This action cannot be undone.`
+      );
+      if (!confirmed) return;
+    }
+
+    setBulkProcessing(true);
+    try {
+      const response = await fetch("/api/campaigns/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action,
+          campaignIds: selectedCampaigns,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success(result.message || `${selectedCampaigns.length} campaign(s) ${actionNames[action]}d`);
+        setSelectedCampaigns([]);
+        await loadCampaigns();
+      } else {
+        toast.error(result.error || "Failed to perform bulk action");
+      }
+    } catch (error) {
+      console.error("Error performing bulk action:", error);
+      toast.error("Failed to perform bulk action");
+    } finally {
+      setBulkProcessing(false);
     }
   };
 
@@ -260,6 +380,71 @@ export function CampaignList() {
 
   return (
     <div className="space-y-6">
+      {/* Bulk Actions Toolbar */}
+      {selectedCampaigns.length > 0 && (
+        <Card className="border-blue-300 bg-blue-50">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-medium text-slate-900">
+                  {selectedCampaigns.length} campaign{selectedCampaigns.length !== 1 ? "s" : ""} selected
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedCampaigns([])}
+                  className="h-8"
+                >
+                  Clear Selection
+                </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleBulkAction("activate")}
+                  disabled={bulkProcessing}
+                  className="gap-2 text-green-700 border-green-300 hover:bg-green-50"
+                >
+                  {bulkProcessing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
+                  Activate
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleBulkAction("pause")}
+                  disabled={bulkProcessing}
+                  className="gap-2 text-yellow-700 border-yellow-300 hover:bg-yellow-50"
+                >
+                  {bulkProcessing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Pause className="h-3.5 w-3.5" />}
+                  Pause
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleBulkAction("archive")}
+                  disabled={bulkProcessing}
+                  className="gap-2 text-slate-700 border-slate-300 hover:bg-slate-50"
+                >
+                  {bulkProcessing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Archive className="h-3.5 w-3.5" />}
+                  Archive
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleBulkAction("delete")}
+                  disabled={bulkProcessing}
+                  className="gap-2 text-red-700 border-red-300 hover:bg-red-50"
+                >
+                  {bulkProcessing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                  Delete
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Search and Filter Bar */}
       <Card className="border-slate-200">
         <CardContent className="pt-6">
@@ -315,11 +500,28 @@ export function CampaignList() {
             </div>
           </div>
 
-          {/* Results Count and Export Button */}
+          {/* Results Count, Select All, and Export Button */}
           <div className="mt-4 flex items-center justify-between">
-            <div className="text-sm text-slate-600">
-              Showing <span className="font-semibold text-slate-900">{filteredAndSortedCampaigns.length}</span>{" "}
-              of <span className="font-semibold text-slate-900">{campaigns.length}</span> campaigns
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-slate-600">
+                Showing <span className="font-semibold text-slate-900">{filteredAndSortedCampaigns.length}</span>{" "}
+                of <span className="font-semibold text-slate-900">{campaigns.length}</span> campaigns
+              </div>
+              {filteredAndSortedCampaigns.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleSelectAll}
+                  className="gap-2 h-8"
+                >
+                  {selectedCampaigns.length === filteredAndSortedCampaigns.length ? (
+                    <CheckSquare className="h-4 w-4" />
+                  ) : (
+                    <Square className="h-4 w-4" />
+                  )}
+                  {selectedCampaigns.length === filteredAndSortedCampaigns.length ? "Deselect All" : "Select All"}
+                </Button>
+              )}
             </div>
             {campaigns.length > 0 && (
               <Button
@@ -367,11 +569,27 @@ export function CampaignList() {
       )}
 
       {/* Campaigns List */}
-      {filteredAndSortedCampaigns.map((campaign) => (
-        <Card key={campaign.id} className="border-slate-200 hover:border-slate-300 transition-colors">
+      {filteredAndSortedCampaigns.map((campaign) => {
+        const isSelected = selectedCampaigns.includes(campaign.id);
+
+        return (
+        <Card key={campaign.id} className={`border-slate-200 hover:border-slate-300 transition-colors ${isSelected ? 'ring-2 ring-blue-500' : ''}`}>
           <CardHeader>
             <div className="flex items-start justify-between">
-              <div className="flex-1">
+              <div className="flex items-center gap-3 flex-1">
+                {/* Selection Checkbox */}
+                <button
+                  onClick={() => toggleCampaignSelection(campaign.id)}
+                  className="p-1 hover:bg-slate-100 rounded transition-colors"
+                >
+                  {isSelected ? (
+                    <CheckSquare className="h-5 w-5 text-blue-600" />
+                  ) : (
+                    <Square className="h-5 w-5 text-slate-400" />
+                  )}
+                </button>
+
+                <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
                   <CardTitle className="text-xl">{campaign.name}</CardTitle>
                   <span
@@ -389,6 +607,7 @@ export function CampaignList() {
                   </span>
                   <span>•</span>
                   <span className="font-medium">{campaign.company_name}</span>
+                </div>
                 </div>
               </div>
             </div>
@@ -523,6 +742,22 @@ export function CampaignList() {
                 Duplicate
               </Button>
 
+              {/* Save as Template Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleSaveAsTemplate(campaign)}
+                disabled={processingId === campaign.id}
+                className="gap-2 text-purple-700 border-purple-300 hover:bg-purple-50"
+              >
+                {processingId === campaign.id ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Bookmark className="h-3.5 w-3.5" />
+                )}
+                Save as Template
+              </Button>
+
               {/* Delete Button */}
               <Button
                 variant="outline"
@@ -553,7 +788,8 @@ export function CampaignList() {
             </div>
           </CardContent>
         </Card>
-      ))}
+        );
+      })}
     </div>
   );
 }
