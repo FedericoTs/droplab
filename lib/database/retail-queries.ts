@@ -474,3 +474,129 @@ export function getRetailStoreCount(): number {
   const result = stmt.get() as { count: number };
   return result.count;
 }
+
+// ==================== CAMPAIGN DEPLOYMENT OPERATIONS ====================
+
+/**
+ * Create a campaign deployment for a specific store
+ */
+export function createCampaignDeployment(data: {
+  campaignId: string;
+  storeId: string;
+  ageGroupId?: string;
+  creativeVariantId?: string;
+}): { id: string } {
+  ensureRetailModuleEnabled();
+
+  const db = getDatabase();
+  const id = nanoid(16);
+  const created_at = new Date().toISOString();
+  const updated_at = created_at;
+
+  const stmt = db.prepare(`
+    INSERT INTO retail_campaign_deployments (
+      id, campaign_id, store_id, age_group_id, creative_variant_id,
+      status, recipients_count, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, 'sent', 0, ?, ?)
+  `);
+
+  stmt.run(
+    id,
+    data.campaignId,
+    data.storeId,
+    data.ageGroupId || null,
+    data.creativeVariantId || null,
+    created_at,
+    updated_at
+  );
+
+  return { id };
+}
+
+/**
+ * Link a recipient to a deployment
+ */
+export function linkRecipientToDeployment(deploymentId: string, recipientId: string): void {
+  ensureRetailModuleEnabled();
+
+  const db = getDatabase();
+  const id = nanoid(16);
+
+  const stmt = db.prepare(`
+    INSERT INTO retail_deployment_recipients (id, deployment_id, recipient_id)
+    VALUES (?, ?, ?)
+  `);
+
+  stmt.run(id, deploymentId, recipientId);
+}
+
+/**
+ * Update deployment recipient count
+ */
+export function updateDeploymentRecipientCount(deploymentId: string, count: number): void {
+  ensureRetailModuleEnabled();
+
+  const db = getDatabase();
+  const updated_at = new Date().toISOString();
+
+  const stmt = db.prepare(`
+    UPDATE retail_campaign_deployments
+    SET recipients_count = ?, updated_at = ?
+    WHERE id = ?
+  `);
+
+  stmt.run(count, updated_at, deploymentId);
+}
+
+/**
+ * Get deployments for a campaign
+ */
+export function getCampaignDeployments(campaignId: string) {
+  ensureRetailModuleEnabled();
+
+  const db = getDatabase();
+  const stmt = db.prepare(`
+    SELECT
+      d.*,
+      s.store_number,
+      s.name as store_name,
+      s.city as store_city,
+      s.state as store_state
+    FROM retail_campaign_deployments d
+    LEFT JOIN retail_stores s ON d.store_id = s.id
+    WHERE d.campaign_id = ?
+    ORDER BY s.store_number
+  `);
+
+  return stmt.all(campaignId);
+}
+
+/**
+ * Get deployment statistics for a campaign
+ */
+export function getDeploymentStats(campaignId: string) {
+  ensureRetailModuleEnabled();
+
+  const db = getDatabase();
+  const stmt = db.prepare(`
+    SELECT
+      d.id as deployment_id,
+      d.store_id,
+      s.store_number,
+      s.name as store_name,
+      d.recipients_count,
+      COUNT(DISTINCT e.id) as page_views,
+      COUNT(DISTINCT c.id) as conversions
+    FROM retail_campaign_deployments d
+    LEFT JOIN retail_stores s ON d.store_id = s.id
+    LEFT JOIN retail_deployment_recipients dr ON d.id = dr.deployment_id
+    LEFT JOIN recipients r ON dr.recipient_id = r.id
+    LEFT JOIN events e ON r.tracking_id = e.tracking_id AND e.event_type = 'page_view'
+    LEFT JOIN conversions c ON r.tracking_id = c.tracking_id
+    WHERE d.campaign_id = ?
+    GROUP BY d.id, d.store_id, s.store_number, s.name, d.recipients_count
+    ORDER BY s.store_number
+  `);
+
+  return stmt.all(campaignId);
+}

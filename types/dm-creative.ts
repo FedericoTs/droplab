@@ -4,7 +4,10 @@ export interface RecipientData {
   address: string;
   city?: string;
   zip?: string;
+  email?: string;
+  phone?: string;
   customMessage?: string;
+  storeNumber?: string; // For retail module: links recipient to specific store
 }
 
 export interface DirectMailData {
