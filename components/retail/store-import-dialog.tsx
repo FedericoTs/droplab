@@ -15,8 +15,29 @@ interface StoreImportDialogProps {
 export function StoreImportDialog({ onClose, onSuccess }: StoreImportDialogProps) {
   const [file, setFile] = useState<File | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [validating, setValidating] = useState(false);
   const [result, setResult] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const validateFile = async (selectedFile: File) => {
+    setValidating(true);
+    try {
+      const parseResult = await parseStoreCSV(selectedFile);
+      setResult(parseResult);
+
+      if (parseResult.errors.length > 0) {
+        toast.error(`Found ${parseResult.errors.length} validation errors`);
+      } else {
+        toast.success(`${parseResult.validRows} stores ready to import`);
+      }
+    } catch (error) {
+      console.error('Validation error:', error);
+      toast.error('Failed to validate CSV file');
+      setResult(null);
+    } finally {
+      setValidating(false);
+    }
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -27,6 +48,7 @@ export function StoreImportDialog({ onClose, onSuccess }: StoreImportDialogProps
       }
       setFile(selectedFile);
       setResult(null);
+      validateFile(selectedFile);
     }
   };
 
@@ -47,29 +69,20 @@ export function StoreImportDialog({ onClose, onSuccess }: StoreImportDialogProps
       }
       setFile(droppedFile);
       setResult(null);
+      validateFile(droppedFile);
     }
   };
 
   const handleImport = async () => {
-    if (!file) return;
+    if (!file || !result || result.errors.length > 0) return;
 
     setProcessing(true);
     try {
-      // Parse CSV
-      const parseResult = await parseStoreCSV(file);
-
-      if (parseResult.errors.length > 0) {
-        setResult(parseResult);
-        toast.error(`Found ${parseResult.errors.length} validation errors`);
-        setProcessing(false);
-        return;
-      }
-
-      // Import to database
+      // Import to database (using already-parsed result)
       const response = await fetch('/api/retail/stores/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stores: parseResult.stores }),
+        body: JSON.stringify({ stores: result.stores }),
       });
 
       const importResult = await response.json();
@@ -78,7 +91,7 @@ export function StoreImportDialog({ onClose, onSuccess }: StoreImportDialogProps
         toast.success(importResult.message);
         onSuccess();
       } else {
-        setResult({ ...parseResult, importErrors: importResult.errors });
+        setResult({ ...result, importErrors: importResult.errors });
         toast.error('Some stores failed to import');
       }
     } catch (error) {
@@ -177,8 +190,23 @@ export function StoreImportDialog({ onClose, onSuccess }: StoreImportDialogProps
                 </Button>
               </div>
 
+              {/* Validating State */}
+              {validating && !result && (
+                <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-900">
+                      Validating CSV...
+                    </p>
+                    <p className="text-xs text-blue-700">
+                      Checking {file?.name}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Results */}
-              {result && (
+              {result && !validating && (
                 <div className="space-y-3">
                   {result.success ? (
                     <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
@@ -232,11 +260,19 @@ export function StoreImportDialog({ onClose, onSuccess }: StoreImportDialogProps
               <div className="flex gap-3 pt-4">
                 <Button
                   onClick={handleImport}
-                  disabled={processing || (result && !result.success)}
+                  disabled={validating || processing || !result || (result && !result.success)}
                   className="flex-1 gap-2"
                 >
                   {processing ? (
-                    <>Processing...</>
+                    <>
+                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Importing...
+                    </>
+                  ) : validating ? (
+                    <>
+                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Validating...
+                    </>
                   ) : (
                     <>
                       <Upload className="h-4 w-4" />
@@ -244,7 +280,7 @@ export function StoreImportDialog({ onClose, onSuccess }: StoreImportDialogProps
                     </>
                   )}
                 </Button>
-                <Button variant="outline" onClick={onClose}>
+                <Button variant="outline" onClick={onClose} disabled={processing}>
                   Cancel
                 </Button>
               </div>
