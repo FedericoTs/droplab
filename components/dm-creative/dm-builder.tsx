@@ -54,6 +54,36 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
     }
   }, [searchParams]);
 
+  // Auto-fill from template data
+  useEffect(() => {
+    const templateData = localStorage.getItem("selectedTemplate");
+
+    if (templateData) {
+      try {
+        const template = JSON.parse(templateData);
+
+        setFormData((prev) => ({
+          ...prev,
+          message: template.message || prev.message,
+          campaignName: template.templateName ? `${template.templateName} Campaign` : prev.campaignName,
+        }));
+
+        setUsingAICopy(true);
+        setAiCopyInfo({
+          platform: "Template",
+          audience: template.targetAudience || "From Template"
+        });
+
+        toast.success(`✨ Template "${template.templateName}" loaded successfully`);
+
+        // Clear template data after loading
+        localStorage.removeItem("selectedTemplate");
+      } catch (error) {
+        console.error("Error loading template data:", error);
+      }
+    }
+  }, []);
+
   // Auto-suggest campaign name based on company
   useEffect(() => {
     if (settings.companyName && !formData.campaignName) {

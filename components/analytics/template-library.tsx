@@ -42,6 +42,15 @@ interface Template {
   use_count: number;
   created_at: string;
   updated_at: string;
+  assets?: TemplateAsset[];
+}
+
+interface TemplateAsset {
+  id: string;
+  asset_type: string;
+  asset_name: string;
+  publicUrl: string;
+  metadata: any;
 }
 
 type CategoryFilter = "all" | "general" | "retail" | "seasonal" | "promotional";
@@ -63,7 +72,25 @@ export function TemplateLibrary() {
       const result = await response.json();
 
       if (result.success) {
-        setTemplates(result.data);
+        // Fetch assets for each template
+        const templatesWithAssets = await Promise.all(
+          result.data.map(async (template: Template) => {
+            try {
+              const assetsResponse = await fetch(`/api/campaigns/templates/${template.id}/assets`);
+              const assetsResult = await assetsResponse.json();
+
+              return {
+                ...template,
+                assets: assetsResult.success ? assetsResult.data : [],
+              };
+            } catch (error) {
+              console.error(`Failed to load assets for template ${template.id}:`, error);
+              return { ...template, assets: [] };
+            }
+          })
+        );
+
+        setTemplates(templatesWithAssets);
       }
     } catch (error) {
       console.error("Failed to load templates:", error);
@@ -102,23 +129,36 @@ export function TemplateLibrary() {
     }
   };
 
-  const handleUseTemplate = (template: Template) => {
-    // Store template data in localStorage for DM Creative page
-    localStorage.setItem(
-      "selectedTemplate",
-      JSON.stringify({
-        templateId: template.id,
-        message: template.template_data.message,
-        templateName: template.name,
-      })
-    );
+  const handleUseTemplate = async (template: Template) => {
+    try {
+      // Increment template use count
+      await fetch(`/api/campaigns/templates/${template.id}/use`, {
+        method: "POST",
+      });
 
-    toast.success("Template loaded! Redirecting to campaign creation...");
+      // Store comprehensive template data in localStorage for DM Creative page
+      localStorage.setItem(
+        "selectedTemplate",
+        JSON.stringify({
+          templateId: template.id,
+          templateName: template.name,
+          message: template.template_data.message,
+          targetAudience: template.template_data.targetAudience,
+          tone: template.template_data.tone,
+          assets: template.assets || [],
+        })
+      );
 
-    // Redirect to DM Creative page
-    setTimeout(() => {
-      window.location.href = "/dm-creative";
-    }, 800);
+      toast.success("Template loaded! Redirecting to campaign creation...");
+
+      // Redirect to DM Creative page
+      setTimeout(() => {
+        window.location.href = "/dm-creative";
+      }, 800);
+    } catch (error) {
+      console.error("Error using template:", error);
+      toast.error("Failed to use template");
+    }
   };
 
   // Filter templates
@@ -251,11 +291,40 @@ export function TemplateLibrary() {
           const CategoryIcon = getCategoryIcon(template.category);
           const isSystemTemplate = template.is_system_template === 1;
 
+          // Find background image asset
+          const backgroundAsset = template.assets?.find(
+            (asset) => asset.asset_type === "background_image"
+          );
+          const qrAsset = template.assets?.find((asset) => asset.asset_type === "qr_code");
+
           return (
             <Card
               key={template.id}
-              className="border-slate-200 hover:border-slate-300 transition-all hover:shadow-md"
+              className="border-slate-200 hover:border-slate-300 transition-all hover:shadow-md overflow-hidden"
             >
+              {/* DM Preview Image */}
+              {backgroundAsset && (
+                <div className="relative h-48 bg-slate-100 overflow-hidden">
+                  <img
+                    src={backgroundAsset.publicUrl || ""}
+                    alt={`${template.name} preview`}
+                    className="w-full h-full object-cover"
+                  />
+                  {qrAsset && (
+                    <div className="absolute bottom-2 right-2 bg-white p-1 rounded shadow-md">
+                      <img
+                        src={qrAsset.publicUrl || ""}
+                        alt="QR Code"
+                        className="w-12 h-12"
+                      />
+                    </div>
+                  )}
+                  <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-xs font-medium text-slate-700">
+                    Preview
+                  </div>
+                </div>
+              )}
+
               <CardHeader>
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">

@@ -5,11 +5,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useIndustryModule } from "@/lib/contexts/industry-module-context";
-import { FileText, Mail, Phone, Settings, BarChart3, Home, Sparkles, Bell, Store, Target, TrendingUp, Brain, Menu, X } from "lucide-react";
+import { FileText, Mail, Phone, Settings, BarChart3, Home, Sparkles, Bell, Store, Target, TrendingUp, Brain, Menu, X, Library } from "lucide-react";
 
 const navigation = [
   { name: "Home", href: "/", icon: Home, section: "main" },
   { name: "Settings", href: "/settings", icon: Settings, section: "main" },
+  { name: "Templates", href: "/templates", icon: Library, section: "create" },
   { name: "Copywriting", href: "/copywriting", icon: FileText, section: "create" },
   { name: "DM Creative", href: "/dm-creative", icon: Mail, section: "create" },
   { name: "Analytics", href: "/analytics", icon: BarChart3, section: "analyze" },
