@@ -33,7 +33,22 @@ function initializeSchema(database: Database.Database): void {
       message TEXT NOT NULL,
       company_name TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'paused', 'completed'))
+      status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'paused', 'completed', 'archived'))
+    );
+  `);
+
+  // Campaign Templates table (Phase 11A)
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS campaign_templates (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      category TEXT DEFAULT 'general' CHECK(category IN ('general', 'retail', 'seasonal', 'promotional')),
+      template_data TEXT NOT NULL,
+      is_system_template INTEGER DEFAULT 0,
+      use_count INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `);
 

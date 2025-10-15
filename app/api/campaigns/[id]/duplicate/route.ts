@@ -1,21 +1,24 @@
-import { NextResponse } from "next/server";
-import { duplicateCampaign } from "@/lib/database/tracking-queries";
+import { NextRequest, NextResponse } from 'next/server';
+import { duplicateCampaign } from '@/lib/database/campaign-management';
 
-// POST: Duplicate campaign
+/**
+ * POST /api/campaigns/[id]/duplicate
+ * Duplicate an existing campaign
+ */
 export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  request: NextRequest,
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const campaignId = params.id;
 
-    const newCampaign = duplicateCampaign(id);
+    const newCampaign = duplicateCampaign(campaignId);
 
     if (!newCampaign) {
       return NextResponse.json(
         {
           success: false,
-          error: "Campaign not found or failed to duplicate",
+          error: 'Campaign not found',
         },
         { status: 404 }
       );
@@ -24,14 +27,14 @@ export async function POST(
     return NextResponse.json({
       success: true,
       data: newCampaign,
-      message: `Campaign duplicated as "${newCampaign.name}"`,
+      message: 'Campaign duplicated successfully',
     });
   } catch (error) {
-    console.error("Error duplicating campaign:", error);
+    console.error('Error duplicating campaign:', error);
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to duplicate campaign",
+        error: 'Failed to duplicate campaign',
       },
       { status: 500 }
     );
