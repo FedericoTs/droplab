@@ -255,6 +255,86 @@ export function getRecipientsByCampaign(campaignId: string): Recipient[] {
   return stmt.all(campaignId) as Recipient[];
 }
 
+// ==================== LANDING PAGES ====================
+
+export interface LandingPage {
+  id: string;
+  tracking_id: string;
+  campaign_id: string;
+  recipient_id: string;
+  page_data: string;
+  landing_page_url: string;
+  created_at: string;
+}
+
+/**
+ * Save landing page data to database
+ */
+export function saveLandingPage(data: {
+  trackingId: string;
+  campaignId: string;
+  recipientId: string;
+  pageData: Record<string, unknown>;
+  landingPageUrl: string;
+}): LandingPage {
+  const db = getDatabase();
+  const id = nanoid(16);
+  const created_at = new Date().toISOString();
+  const page_data = JSON.stringify(data.pageData);
+
+  const stmt = db.prepare(`
+    INSERT INTO landing_pages (
+      id, tracking_id, campaign_id, recipient_id,
+      page_data, landing_page_url, created_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  stmt.run(
+    id,
+    data.trackingId,
+    data.campaignId,
+    data.recipientId,
+    page_data,
+    data.landingPageUrl,
+    created_at
+  );
+
+  return {
+    id,
+    tracking_id: data.trackingId,
+    campaign_id: data.campaignId,
+    recipient_id: data.recipientId,
+    page_data,
+    landing_page_url: data.landingPageUrl,
+    created_at,
+  };
+}
+
+/**
+ * Get landing page by tracking ID
+ */
+export function getLandingPageByTrackingId(trackingId: string): LandingPage | null {
+  const db = getDatabase();
+  const stmt = db.prepare("SELECT * FROM landing_pages WHERE tracking_id = ?");
+  return stmt.get(trackingId) as LandingPage | null;
+}
+
+/**
+ * Get all landing pages for a campaign
+ */
+export function getLandingPagesByCampaign(campaignId: string): LandingPage[] {
+  const db = getDatabase();
+  const stmt = db.prepare(`
+    SELECT lp.*, r.name, r.lastname, r.email, r.phone
+    FROM landing_pages lp
+    JOIN recipients r ON lp.recipient_id = r.id
+    WHERE lp.campaign_id = ?
+    ORDER BY lp.created_at DESC
+  `);
+  return stmt.all(campaignId) as LandingPage[];
+}
+
 // ==================== EVENTS ====================
 
 /**

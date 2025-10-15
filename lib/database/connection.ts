@@ -99,6 +99,22 @@ function initializeSchema(database: Database.Database): void {
     );
   `);
 
+  // Landing Pages table - Store complete landing page data
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS landing_pages (
+      id TEXT PRIMARY KEY,
+      tracking_id TEXT UNIQUE NOT NULL,
+      campaign_id TEXT NOT NULL,
+      recipient_id TEXT NOT NULL,
+      page_data TEXT NOT NULL,
+      landing_page_url TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (tracking_id) REFERENCES recipients(tracking_id) ON DELETE CASCADE,
+      FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE,
+      FOREIGN KEY (recipient_id) REFERENCES recipients(id) ON DELETE CASCADE
+    );
+  `);
+
   // Create index on tracking_id for fast lookups
   database.exec(`
     CREATE INDEX IF NOT EXISTS idx_recipients_tracking_id
@@ -109,6 +125,17 @@ function initializeSchema(database: Database.Database): void {
   database.exec(`
     CREATE INDEX IF NOT EXISTS idx_recipients_campaign_id
     ON recipients(campaign_id);
+  `);
+
+  // Create indexes for landing_pages table
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_landing_pages_tracking_id
+    ON landing_pages(tracking_id);
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_landing_pages_campaign_id
+    ON landing_pages(campaign_id);
   `);
 
   // Events table (page views, clicks, interactions)

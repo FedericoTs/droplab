@@ -18,22 +18,105 @@ export default function LandingPage() {
   const [questionnaireResults, setQuestionnaireResults] = useState<QuestionnaireResults | null>(null);
 
   useEffect(() => {
-    if (trackingId) {
+    const loadLandingPage = async () => {
+      if (!trackingId) return;
+
+      // Try to load from database first
+      try {
+        const response = await fetch(`/api/landing-pages/${trackingId}`);
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          // Database has the landing page data
+          setPageData(result.data);
+          setLoading(false);
+
+          // Smart tracking: Only track if accessed externally
+          const shouldTrack = checkIfExternalAccess();
+
+          if (shouldTrack) {
+            // Track in database (new SQLite tracking)
+            trackPageView(trackingId, `/lp/${trackingId}`);
+            console.log(`Landing page visit tracked (external): ${trackingId}`);
+          } else {
+            console.log(`Landing page preview (internal - not tracked): ${trackingId}`);
+          }
+          return;
+        }
+      } catch (error) {
+        console.error("Error loading from database, trying localStorage:", error);
+      }
+
+      // Fallback to localStorage (legacy support)
       const data = getLandingPageData(trackingId);
       setPageData(data);
       setLoading(false);
 
       if (data) {
-        // Track in localStorage (existing)
-        incrementPageVisit(trackingId);
+        // Smart tracking: Only track if accessed externally
+        const shouldTrack = checkIfExternalAccess();
 
-        // Track in database (new SQLite tracking)
-        trackPageView(trackingId, `/lp/${trackingId}`);
+        if (shouldTrack) {
+          // Track in localStorage (existing)
+          incrementPageVisit(trackingId);
 
-        console.log(`Landing page visit tracked: ${trackingId}`);
+          // Track in database (new SQLite tracking)
+          trackPageView(trackingId, `/lp/${trackingId}`);
+
+          console.log(`Landing page visit tracked (external): ${trackingId}`);
+        } else {
+          console.log(`Landing page preview (internal - not tracked): ${trackingId}`);
+        }
       }
-    }
+    };
+
+    loadLandingPage();
   }, [trackingId]);
+
+  /**
+   * Check if the page is being accessed externally (should track)
+   * vs internally from the platform (preview mode - don't track)
+   */
+  const checkIfExternalAccess = (): boolean => {
+    // Check if this is the first navigation (entered URL directly or from email/QR)
+    // or navigated from external site
+    const referrer = document.referrer;
+    const currentHost = window.location.host;
+
+    // If no referrer, user likely came from external source (QR code, direct link, email)
+    if (!referrer) {
+      return true;
+    }
+
+    // If referrer is from a different domain, it's external
+    try {
+      const referrerUrl = new URL(referrer);
+      if (referrerUrl.host !== currentHost) {
+        return true; // External domain
+      }
+    } catch (e) {
+      // Invalid referrer URL, treat as external
+      return true;
+    }
+
+    // Check if there's a special preview parameter (added by internal links)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('preview')) {
+      return false; // Internal preview mode
+    }
+
+    // Check if accessed from within the platform (referrer is from same host and is a platform page)
+    // Platform pages that should NOT trigger tracking: /analytics, /templates, /campaigns
+    if (referrer.includes('/analytics') ||
+        referrer.includes('/templates') ||
+        referrer.includes('/campaigns') ||
+        referrer.includes('/dm-creative')) {
+      return false; // Internal navigation from platform
+    }
+
+    // Default to tracking (external access)
+    return true;
+  };
 
   const handleQuestionnaireComplete = (results: QuestionnaireResults) => {
     setQuestionnaireResults(results);

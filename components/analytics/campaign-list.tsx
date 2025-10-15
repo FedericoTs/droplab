@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Users, Eye, TrendingUp, Calendar, Loader2, ChevronRight, Search, Filter, MoreVertical, Play, Pause, CheckCircle, Copy, Trash2, Download, Bookmark, Square, CheckSquare, Archive } from "lucide-react";
+import { Users, Eye, TrendingUp, Calendar, Loader2, ChevronRight, Search, Filter, MoreVertical, Play, Pause, CheckCircle, Copy, Trash2, Download, Bookmark, Square, CheckSquare, Archive, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { CampaignStoreStats } from "@/components/analytics/campaign-store-stats";
@@ -42,6 +42,7 @@ export function CampaignList() {
   const [exporting, setExporting] = useState(false);
   const [selectedCampaigns, setSelectedCampaigns] = useState<string[]>([]);
   const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [loadingLandingPages, setLoadingLandingPages] = useState<string | null>(null);
 
   useEffect(() => {
     loadCampaigns();
@@ -241,6 +242,28 @@ export function CampaignList() {
       setSelectedCampaigns([]);
     } else {
       setSelectedCampaigns(filteredAndSortedCampaigns.map((c) => c.id));
+    }
+  };
+
+  const handleViewLandingPages = async (campaignId: string) => {
+    setLoadingLandingPages(campaignId);
+    try {
+      const response = await fetch(`/api/campaigns/${campaignId}/landing-pages`);
+      const result = await response.json();
+
+      if (result.success && result.data.length > 0) {
+        // Open first landing page in preview mode (no tracking)
+        const firstPage = result.data[0];
+        window.open(`/lp/${firstPage.tracking_id}?preview=true`, '_blank');
+        toast.success(`Found ${result.data.length} landing page${result.data.length !== 1 ? 's' : ''} for this campaign`);
+      } else {
+        toast.info("No landing pages found for this campaign");
+      }
+    } catch (error) {
+      console.error("Error loading landing pages:", error);
+      toast.error("Failed to load landing pages");
+    } finally {
+      setLoadingLandingPages(null);
     }
   };
 
@@ -756,6 +779,22 @@ export function CampaignList() {
                   <Bookmark className="h-3.5 w-3.5" />
                 )}
                 Save as Template
+              </Button>
+
+              {/* View Landing Pages Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleViewLandingPages(campaign.id)}
+                disabled={loadingLandingPages === campaign.id}
+                className="gap-2 text-cyan-700 border-cyan-300 hover:bg-cyan-50"
+              >
+                {loadingLandingPages === campaign.id ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <ExternalLink className="h-3.5 w-3.5" />
+                )}
+                View Landing Page
               </Button>
 
               {/* Delete Button */}

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateQRCode } from "@/lib/qr-generator";
 import { generateDMCreativeImage } from "@/lib/ai/openai";
-import { createCampaign, createRecipient } from "@/lib/database/tracking-queries";
+import { createCampaign, createRecipient, saveLandingPage } from "@/lib/database/tracking-queries";
 import { saveAsset } from "@/lib/database/asset-management";
 // Note: Image composition moved to client-side to avoid native module issues
 import {
@@ -130,6 +130,34 @@ export async function POST(request: NextRequest) {
 
     console.log("AI background image generated successfully");
     console.log("Note: Final composition will be done client-side");
+
+    // Save landing page data to database
+    try {
+      saveLandingPage({
+        trackingId,
+        campaignId: campaign.id,
+        recipientId: dbRecipient.id,
+        pageData: {
+          recipient: {
+            name: recipient.name,
+            lastname: recipient.lastname,
+            address: recipient.address,
+            city: recipient.city,
+            zip: recipient.zip,
+            email: recipient.email,
+            phone: recipient.phone,
+          },
+          message,
+          companyName: companyContext?.companyName || "Your Company",
+          createdAt: new Date().toISOString(),
+        },
+        landingPageUrl,
+      });
+      console.log(`Landing page saved for tracking ID: ${trackingId}`);
+    } catch (error) {
+      console.error("Error saving landing page:", error);
+      // Don't fail the request, just log the error
+    }
 
     // Save assets to database for template previews and campaign details
     try {
