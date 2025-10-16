@@ -56,17 +56,17 @@ export async function POST(request: NextRequest) {
       brandProfile = saveBrandProfile({ companyName });
     }
 
-    // Save logo as asset
+    // Save logo as asset (no templateId - we track via logo_asset_id in brand_profiles)
     const asset = saveAsset({
       assetType: 'logo',
       assetName: `${companyName} - Logo`,
       fileData: buffer,
-      templateId: brandProfile.id, // Link to brand profile
       mimeType: file.type,
       metadata: {
         originalFilename: file.name,
         uploadedAt: new Date().toISOString(),
         companyName,
+        brandProfileId: brandProfile.id,
       },
     });
 

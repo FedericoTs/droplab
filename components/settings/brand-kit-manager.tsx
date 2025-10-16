@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Upload, Save, Eye, Loader2, Palette, Type, Layout, Check } from 'lucide-react';
+import { Upload, Save, Eye, Loader2, Palette, Type, Layout, Check, Sparkles, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface BrandKitManagerProps {
@@ -45,8 +45,10 @@ const TEMPLATES = [
 export function BrandKitManager({ companyName }: BrandKitManagerProps) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>('');
+  const [websiteUrl, setWebsiteUrl] = useState('');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -122,6 +124,58 @@ export function BrandKitManager({ companyName }: BrandKitManagerProps) {
         setLogoPreview(e.target?.result as string);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAnalyzeWebsite = async () => {
+    if (!websiteUrl) {
+      toast.error('Please enter a website URL');
+      return;
+    }
+
+    setAnalyzing(true);
+    try {
+      const response = await fetch('/api/brand/analyze-website', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ websiteUrl }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Auto-populate form with extracted data
+        setFormData({
+          logoUrl: result.data.logoUrl || formData.logoUrl,
+          primaryColor: result.data.primaryColor || formData.primaryColor,
+          secondaryColor: result.data.secondaryColor || formData.secondaryColor,
+          accentColor: result.data.accentColor || formData.accentColor,
+          backgroundColor: formData.backgroundColor,
+          textColor: formData.textColor,
+          headingFont: result.data.headingFont || formData.headingFont,
+          bodyFont: result.data.bodyFont || formData.bodyFont,
+          landingPageTemplate: result.data.landingPageTemplate || formData.landingPageTemplate,
+        });
+
+        // Set logo preview if found
+        if (result.data.logoUrl) {
+          setLogoPreview(result.data.logoUrl);
+        }
+
+        toast.success(
+          <div>
+            <p className="font-semibold">✨ Website analyzed successfully!</p>
+            <p className="text-sm">Brand Kit auto-filled with extracted data. Review and save.</p>
+          </div>
+        );
+      } else {
+        toast.error(result.error || 'Failed to analyze website');
+      }
+    } catch (error) {
+      console.error('Error analyzing website:', error);
+      toast.error('Failed to analyze website');
+    } finally {
+      setAnalyzing(false);
     }
   };
 
@@ -205,6 +259,93 @@ export function BrandKitManager({ companyName }: BrandKitManagerProps) {
 
   return (
     <div className="space-y-6">
+      {/* AI Website Analyzer */}
+      <Card className="border-2 border-purple-200 bg-gradient-to-r from-purple-50 to-blue-50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-purple-900">
+            <Sparkles className="h-5 w-5" />
+            AI Website Analyzer
+          </CardTitle>
+          <CardDescription>
+            Enter your website URL and let AI automatically extract your brand identity
+            (logo, colors, fonts, and style) in seconds.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <Label htmlFor="websiteUrl" className="mb-2 block">
+                Website URL
+              </Label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    id="websiteUrl"
+                    type="url"
+                    value={websiteUrl}
+                    onChange={(e) => setWebsiteUrl(e.target.value)}
+                    placeholder="https://www.yourcompany.com"
+                    className="pl-10"
+                    disabled={analyzing}
+                  />
+                </div>
+                <Button
+                  onClick={handleAnalyzeWebsite}
+                  disabled={analyzing || !websiteUrl}
+                  className="gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                >
+                  {analyzing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4" />
+                      Analyze Website
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {analyzing && (
+            <div className="bg-white/50 border border-purple-200 rounded-lg p-4">
+              <div className="flex items-center gap-3">
+                <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
+                <div>
+                  <p className="font-medium text-slate-900">Analyzing website...</p>
+                  <p className="text-sm text-slate-600">
+                    AI is extracting logo, colors, fonts, and brand style. This may take 10-20 seconds.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="text-sm text-slate-600 bg-white/50 p-3 rounded border border-slate-200">
+            <p className="font-medium text-slate-700 mb-1">💡 How it works:</p>
+            <ul className="list-disc list-inside space-y-1 text-xs">
+              <li>AI takes a screenshot of your website</li>
+              <li>Analyzes design, colors, typography, and logo</li>
+              <li>Auto-fills the Brand Kit below</li>
+              <li>You can review and adjust before saving</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-slate-200"></div>
+        </div>
+        <div className="relative flex justify-center text-sm">
+          <span className="px-4 bg-white text-slate-500">or upload manually</span>
+        </div>
+      </div>
+
       {/* Logo Upload */}
       <Card>
         <CardHeader>
