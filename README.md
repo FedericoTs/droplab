@@ -15,6 +15,13 @@ A comprehensive Next.js 15.5.4 application demonstrating AI-powered marketing au
 
 ### 2. **Direct Mail Creative** (Enhanced)
 - **AI-generated background images** using DALL-E (gpt-image-1 model)
+- **Template System** - Reusable DM templates for efficient batch processing
+  - Fabric.js v6 canvas editor with drag-and-drop layout
+  - Save templates with variable field markers
+  - Apply templates to new recipients instantly
+  - Cost: $0.00 per template use (vs $0.048 per AI generation)
+  - Speed: ~3 seconds per DM (vs 25 seconds with AI)
+  - Scale: Process thousands/millions of records efficiently
 - Personalized direct mail with unique QR codes linking to dedicated landing pages
 - **Auto-fill from Copywriting** - campaign name and message pre-populated
 - **Auto-suggest campaign name** based on company and date
@@ -311,8 +318,22 @@ npm start
 
 ## 📄 Documentation
 
-- **CLAUDE.md** - Comprehensive architecture and implementation guide
-- **README.md** - This file (user guide)
+### Main Documentation
+- **README.md** - This file (user guide and quick start)
+- **CLAUDE.md** - Comprehensive architecture and implementation guide for Claude Code
+  - Project structure and design patterns
+  - Template system architecture
+  - API integration patterns
+  - Development best practices
+
+### Technical References
+- **BUGFIX_SEPARATE_VARIABLE_MAPPINGS.md** - Critical template system architecture decision
+  - Explains Fabric.js v6 custom property serialization limitation
+  - Documents separate variable mapping solution
+  - Template system troubleshooting guide
+
+### Archived Documentation
+- **docs/archive/** - Historical planning documents and phase proposals
 
 ## 🎨 Design Philosophy
 

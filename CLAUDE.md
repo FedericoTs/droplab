@@ -107,6 +107,87 @@ Next.js 15.5.4 marketing AI application with:
     - Phone number configuration
 - Used to personalize outputs across all features
 
+## Template System Architecture
+
+### Overview
+The platform includes a **reusable DM template system** that enables efficient batch processing of thousands/millions of direct mail pieces without regenerating AI backgrounds.
+
+### Key Components
+
+1. **Template Creation (`/dm-creative/editor`)**
+   - Fabric.js v6 canvas editor for visual design
+   - Drag-and-drop layout editing
+   - Variable field markers for dynamic data replacement
+
+2. **Template Storage (Database)**
+   ```
+   dm_templates table:
+   - id: Template unique ID
+   - canvas_json: Fabric.js canvas state (positions, styles, layers)
+   - variable_mappings: Index-based map of variable markers (JSON)
+   - background_image: AI-generated background (reused)
+   - preview_image: Template thumbnail
+   ```
+
+3. **Variable Mappings (Separate Storage Pattern)**
+   **Critical Architecture Decision**: Fabric.js v6 does NOT serialize custom properties via `toJSON()`.
+
+   **Solution**: Store variable markers separately from canvas JSON.
+
+   ```typescript
+   // Save Phase - Extract markers from canvas objects
+   const variableMappings: Record<string, { variableType?: string; isReusable?: boolean }> = {};
+   objects.forEach((obj: any, idx: number) => {
+     variableMappings[idx.toString()] = {
+       variableType: obj.variableType,   // 'logo', 'message', 'qrCode', etc.
+       isReusable: obj.isReusable        // true for logo, false for variable data
+     };
+   });
+   // Store as JSON in database variable_mappings column
+
+   // Load Phase - Apply markers back to canvas objects by index
+   canvas.loadFromJSON(canvasJSON).then(() => {
+     Object.entries(variableMappings).forEach(([idx, mapping]) => {
+       objects[idx].variableType = mapping.variableType;
+       objects[idx].isReusable = mapping.isReusable;
+     });
+   });
+   ```
+
+4. **Variable Types**
+   - `logo` - Company logo (reusable, never replaced)
+   - `message` - Marketing copy (from template)
+   - `recipientName` - Personalized name field
+   - `recipientAddress` - Personalized address field
+   - `phoneNumber` - Contact number
+   - `qrCode` - Unique tracking QR code (regenerated per recipient)
+
+5. **Template Application Flow**
+   ```
+   1. User selects template from library
+   2. Enters new recipient data
+   3. System loads template canvasJSON + variableMappings
+   4. Applies variable mappings to canvas objects by index
+   5. Replaces variable fields with new recipient data
+   6. Generates new QR code with unique tracking ID
+   7. Preserves reusable elements (logo)
+   8. Renders final DM without AI background regeneration
+   ```
+
+### Benefits
+- **Cost Savings**: $0.00 per template use (vs $0.048 per AI background generation)
+- **Time Savings**: ~3 seconds per DM (vs 25 seconds with AI generation)
+- **Scalability**: Batch process thousands/millions of records efficiently
+- **Consistency**: Same branding across all DMs
+- **Personalization**: Each DM has unique recipient data and tracking QR code
+
+### Known Issues & Fixes
+See `BUGFIX_SEPARATE_VARIABLE_MAPPINGS.md` for complete documentation of:
+- Fabric.js v6 custom property serialization limitation
+- Separate variable mapping implementation
+- QR code size preservation fix
+- Canvas disposal/React StrictMode race condition fixes
+
 ## Technology Stack
 
 ### Required Dependencies
