@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { DMBuilder } from "@/components/dm-creative/dm-builder";
-import { QRPreview } from "@/components/dm-creative/qr-preview";
 import { CSVUploader } from "@/components/dm-creative/csv-uploader";
 import { BatchResults } from "@/components/dm-creative/batch-results";
 import { SmartCampaignOptimizer } from "@/components/retail/smart-campaign-optimizer";
@@ -15,7 +14,6 @@ import { QrCode, MapPin, BarChart3 } from "lucide-react";
 import { useIndustryModule } from "@/lib/contexts/industry-module-context";
 
 export default function DMCreativePage() {
-  const [generatedDM, setGeneratedDM] = useState<DirectMailData | null>(null);
   const [batchDMs, setBatchDMs] = useState<DirectMailData[]>([]);
   const [batchMessage, setBatchMessage] = useState("");
   const industryModule = useIndustryModule();
@@ -99,21 +97,8 @@ export default function DMCreativePage() {
         </TabsList>
 
         <TabsContent value="single" className="mt-6">
-          <div className="grid md:grid-cols-2 gap-6">
-            <DMBuilder onGenerated={setGeneratedDM} />
-
-            {generatedDM ? (
-              <QRPreview dmData={generatedDM} />
-            ) : (
-              <Card className="flex items-center justify-center min-h-[400px]">
-                <CardContent className="text-center">
-                  <QrCode className="h-16 w-16 text-slate-300 mx-auto mb-4" />
-                  <p className="text-slate-500">
-                    Fill in the form and generate a direct mail to see the preview
-                  </p>
-                </CardContent>
-              </Card>
-            )}
+          <div className="max-w-4xl mx-auto">
+            <DMBuilder />
           </div>
         </TabsContent>
 
