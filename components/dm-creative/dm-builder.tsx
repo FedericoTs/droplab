@@ -876,7 +876,7 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
                         onChange={handleChange}
                         placeholder="Describe the scene for your AI-generated background image..."
                         rows={10}
-                        className="resize-none border-purple-300 focus:border-purple-500 bg-white text-base"
+                        className="resize-none border-purple-300 focus:border-purple-500 bg-white text-base min-h-[240px] h-[240px]"
                       />
                       <p className="text-xs text-purple-700">
                         <strong>Pro tip:</strong> Be specific about setting, mood, number of people (1-2 recommended), lighting, and atmosphere.
