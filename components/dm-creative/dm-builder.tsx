@@ -853,7 +853,7 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
             </div>
 
             {/* Right Column - AI Image Generation Settings + Submit Button */}
-            <div className="col-span-2 flex flex-col space-y-6">
+            <div className="col-span-2 flex flex-col space-y-4">
               {/* AI Image Generation Section - Only show if NO template loaded */}
               {!loadedTemplate?.hasDesign && (
                 <Card className="border-2 border-purple-200 bg-purple-50/30 flex-1">
@@ -863,7 +863,7 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
                       AI Image Generation
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-3">
                     {/* Scene Description */}
                     <div className="space-y-2">
                       <Label htmlFor="sceneDescription" className="font-medium text-purple-900">
@@ -875,8 +875,8 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
                         value={formData.sceneDescription}
                         onChange={handleChange}
                         placeholder="Describe the scene for your AI-generated background image..."
-                        rows={6}
-                        className="resize-none border-purple-300 focus:border-purple-500 bg-white text-base min-h-[140px] h-[140px]"
+                        rows={4}
+                        className="resize-none border-purple-300 focus:border-purple-500 bg-white text-base min-h-[100px] h-[100px]"
                       />
                       <p className="text-xs text-purple-700">
                         <strong>Pro tip:</strong> Be specific about setting, mood, number of people (1-2 recommended), lighting, and atmosphere.
@@ -884,7 +884,7 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
                     </div>
 
                     {/* Quality Slider */}
-                    <div className="space-y-3 pt-4 border-t border-purple-200">
+                    <div className="space-y-2 pt-3 border-t border-purple-200">
                       <Label className="font-medium text-purple-900">
                         Image Quality
                       </Label>
@@ -924,7 +924,7 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
                     </div>
 
                     {/* Compact Aspect Ratio Selector */}
-                    <div className="pt-4 border-t border-purple-200">
+                    <div className="pt-3 border-t border-purple-200">
                       <AspectRatioSelector
                         selected={imageAspectRatio}
                         onSelect={setImageAspectRatio}
@@ -932,7 +932,7 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
                     </div>
 
                     {/* Template Selector */}
-                    <div className="pt-4 border-t border-purple-200">
+                    <div className="pt-3 border-t border-purple-200">
                       <TemplateSelector
                         selected={layoutTemplate}
                         onSelect={setLayoutTemplate}
