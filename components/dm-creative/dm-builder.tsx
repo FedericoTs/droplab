@@ -852,11 +852,11 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
               </Card>
             </div>
 
-            {/* Right Column - AI Image Generation Settings */}
-            <div className="flex flex-col">
+            {/* Right Column - AI Image Generation Settings + Submit Button */}
+            <div className="flex flex-col space-y-6">
               {/* AI Image Generation Section - Only show if NO template loaded */}
               {!loadedTemplate?.hasDesign && (
-                <Card className="border-2 border-purple-200 bg-purple-50/30 h-full">
+                <Card className="border-2 border-purple-200 bg-purple-50/30">
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
                       <Sparkles className="h-5 w-5 text-purple-600" />
@@ -941,33 +941,33 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Submit Button - Bottom of Right Column */}
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full gap-2"
+                size="lg"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    {loadedTemplate?.hasDesign ? "Applying Template..." : "Generating..."}
+                  </>
+                ) : loadedTemplate?.hasDesign ? (
+                  <>
+                    <Library className="h-5 w-5" />
+                    Apply Template to Recipient
+                  </>
+                ) : (
+                  <>
+                    <Mail className="h-5 w-5" />
+                    Generate Direct Mail
+                  </>
+                )}
+              </Button>
             </div>
           </div>
-
-          {/* Submit Button - Full Width Below Grid */}
-          <Button
-            type="submit"
-            disabled={isLoading}
-            className="w-full gap-2"
-            size="lg"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                {loadedTemplate?.hasDesign ? "Applying Template..." : "Generating..."}
-              </>
-            ) : loadedTemplate?.hasDesign ? (
-              <>
-                <Library className="h-5 w-5" />
-                Apply Template to Recipient
-              </>
-            ) : (
-              <>
-                <Mail className="h-5 w-5" />
-                Generate Direct Mail
-              </>
-            )}
-          </Button>
         </form>
       </CardContent>
     </Card>
