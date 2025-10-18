@@ -710,7 +710,7 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
 
         <form onSubmit={handleGenerate} className="space-y-6">
           {/* Two Column Layout: Data Entry (Left) + AI Settings (Right) */}
-          <div className="grid md:grid-cols-[1.2fr,0.8fr] gap-6 md:items-start">
+          <div className="grid grid-cols-[1.2fr,0.8fr] gap-6 items-start">
             {/* Left Column - All Data Entry (Campaign, Content, Recipient) */}
             <div className="flex flex-col space-y-6">
               {/* Campaign Information Section */}
