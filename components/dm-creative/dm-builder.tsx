@@ -710,7 +710,7 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
 
         <form onSubmit={handleGenerate} className="space-y-6">
           {/* Two Column Layout: Data Entry (Left) + AI Settings (Right) */}
-          <div className="grid grid-cols-5 gap-6 items-start">
+          <div className="grid grid-cols-5 gap-6 items-stretch">
             {/* Left Column - All Data Entry (Campaign, Content, Recipient) */}
             <div className="col-span-3 flex flex-col space-y-6">
               {/* Campaign Information Section */}
@@ -853,10 +853,10 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
             </div>
 
             {/* Right Column - AI Image Generation Settings + Submit Button */}
-            <div className="col-span-2 flex flex-col space-y-4">
+            <div className="col-span-2 flex flex-col justify-between">
               {/* AI Image Generation Section - Only show if NO template loaded */}
               {!loadedTemplate?.hasDesign && (
-                <Card className="border-2 border-purple-200 bg-purple-50/30 flex-1">
+                <Card className="border-2 border-purple-200 bg-purple-50/30">
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
                       <Sparkles className="h-5 w-5 text-purple-600" />
@@ -875,8 +875,8 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
                         value={formData.sceneDescription}
                         onChange={handleChange}
                         placeholder="Describe the scene for your AI-generated background image..."
-                        rows={8}
-                        className="resize-none border-purple-300 focus:border-purple-500 bg-white text-base min-h-[180px] h-[180px]"
+                        rows={10}
+                        className="resize-none border-purple-300 focus:border-purple-500 bg-white text-base min-h-[220px] h-[220px]"
                       />
                       <p className="text-xs text-purple-700">
                         <strong>Pro tip:</strong> Be specific about setting, mood, number of people (1-2 recommended), lighting, and atmosphere.
