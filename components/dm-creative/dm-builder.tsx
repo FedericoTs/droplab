@@ -856,7 +856,7 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
             <div className="col-span-2 flex flex-col space-y-6">
               {/* AI Image Generation Section - Only show if NO template loaded */}
               {!loadedTemplate?.hasDesign && (
-                <Card className="border-2 border-purple-200 bg-purple-50/30">
+                <Card className="border-2 border-purple-200 bg-purple-50/30 flex-1">
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
                       <Sparkles className="h-5 w-5 text-purple-600" />
@@ -875,8 +875,8 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
                         value={formData.sceneDescription}
                         onChange={handleChange}
                         placeholder="Describe the scene for your AI-generated background image..."
-                        rows={10}
-                        className="resize-none border-purple-300 focus:border-purple-500 bg-white text-base min-h-[240px] h-[240px]"
+                        rows={6}
+                        className="resize-none border-purple-300 focus:border-purple-500 bg-white text-base min-h-[140px] h-[140px]"
                       />
                       <p className="text-xs text-purple-700">
                         <strong>Pro tip:</strong> Be specific about setting, mood, number of people (1-2 recommended), lighting, and atmosphere.
