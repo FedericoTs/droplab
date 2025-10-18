@@ -710,9 +710,9 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
 
         <form onSubmit={handleGenerate} className="space-y-6">
           {/* Two Column Layout: Data Entry (Left) + AI Settings (Right) */}
-          <div className="grid grid-cols-[1.2fr,0.8fr] gap-6 items-start">
+          <div className="grid grid-cols-5 gap-6 items-start">
             {/* Left Column - All Data Entry (Campaign, Content, Recipient) */}
-            <div className="flex flex-col space-y-6">
+            <div className="col-span-3 flex flex-col space-y-6">
               {/* Campaign Information Section */}
               <Card>
                 <CardHeader>
@@ -853,7 +853,7 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
             </div>
 
             {/* Right Column - AI Image Generation Settings + Submit Button */}
-            <div className="flex flex-col space-y-6">
+            <div className="col-span-2 flex flex-col space-y-6">
               {/* AI Image Generation Section - Only show if NO template loaded */}
               {!loadedTemplate?.hasDesign && (
                 <Card className="border-2 border-purple-200 bg-purple-50/30">
