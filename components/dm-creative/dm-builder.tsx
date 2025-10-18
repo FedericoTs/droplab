@@ -709,10 +709,10 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
         )}
 
         <form onSubmit={handleGenerate} className="space-y-6">
-          {/* Two Column Layout with Equal Heights */}
-          <div className="grid md:grid-cols-2 gap-6 md:items-start">
-            {/* Left Column - Campaign & Marketing Content */}
-            <div className="flex flex-col space-y-6 h-full">
+          {/* Two Column Layout: Data Entry (Left) + AI Settings (Right) */}
+          <div className="grid md:grid-cols-[1.2fr,0.8fr] gap-6 md:items-start">
+            {/* Left Column - All Data Entry (Campaign, Content, Recipient) */}
+            <div className="flex flex-col space-y-6">
               {/* Campaign Information Section */}
               <Card>
                 <CardHeader>
@@ -755,7 +755,7 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
               </Card>
 
               {/* Marketing Content Section */}
-              <Card className="flex-1">
+              <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">Marketing Content</CardTitle>
                 </CardHeader>
@@ -767,7 +767,7 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
                     value={formData.message}
                     onChange={handleChange}
                     placeholder="Enter your personalized marketing message..."
-                    rows={12}
+                    rows={8}
                     required
                     className="text-base resize-none"
                   />
@@ -776,10 +776,7 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
                   </p>
                 </CardContent>
               </Card>
-            </div>
 
-            {/* Right Column - Recipient Info & AI Settings */}
-            <div className="flex flex-col space-y-6 h-full">
               {/* Recipient Details Section */}
               <Card>
                 <CardHeader>
@@ -853,10 +850,13 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
                   </div>
                 </CardContent>
               </Card>
+            </div>
 
+            {/* Right Column - AI Image Generation Settings */}
+            <div className="flex flex-col">
               {/* AI Image Generation Section - Only show if NO template loaded */}
               {!loadedTemplate?.hasDesign && (
-                <Card className="border-2 border-purple-200 bg-purple-50/30 flex-1">
+                <Card className="border-2 border-purple-200 bg-purple-50/30 h-full">
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
                       <Sparkles className="h-5 w-5 text-purple-600" />

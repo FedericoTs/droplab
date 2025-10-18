@@ -97,9 +97,7 @@ export default function DMCreativePage() {
         </TabsList>
 
         <TabsContent value="single" className="mt-6">
-          <div className="max-w-4xl mx-auto">
-            <DMBuilder />
-          </div>
+          <DMBuilder />
         </TabsContent>
 
         <TabsContent value="batch" className="mt-6">
