@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible } from "@/components/ui/collapsible";
-import { Loader2, Mail, Sparkles, Settings2, Library, X } from "lucide-react";
+import { Loader2, Mail, Sparkles, Settings2, Library, X, Check, Square, RectangleHorizontal, RectangleVertical } from "lucide-react";
 import { RecipientData, DirectMailData } from "@/types/dm-creative";
 import { toast } from "sonner";
 import { storeLandingPageData } from "@/lib/tracking";
@@ -16,6 +16,60 @@ import { useSettings } from "@/lib/contexts/settings-context";
 import { composeDMImageBrowser, LayoutTemplate } from "@/lib/dm-image-compositor-browser";
 import { ImageQuality, ImageSize, calculateImageCost } from "@/lib/ai/openai-v2";
 import { TemplateSelector } from "@/components/dm-creative/template-selector";
+import { cn } from "@/lib/utils";
+
+/**
+ * Compact Aspect Ratio Selector with Icon Boxes
+ */
+interface AspectRatioSelectorProps {
+  selected: ImageSize;
+  onSelect: (size: ImageSize) => void;
+}
+
+function AspectRatioSelector({ selected, onSelect }: AspectRatioSelectorProps) {
+  const ratios: { value: ImageSize; icon: typeof Square; label: string; desc: string }[] = [
+    { value: '1024x1024', icon: Square, label: 'Square', desc: '1:1' },
+    { value: '1536x1024', icon: RectangleHorizontal, label: 'Landscape', desc: '3:2' },
+    { value: '1024x1536', icon: RectangleVertical, label: 'Portrait', desc: '2:3' },
+  ];
+
+  return (
+    <div className="space-y-2">
+      <Label className="font-medium text-purple-900">Aspect Ratio</Label>
+      <div className="grid grid-cols-3 gap-2">
+        {ratios.map(({ value, icon: Icon, label, desc }) => {
+          const isSelected = selected === value;
+          return (
+            <button
+              key={value}
+              type="button"
+              onClick={() => onSelect(value)}
+              className={cn(
+                "relative p-3 rounded-lg border-2 transition-all text-center",
+                "hover:border-purple-400 hover:bg-purple-50",
+                isSelected
+                  ? "border-purple-600 bg-purple-100"
+                  : "border-purple-200 bg-white"
+              )}
+            >
+              <Icon className={cn(
+                "h-8 w-8 mx-auto mb-1",
+                isSelected ? "text-purple-600" : "text-purple-400"
+              )} />
+              {isSelected && (
+                <div className="absolute top-1 right-1 w-4 h-4 bg-purple-600 rounded-full flex items-center justify-center">
+                  <Check className="w-2.5 h-2.5 text-white" />
+                </div>
+              )}
+              <div className="font-medium text-xs">{label}</div>
+              <div className="text-[10px] text-slate-500">{desc}</div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 interface DMBuilderProps {
   onGenerated?: (dmData: DirectMailData) => void;
@@ -655,10 +709,10 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
         )}
 
         <form onSubmit={handleGenerate} className="space-y-6">
-          {/* Two Column Layout */}
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Left Column - Campaign & Recipient Info */}
-            <div className="space-y-6">
+          {/* Two Column Layout with Equal Heights */}
+          <div className="grid md:grid-cols-2 gap-6 md:items-start">
+            {/* Left Column - Campaign & Marketing Content */}
+            <div className="flex flex-col space-y-6 h-full">
               {/* Campaign Information Section */}
               <Card>
                 <CardHeader>
@@ -700,6 +754,32 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
                 </CardContent>
               </Card>
 
+              {/* Marketing Content Section */}
+              <Card className="flex-1">
+                <CardHeader>
+                  <CardTitle className="text-lg">Marketing Content</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <Label htmlFor="message">Marketing Message *</Label>
+                  <Textarea
+                    id="message"
+                    name="message"
+                    value={formData.message}
+                    onChange={handleChange}
+                    placeholder="Enter your personalized marketing message..."
+                    rows={12}
+                    required
+                    className="text-base resize-none"
+                  />
+                  <p className="text-xs text-slate-500">
+                    This message will appear in both the direct mail and landing page
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Right Column - Recipient Info & AI Settings */}
+            <div className="flex flex-col space-y-6 h-full">
               {/* Recipient Details Section */}
               <Card>
                 <CardHeader>
@@ -773,36 +853,10 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
                   </div>
                 </CardContent>
               </Card>
-            </div>
-
-            {/* Right Column - Content & AI Settings */}
-            <div className="space-y-6">
-              {/* Marketing Content Section */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Marketing Content</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <Label htmlFor="message">Marketing Message *</Label>
-                  <Textarea
-                    id="message"
-                    name="message"
-                    value={formData.message}
-                    onChange={handleChange}
-                    placeholder="Enter your personalized marketing message..."
-                    rows={8}
-                    required
-                    className="text-base resize-none"
-                  />
-                  <p className="text-xs text-slate-500">
-                    This message will appear in both the direct mail and landing page
-                  </p>
-                </CardContent>
-              </Card>
 
               {/* AI Image Generation Section - Only show if NO template loaded */}
               {!loadedTemplate?.hasDesign && (
-                <Card className="border-2 border-purple-200 bg-purple-50/30">
+                <Card className="border-2 border-purple-200 bg-purple-50/30 flex-1">
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
                       <Sparkles className="h-5 w-5 text-purple-600" />
@@ -810,137 +864,80 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="sceneDescription" className="font-medium text-purple-900">
-                    Scene Description
-                  </Label>
-                  <Textarea
-                    id="sceneDescription"
-                    name="sceneDescription"
-                    value={formData.sceneDescription}
-                    onChange={handleChange}
-                    placeholder="Describe the scene for your AI-generated background image..."
-                    rows={4}
-                    className="resize-none border-purple-300 focus:border-purple-500 bg-white text-base"
-                  />
-                  <p className="text-xs text-purple-700">
-                    <strong>Pro tip:</strong> Be specific about setting, mood, number of people (1-2 recommended), lighting, and atmosphere.
-                  </p>
-                </div>
-
-                <div className="space-y-3 pt-4 border-t border-purple-200">
-                  <Label className="font-medium text-purple-900">
-                    Image Quality
-                  </Label>
-                  <div className="space-y-2">
-                    <input
-                      type="range"
-                      min="0"
-                      max="2"
-                      step="1"
-                      value={imageQuality === 'low' ? 0 : imageQuality === 'medium' ? 1 : 2}
-                      onChange={(e) => {
-                        const value = parseInt(e.target.value);
-                        const qualities: ImageQuality[] = ['low', 'medium', 'high'];
-                        setImageQuality(qualities[value]);
-                      }}
-                      className="w-full h-2 bg-gradient-to-r from-green-200 via-blue-200 to-purple-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
-                      style={{
-                        background: imageQuality === 'low'
-                          ? 'linear-gradient(to right, #86efac 0%, #86efac 50%, #cbd5e1 50%, #cbd5e1 100%)'
-                          : imageQuality === 'medium'
-                          ? 'linear-gradient(to right, #86efac 0%, #93c5fd 50%, #cbd5e1 50%, #cbd5e1 100%)'
-                          : 'linear-gradient(to right, #86efac 0%, #93c5fd 50%, #c4b5fd 100%)'
-                      }}
-                    />
-                    <div className="flex justify-between text-xs">
-                      <span className={`font-medium ${imageQuality === 'low' ? 'text-green-700' : 'text-slate-400'}`}>
-                        Low
-                      </span>
-                      <span className={`font-medium ${imageQuality === 'medium' ? 'text-blue-700' : 'text-slate-400'}`}>
-                        Medium
-                      </span>
-                      <span className={`font-medium ${imageQuality === 'high' ? 'text-purple-700' : 'text-slate-400'}`}>
-                        High
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2 pt-4 border-t border-purple-200">
-                  <Label className="font-medium text-purple-900">Aspect Ratio</Label>
-                  <div className="grid gap-2 bg-white p-3 rounded-lg border border-purple-200">
-                  <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
-                    <input
-                      type="radio"
-                      name="aspectRatio"
-                      value="1024x1024"
-                      checked={imageAspectRatio === '1024x1024'}
-                      onChange={(e) => setImageAspectRatio(e.target.value as ImageSize)}
-                      className="w-4 h-4 text-blue-600"
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">Square</span>
-                        <span className="text-xs text-slate-500">1024×1024</span>
-                      </div>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Perfect for social media and flyers
+                    {/* Scene Description */}
+                    <div className="space-y-2">
+                      <Label htmlFor="sceneDescription" className="font-medium text-purple-900">
+                        Scene Description
+                      </Label>
+                      <Textarea
+                        id="sceneDescription"
+                        name="sceneDescription"
+                        value={formData.sceneDescription}
+                        onChange={handleChange}
+                        placeholder="Describe the scene for your AI-generated background image..."
+                        rows={5}
+                        className="resize-none border-purple-300 focus:border-purple-500 bg-white text-base"
+                      />
+                      <p className="text-xs text-purple-700">
+                        <strong>Pro tip:</strong> Be specific about setting, mood, number of people (1-2 recommended), lighting, and atmosphere.
                       </p>
                     </div>
-                  </label>
 
-                  <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
-                    <input
-                      type="radio"
-                      name="aspectRatio"
-                      value="1536x1024"
-                      checked={imageAspectRatio === '1536x1024'}
-                      onChange={(e) => setImageAspectRatio(e.target.value as ImageSize)}
-                      className="w-4 h-4 text-blue-600"
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">Landscape</span>
-                        <span className="text-xs text-slate-500">1536×1024</span>
-                        <span className="text-xs px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full">
-                          Recommended
-                        </span>
+                    {/* Quality Slider */}
+                    <div className="space-y-3 pt-4 border-t border-purple-200">
+                      <Label className="font-medium text-purple-900">
+                        Image Quality
+                      </Label>
+                      <div className="space-y-2">
+                        <input
+                          type="range"
+                          min="0"
+                          max="2"
+                          step="1"
+                          value={imageQuality === 'low' ? 0 : imageQuality === 'medium' ? 1 : 2}
+                          onChange={(e) => {
+                            const value = parseInt(e.target.value);
+                            const qualities: ImageQuality[] = ['low', 'medium', 'high'];
+                            setImageQuality(qualities[value]);
+                          }}
+                          className="w-full h-2 bg-gradient-to-r from-green-200 via-blue-200 to-purple-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                          style={{
+                            background: imageQuality === 'low'
+                              ? 'linear-gradient(to right, #86efac 0%, #86efac 50%, #cbd5e1 50%, #cbd5e1 100%)'
+                              : imageQuality === 'medium'
+                              ? 'linear-gradient(to right, #86efac 0%, #93c5fd 50%, #cbd5e1 50%, #cbd5e1 100%)'
+                              : 'linear-gradient(to right, #86efac 0%, #93c5fd 50%, #c4b5fd 100%)'
+                          }}
+                        />
+                        <div className="flex justify-between text-xs">
+                          <span className={`font-medium ${imageQuality === 'low' ? 'text-green-700' : 'text-slate-400'}`}>
+                            Low
+                          </span>
+                          <span className={`font-medium ${imageQuality === 'medium' ? 'text-blue-700' : 'text-slate-400'}`}>
+                            Medium
+                          </span>
+                          <span className={`font-medium ${imageQuality === 'high' ? 'text-purple-700' : 'text-slate-400'}`}>
+                            High
+                          </span>
+                        </div>
                       </div>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Best for postcards and direct mail
-                      </p>
                     </div>
-                  </label>
 
-                  <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
-                    <input
-                      type="radio"
-                      name="aspectRatio"
-                      value="1024x1536"
-                      checked={imageAspectRatio === '1024x1536'}
-                      onChange={(e) => setImageAspectRatio(e.target.value as ImageSize)}
-                      className="w-4 h-4 text-blue-600"
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">Portrait</span>
-                        <span className="text-xs text-slate-500">1024×1536</span>
-                      </div>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Ideal for door hangers and bookmarks
-                      </p>
+                    {/* Compact Aspect Ratio Selector */}
+                    <div className="pt-4 border-t border-purple-200">
+                      <AspectRatioSelector
+                        selected={imageAspectRatio}
+                        onSelect={setImageAspectRatio}
+                      />
                     </div>
-                  </label>
-                </div>
-              </div>
 
-                <div className="pt-4 border-t border-purple-200">
-                  <TemplateSelector
-                    selected={layoutTemplate}
-                    onSelect={setLayoutTemplate}
-                  />
-                </div>
+                    {/* Template Selector */}
+                    <div className="pt-4 border-t border-purple-200">
+                      <TemplateSelector
+                        selected={layoutTemplate}
+                        onSelect={setLayoutTemplate}
+                      />
+                    </div>
                   </CardContent>
                 </Card>
               )}
