@@ -108,9 +108,9 @@ export default function BatchJobPage({ params }: { params: Promise<{ id: string 
             <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
             <h2 className="text-2xl font-bold mb-2">Batch Job Not Found</h2>
             <p className="text-slate-600 mb-4">The requested batch job could not be found.</p>
-            <Button onClick={() => router.push("/dm-creative")}>
+            <Button onClick={() => router.push("/batch-jobs")}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to DM Creative
+              Back to Batch Jobs
             </Button>
           </CardContent>
         </Card>
@@ -147,9 +147,9 @@ export default function BatchJobPage({ params }: { params: Promise<{ id: string 
   return (
     <div className="container mx-auto p-6 max-w-4xl">
       <div className="mb-6">
-        <Button variant="ghost" onClick={() => router.push("/dm-creative")}>
+        <Button variant="ghost" onClick={() => router.push("/batch-jobs")}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to DM Creative
+          Back to Batch Jobs
         </Button>
       </div>
 

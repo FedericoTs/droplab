@@ -60,8 +60,8 @@ class PersistentPageWorker {
 
       // Load page ONCE (this is the expensive part we're avoiding in loop)
       await this.page.setContent(html, {
-        waitUntil: 'networkidle0',
-        timeout: 180000
+        waitUntil: 'load', // Changed from networkidle0 - same fix as cluster renderer
+        timeout: 300000 // Increased from 180s to 300s (5 minutes)
       });
 
       // Wait for Fabric.js and canvas initialization
@@ -112,7 +112,8 @@ class PersistentPageWorker {
 
         // Update text fields and identify QR code
         objects.forEach((obj: any) => {
-          if (!obj.variableType || obj.isReusable) return;
+          const isReusable = obj.isReusable === true; // Only skip if explicitly true (same fix as cluster)
+          if (!obj.variableType || isReusable) return;
 
           // TEXT UPDATES
           if (obj.type === 'textbox' || obj.type === 'i-text' || obj.type === 'text') {
@@ -128,7 +129,11 @@ class PersistentPageWorker {
                 obj.set({ text: data.message });
                 break;
               case 'phoneNumber':
-                obj.set({ text: `📞 ${data.phoneNumber}` });
+                // Only replace if phoneNumber provided in CSV (same logic as cluster renderer)
+                if (data.phoneNumber && data.phoneNumber.trim()) {
+                  obj.set({ text: `📞 ${data.phoneNumber}` });
+                }
+                // else keep template default
                 break;
             }
           }
@@ -185,7 +190,7 @@ class PersistentPageWorker {
       // Wait for rendering to complete
       await this.page.waitForFunction(
         () => window.renderComplete || window.renderError,
-        { timeout: 30000 }
+        { timeout: 60000 } // Increased from 30s to 60s for complex templates
       );
 
       // Check for errors
@@ -365,24 +370,46 @@ export class PersistentWorkerPool {
     console.log(`🚀 Initializing ${concurrency} persistent workers...`);
     const startTime = Date.now();
 
-    // Create and initialize workers in parallel
-    const workerPromises: Promise<PersistentPageWorker>[] = [];
+    // Timeout wrapper for individual worker initialization
+    const initWorkerWithTimeout = (worker: PersistentPageWorker, index: number, timeout: number): Promise<PersistentPageWorker | null> => {
+      return Promise.race([
+        worker.initialize().then(() => {
+          console.log(`  ✅ Worker ${index + 1}/${concurrency} ready`);
+          return worker;
+        }),
+        new Promise<null>((_, reject) =>
+          setTimeout(() => reject(new Error(`Worker ${index + 1} initialization timeout after ${timeout/1000}s`)), timeout)
+        )
+      ]).catch((error) => {
+        console.error(`  ❌ Worker ${index + 1} failed:`, error.message);
+        return null; // Return null instead of throwing - allow other workers to continue
+      });
+    };
+
+    // Create and initialize workers in parallel with timeout protection
+    const workerPromises: Promise<PersistentPageWorker | null>[] = [];
 
     for (let i = 0; i < concurrency; i++) {
       const worker = new PersistentPageWorker(this.templateId);
-      workerPromises.push(
-        worker.initialize().then(() => {
-          console.log(`  ✅ Worker ${i + 1}/${concurrency} ready`);
-          return worker;
-        })
-      );
+      workerPromises.push(initWorkerWithTimeout(worker, i, 120000)); // 2 minute timeout per worker
     }
 
-    this.workers = await Promise.all(workerPromises);
+    const workers = await Promise.all(workerPromises);
+
+    // Filter out failed workers
+    this.workers = workers.filter((w): w is PersistentPageWorker => w !== null);
     this.availableWorkers = [...this.workers];
 
+    if (this.workers.length === 0) {
+      throw new Error('All workers failed to initialize');
+    }
+
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-    console.log(`✅ ${concurrency} workers initialized in ${duration}s`);
+    console.log(`✅ ${this.workers.length}/${concurrency} workers initialized in ${duration}s`);
+
+    if (this.workers.length < concurrency) {
+      console.warn(`⚠️  Only ${this.workers.length}/${concurrency} workers available - continuing with reduced capacity`);
+    }
   }
 
   /**
@@ -468,7 +495,7 @@ export class PersistentWorkerPool {
 export async function renderBatchTemplatesPersistent(
   templateId: string,
   recipients: RecipientRenderData[],
-  onProgress?: (current: number, total: number) => void
+  onProgress?: (current: number, total: number, success: number, failed: number) => void
 ): Promise<Map<number, string>> {
   const concurrency = parseInt(process.env.BATCH_WORKER_CONCURRENCY || '4');
   const pool = new PersistentWorkerPool(templateId);
@@ -480,6 +507,7 @@ export async function renderBatchTemplatesPersistent(
     // Render all recipients
     const results = new Map<number, string>();
     let completed = 0;
+    let success = 0;
     let failed = 0;
 
     // Process in controlled batches to avoid memory spikes
@@ -495,23 +523,28 @@ export async function renderBatchTemplatesPersistent(
           const imageDataUrl = await pool.renderRecipient(recipient);
           results.set(globalIndex, imageDataUrl);
           completed++;
+          success++;
 
-          // Report progress
-          onProgress?.(completed, recipients.length);
+          // Report progress (same format as cluster renderer)
+          onProgress?.(completed, recipients.length, success, failed);
         } catch (error) {
+          completed++;
           failed++;
           console.error(`❌ Failed to render recipient ${globalIndex} (${recipient.name}):`, error);
 
           // Don't throw - allow other recipients to continue
-          // Set null to indicate failure
+          // Set empty string to indicate failure
           results.set(globalIndex, '');
+
+          // Report progress (same format as cluster renderer)
+          onProgress?.(completed, recipients.length, success, failed);
         }
       });
 
       await Promise.all(batchPromises);
     }
 
-    console.log(`✅ Rendering complete: ${completed} success, ${failed} failed`);
+    console.log(`✅ Persistent rendering complete: ${success} success, ${failed} failed out of ${recipients.length} total`);
     return results;
   } finally {
     // Always cleanup workers

@@ -507,6 +507,7 @@ export function getBatchJobStats(): {
   processing: number;
   completed: number;
   failed: number;
+  cancelled: number;
   totalRecipients: number;
   totalProcessed: number;
 } {
@@ -519,6 +520,7 @@ export function getBatchJobStats(): {
       SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END) as processing,
       SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
       SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed,
+      SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled,
       SUM(total_recipients) as totalRecipients,
       SUM(processed_count) as totalProcessed
     FROM batch_jobs
