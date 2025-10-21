@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Upload, Download, FileText, Loader2, CheckCircle2 } from "lucide-react";
+import { Upload, Download, FileText, Loader2, CheckCircle2, Library, X } from "lucide-react";
 import { parseCSV, generateSampleCSV, analyzeStoreDistribution } from "@/lib/csv-processor";
 import { RecipientData, DirectMailData } from "@/types/dm-creative";
 import { toast } from "sonner";
@@ -17,11 +18,45 @@ interface CSVUploaderProps {
 }
 
 export function CSVUploader({ onBatchGenerated, message }: CSVUploaderProps) {
+  const router = useRouter();
   const { settings } = useSettings();
   const [recipients, setRecipients] = useState<RecipientData[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [storeDistribution, setStoreDistribution] = useState<ReturnType<typeof analyzeStoreDistribution> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Template state (loaded from localStorage)
+  const [loadedTemplate, setLoadedTemplate] = useState<{
+    templateId: string;
+    templateName: string;
+    hasDesign: boolean;
+    dmTemplateId?: string;
+  } | null>(null);
+
+  // Load template from localStorage on mount (same as dm-builder.tsx)
+  useEffect(() => {
+    const templateData = localStorage.getItem("selectedTemplate");
+    if (templateData) {
+      try {
+        const template = JSON.parse(templateData);
+        setLoadedTemplate({
+          templateId: template.templateId,
+          templateName: template.templateName,
+          hasDesign: template.hasDesign || false,
+          dmTemplateId: template.dmTemplateId,
+        });
+        toast.success(`✨ Template "${template.templateName}" loaded for batch processing`);
+      } catch (error) {
+        console.error("Error loading template:", error);
+      }
+    }
+  }, []);
+
+  const clearTemplate = () => {
+    setLoadedTemplate(null);
+    localStorage.removeItem("selectedTemplate");
+    toast.info("Template cleared");
+  };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -78,52 +113,99 @@ export function CSVUploader({ onBatchGenerated, message }: CSVUploaderProps) {
     setIsProcessing(true);
 
     try {
-      // Call batch API to create campaign and recipients in database
-      const response = await fetch("/api/dm-creative/batch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          recipients,
-          message,
-          companyContext: {
-            companyName: settings.companyName,
-            industry: settings.industry,
-            brandVoice: settings.brandVoice,
-            targetAudience: settings.targetAudience,
-          },
-          campaignName: `Batch Campaign - ${new Date().toLocaleDateString()}`,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (result.success && result.data) {
-        const dmDataList: DirectMailData[] = result.data;
-
-        // Store landing page data in localStorage for backward compatibility
-        for (const dmData of dmDataList) {
-          storeLandingPageData({
-            trackingId: dmData.trackingId,
-            recipient: dmData.recipient,
-            message: dmData.message,
-            companyName: settings.companyName,
-            createdAt: dmData.createdAt,
-            visits: 0,
-          });
-        }
-
-        onBatchGenerated(dmDataList);
-        toast.success(
-          `Generated ${dmDataList.length} direct mails! Campaign: ${result.campaignName}`
-        );
-      } else {
-        toast.error(result.error || "Failed to generate batch");
-      }
+      // ALWAYS use background queue for proper template rendering
+      // Small batches complete in seconds anyway, and this ensures template support
+      await handleLargeBatch();
     } catch (error) {
       console.error("Error generating batch:", error);
       toast.error("Failed to generate batch");
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  // BACKGROUND QUEUE FLOW: Handles all batch sizes with proper template rendering
+  const handleLargeBatch = async () => {
+    if (!loadedTemplate?.dmTemplateId) {
+      toast.error("Template is required for batch processing. Please select a template first.");
+      return;
+    }
+
+    toast.info(`Creating background job for ${recipients.length} recipients...`);
+
+    // First, create campaign and recipients using existing batch API
+    const batchResponse = await fetch("/api/dm-creative/batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        recipients,
+        message,
+        companyContext: {
+          companyName: settings.companyName,
+          industry: settings.industry,
+          brandVoice: settings.brandVoice,
+          targetAudience: settings.targetAudience,
+        },
+        campaignName: `Batch Campaign - ${new Date().toLocaleDateString()}`,
+      }),
+    });
+
+    const batchResult = await batchResponse.json();
+
+    if (!batchResult.success || !batchResult.data) {
+      toast.error("Failed to create campaign");
+      return;
+    }
+
+    const dmDataList: DirectMailData[] = batchResult.data;
+
+    // Now create background batch job
+    const jobResponse = await fetch("/api/batch-jobs/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        campaignId: batchResult.campaignId,
+        templateId: loadedTemplate.dmTemplateId,
+        recipients: dmDataList.map((dm) => ({
+          recipientId: dm.recipient.id || dm.trackingId,
+          trackingId: dm.trackingId,
+          name: dm.recipient.name,
+          lastname: dm.recipient.lastname,
+          address: dm.recipient.address,
+          city: dm.recipient.city,
+          zip: dm.recipient.zip,
+          message: dm.message,
+          phoneNumber: dm.recipient.phone || "", // Use CSV phone if provided, empty = keep template default
+          qrCodeDataUrl: dm.qrCodeDataUrl,
+          landingPageUrl: dm.landingPageUrl,
+        })),
+        userEmail: "federicosciuca@gmail.com", // Email for notifications
+        settings: {
+          companyName: settings.companyName,
+          industry: settings.industry,
+          brandVoice: settings.brandVoice,
+        },
+      }),
+    });
+
+    const jobResult = await jobResponse.json();
+
+    if (jobResult.success) {
+      toast.success(
+        `🎉 Batch job created! Processing ${recipients.length} recipients in background.`,
+        { duration: 5000 }
+      );
+      toast.info(
+        `📧 You'll receive an email at federicosciuca@gmail.com when complete.`,
+        { duration: 5000 }
+      );
+
+      // Redirect to batch jobs dashboard (will be created next)
+      setTimeout(() => {
+        router.push(`/batch-jobs/${jobResult.data.batchJobId}`);
+      }, 2000);
+    } else {
+      toast.error(jobResult.error || "Failed to create batch job");
     }
   };
 
@@ -147,6 +229,31 @@ export function CSVUploader({ onBatchGenerated, message }: CSVUploaderProps) {
         <CardTitle>Batch Upload (CSV)</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Template Loaded Banner */}
+        {loadedTemplate && (
+          <div className="p-4 bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200 rounded-lg">
+            <div className="flex items-center gap-3">
+              <Library className="h-5 w-5 text-purple-600 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-purple-900">
+                  ✨ Template: {loadedTemplate.templateName}
+                </p>
+                <p className="text-sm text-purple-700">
+                  All {recipients.length > 0 ? recipients.length : ""} recipients will use this template design
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearTemplate}
+                className="flex-shrink-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-3">
           <p className="text-sm text-slate-600">
             Upload a CSV file with recipient information for batch processing
@@ -248,6 +355,16 @@ export function CSVUploader({ onBatchGenerated, message }: CSVUploaderProps) {
                 </>
               )}
             </Button>
+
+            {/* Batch processing info */}
+            {recipients.length > 0 && (
+              <p className="text-sm text-slate-600 text-center">
+                {recipients.length < 10
+                  ? "✅ Small batches complete in seconds"
+                  : "⏱️ Batch will be processed in background. You'll receive an email when complete."
+                }
+              </p>
+            )}
           </div>
         )}
       </CardContent>

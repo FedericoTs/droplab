@@ -447,6 +447,7 @@ export default function CanvasEditorPage() {
       fontWeight: "bold",
       fill: primaryColor,
       variableType: 'phoneNumber', // Custom property for identification
+      isReusable: false, // CRITICAL: Must be replaced per recipient
     });
     canvas.add(phone);
 

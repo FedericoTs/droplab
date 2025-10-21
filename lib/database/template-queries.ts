@@ -1,8 +1,5 @@
-import Database from "better-sqlite3";
 import { nanoid } from "nanoid";
-import path from "path";
-
-const dbPath = path.join(process.cwd(), "marketing.db");
+import { getDatabase } from "./connection";
 
 export interface DMTemplate {
   id: string;
@@ -50,7 +47,7 @@ export interface VariableMapping {
  * Save a canvas as a reusable DM template
  */
 export function createDMTemplate(data: Omit<DMTemplate, "id" | "createdAt">): string {
-  const db = new Database(dbPath);
+  const db = getDatabase();
   const templateId = nanoid();
 
   const stmt = db.prepare(`
@@ -75,7 +72,6 @@ export function createDMTemplate(data: Omit<DMTemplate, "id" | "createdAt">): st
     data.variableMappings || null
   );
 
-  db.close();
   return templateId;
 }
 
@@ -83,14 +79,13 @@ export function createDMTemplate(data: Omit<DMTemplate, "id" | "createdAt">): st
  * Get a DM template by ID
  */
 export function getDMTemplate(templateId: string): DMTemplate | null {
-  const db = new Database(dbPath);
+  const db = getDatabase();
 
   const stmt = db.prepare(`
     SELECT * FROM dm_templates WHERE id = ?
   `);
 
   const row = stmt.get(templateId) as any;
-  db.close();
 
   if (!row) return null;
 
@@ -114,7 +109,7 @@ export function getDMTemplate(templateId: string): DMTemplate | null {
  * Get all templates for a campaign
  */
 export function getTemplatesByCampaign(campaignId: string): DMTemplate[] {
-  const db = new Database(dbPath);
+  const db = getDatabase();
 
   const stmt = db.prepare(`
     SELECT * FROM dm_templates
@@ -123,7 +118,6 @@ export function getTemplatesByCampaign(campaignId: string): DMTemplate[] {
   `);
 
   const rows = stmt.all(campaignId) as any[];
-  db.close();
 
   return rows.map((row) => ({
     id: row.id,
@@ -145,14 +139,13 @@ export function getTemplatesByCampaign(campaignId: string): DMTemplate[] {
  * Get DM template by campaign template ID
  */
 export function getDMTemplateByCampaignTemplate(campaignTemplateId: string): DMTemplate | null {
-  const db = new Database(dbPath);
+  const db = getDatabase();
 
   const stmt = db.prepare(`
     SELECT * FROM dm_templates WHERE campaign_template_id = ?
   `);
 
   const row = stmt.get(campaignTemplateId) as any;
-  db.close();
 
   if (!row) return null;
 
@@ -176,7 +169,7 @@ export function getDMTemplateByCampaignTemplate(campaignTemplateId: string): DMT
  * Update template preview image
  */
 export function updateTemplatePreview(templateId: string, previewImage: string): void {
-  const db = new Database(dbPath);
+  const db = getDatabase();
 
   const stmt = db.prepare(`
     UPDATE dm_templates
@@ -185,19 +178,17 @@ export function updateTemplatePreview(templateId: string, previewImage: string):
   `);
 
   stmt.run(previewImage, templateId);
-  db.close();
 }
 
 /**
  * Delete a template
  */
 export function deleteDMTemplate(templateId: string): void {
-  const db = new Database(dbPath);
+  const db = getDatabase();
 
   const stmt = db.prepare(`
     DELETE FROM dm_templates WHERE id = ?
   `);
 
   stmt.run(templateId);
-  db.close();
 }
