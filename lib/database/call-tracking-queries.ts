@@ -369,27 +369,6 @@ export function getLastSyncTimestamp(): number | null {
 }
 
 /**
- * Get unattributed calls (calls without campaign_id)
- * Useful for manual attribution UI
- */
-export function getUnattributedCalls(): ElevenLabsCall[] {
-  const db = getDatabase();
-
-  const stmt = db.prepare(`
-    SELECT * FROM elevenlabs_calls
-    WHERE campaign_id IS NULL
-    ORDER BY call_started_at DESC
-  `);
-
-  const calls = stmt.all() as ElevenLabsCall[];
-
-  return calls.map((call) => ({
-    ...call,
-    is_conversion: Boolean(call.is_conversion),
-  }));
-}
-
-/**
  * Manually attribute a call to a campaign
  */
 export function manuallyAttributeCall(conversationId: string, campaignId: string, recipientId?: string): void {
