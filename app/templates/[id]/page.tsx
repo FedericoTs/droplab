@@ -132,13 +132,13 @@ export default function TemplateDetailPage() {
       try {
         if (analyticsData && analyticsData.usage_history && analyticsData.usage_history.length > 0) {
           const firstCampaign = analyticsData.usage_history[0];
-          // Fetch recipients for this campaign
-          const recipientsRes = await fetch(`/api/campaigns/${firstCampaign.id}/recipients?limit=1`);
-          if (recipientsRes.ok) {
-            const recipientsData = await recipientsRes.json();
-            if (recipientsData.success && recipientsData.data && recipientsData.data.length > 0) {
-              const firstRecipient = recipientsData.data[0];
-              setSampleLandingPageUrl(`/lp/${firstRecipient.tracking_id}`);
+          // Check if campaign has a landing page configured
+          const lpRes = await fetch(`/api/campaigns/${firstCampaign.id}/landing-page`);
+          if (lpRes.ok) {
+            const lpData = await lpRes.json();
+            if (lpData && lpData.page_config) {
+              // Use campaign-based landing page preview
+              setSampleLandingPageUrl(`/lp/campaign/${firstCampaign.id}/preview`);
             }
           }
         }

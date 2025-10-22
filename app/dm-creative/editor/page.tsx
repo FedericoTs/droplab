@@ -13,7 +13,8 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Save, ZoomIn, ZoomOut, Maximize2, Type, Square, Circle, Upload, Library, X, Trash2, Image as ImageIcon, Layers, Eye, EyeOff, Lock, Unlock, ChevronUp, ChevronDown, Edit2, FileText, Minus, AlignLeft, AlignCenter, AlignRight, AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, Palette, Bold } from "lucide-react";
+import { ArrowLeft, Save, ZoomIn, ZoomOut, Maximize2, Type, Square, Circle, Upload, Library, X, Trash2, Image as ImageIcon, Layers, Eye, EyeOff, Lock, Unlock, ChevronUp, ChevronDown, Edit2, FileText, Minus, AlignLeft, AlignCenter, AlignRight, AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, Palette, Bold, Globe } from "lucide-react";
+import { LandingPageCustomizationModal } from "@/components/landing-page/customization-modal";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -65,6 +66,9 @@ export default function CanvasEditorPage() {
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
   const [customImageCounter, setCustomImageCounter] = useState(1);
   const [selectedElement, setSelectedElement] = useState<any>(null);
+
+  // Landing Page Customization Modal
+  const [showLPCustomizationModal, setShowLPCustomizationModal] = useState(false);
 
   // PHASE 3: Layer Management
   const [layers, setLayers] = useState<any[]>([]);
@@ -1559,6 +1563,15 @@ export default function CanvasEditorPage() {
             <Library className="w-4 h-4" />
             Save as Template
           </Button>
+          <Button
+            variant="outline"
+            onClick={() => setShowLPCustomizationModal(true)}
+            className="gap-2 border-purple-200 hover:border-purple-300 hover:bg-purple-50"
+            disabled={!editorData?.campaignId}
+          >
+            <Globe className="w-4 h-4 text-purple-600" />
+            Customize Landing Page
+          </Button>
           <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 gap-2">
             <Save className="w-4 h-4" />
             Save & Continue
@@ -2281,6 +2294,22 @@ export default function CanvasEditorPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Landing Page Customization Modal */}
+      {editorData?.campaignId && (
+        <LandingPageCustomizationModal
+          open={showLPCustomizationModal}
+          campaignId={editorData.campaignId.toString()}
+          campaignName={editorData.campaignName || "Campaign"}
+          companyName={editorData.companyName} // Pass company name for brand profile lookup
+          campaignMessage={editorData.message}
+          onClose={() => setShowLPCustomizationModal(false)}
+          onSave={() => {
+            toast.success("Landing page customization saved!");
+            setShowLPCustomizationModal(false);
+          }}
+        />
       )}
     </div>
   );

@@ -93,9 +93,9 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
     targetAudience?: string;
   } | null>(null);
 
-  // V2 Image Generation Settings (Smart Defaults)
-  const [imageQuality, setImageQuality] = useState<ImageQuality>('low'); // Default: LOW quality (cost-optimized)
-  const [imageAspectRatio, setImageAspectRatio] = useState<ImageSize>('1536x1024'); // Default: Landscape (best for DM)
+  // V2 Image Generation Settings (User-Controlled via UI)
+  const [imageQuality, setImageQuality] = useState<ImageQuality>('medium'); // Default: Medium (balanced quality/cost)
+  const [imageAspectRatio, setImageAspectRatio] = useState<ImageSize>('1024x1024'); // Default: Square 1024x1024
   const [layoutTemplate, setLayoutTemplate] = useState<LayoutTemplate>('classic'); // Default: Classic layout
 
   // Canvas Editor State (stores data temporarily before navigation)
@@ -340,6 +340,8 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
           skipImageGeneration: true,
           // Use template's existing background
           existingBackgroundImage: template.backgroundImage,
+          // Landing Page Template (default: book-appointment, user can customize in Canvas Editor)
+          landingPageTemplateId: 'book-appointment',
         }),
       });
 
@@ -520,6 +522,8 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
           imageAspectRatio,
           layoutTemplate,
           sceneDescription: formData.sceneDescription, // Scene description drives image generation
+          // Landing Page Template (default: book-appointment, user can customize in Canvas Editor)
+          landingPageTemplateId: 'book-appointment',
         }),
       });
 
@@ -938,6 +942,7 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
                         onSelect={setLayoutTemplate}
                       />
                     </div>
+
                   </CardContent>
                 </Card>
               )}

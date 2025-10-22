@@ -324,6 +324,38 @@ export default function CampaignDetailPage() {
         </CardContent>
       </Card>
 
+      {/* Landing Page Preview */}
+      <Card className="mb-8">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5" />
+              Landing Page Preview
+            </CardTitle>
+            <Link href={`/lp/campaign/${campaignId}/preview`} target="_blank">
+              <Button variant="outline" size="sm" className="gap-2">
+                Open Full Page
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </Button>
+            </Link>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="border rounded-lg overflow-hidden bg-slate-50">
+            <iframe
+              src={`/lp/campaign/${campaignId}/preview`}
+              className="w-full h-[600px]"
+              title="Landing Page Preview"
+            />
+          </div>
+          <p className="text-sm text-slate-600 mt-3">
+            This is the landing page that recipients see when they scan the QR code from your direct mail pieces.
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Recipients Table */}
       <Card>
         <CardHeader>

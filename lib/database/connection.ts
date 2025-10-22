@@ -186,7 +186,7 @@ function initializeSchema(database: Database.Database): void {
     );
   `);
 
-  // Landing Pages table - Store complete landing page data
+  // Landing Pages table - Store complete landing page data (OLD SYSTEM - recipient-based)
   database.exec(`
     CREATE TABLE IF NOT EXISTS landing_pages (
       id TEXT PRIMARY KEY,
@@ -199,6 +199,20 @@ function initializeSchema(database: Database.Database): void {
       FOREIGN KEY (tracking_id) REFERENCES recipients(tracking_id) ON DELETE CASCADE,
       FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE,
       FOREIGN KEY (recipient_id) REFERENCES recipients(id) ON DELETE CASCADE
+    );
+  `);
+
+  // Campaign Landing Pages table - Campaign-based landing pages (NEW SYSTEM - Phase 1)
+  // One landing page per campaign with dual mode: personalized (QR) + generic (direct URL)
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS campaign_landing_pages (
+      id TEXT PRIMARY KEY,
+      campaign_id TEXT NOT NULL,
+      campaign_template_id TEXT,
+      page_config TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE
     );
   `);
 
@@ -223,6 +237,58 @@ function initializeSchema(database: Database.Database): void {
   database.exec(`
     CREATE INDEX IF NOT EXISTS idx_landing_pages_campaign_id
     ON landing_pages(campaign_id);
+  `);
+
+  // Create index for campaign_landing_pages table
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_campaign_landing_campaign
+    ON campaign_landing_pages(campaign_id);
+  `);
+
+  // Landing Page Templates table (Simple Template System - Phase 11B)
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS landing_page_templates (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      category TEXT NOT NULL DEFAULT 'prebuilt',
+      template_type TEXT NOT NULL,
+      is_system_template INTEGER DEFAULT 0,
+      template_config TEXT NOT NULL,
+      preview_image TEXT,
+      use_count INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_templates_category
+    ON landing_page_templates(category);
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_templates_type
+    ON landing_page_templates(template_type);
+  `);
+
+  // Analytics Tracking Snippets table (Google Analytics, Adobe, etc.)
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS landing_page_tracking_snippets (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      snippet_type TEXT NOT NULL,
+      code TEXT NOT NULL,
+      position TEXT NOT NULL DEFAULT 'body',
+      is_active INTEGER DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_tracking_snippets_active
+    ON landing_page_tracking_snippets(is_active);
   `);
 
   // Events table (page views, clicks, interactions)
@@ -596,6 +662,57 @@ function initializeSchema(database: Database.Database): void {
   `);
 
   console.log("✅ Database schema initialized successfully (including retail and batch processing tables)");
+
+  // Seed pre-built templates if they don't exist
+  seedPrebuiltTemplates(database);
+}
+
+/**
+ * Seed pre-built landing page templates
+ * @param database Database instance
+ */
+function seedPrebuiltTemplates(database: Database.Database): void {
+  try {
+    // Check if templates already seeded
+    const count = database.prepare('SELECT COUNT(*) as count FROM landing_page_templates WHERE is_system_template = 1').get() as { count: number };
+
+    if (count.count >= 8) {
+      console.log('✅ Pre-built templates already seeded');
+      return;
+    }
+
+    console.log('🌱 Seeding pre-built landing page templates...');
+
+    // Import templates (lazy load to avoid circular dependencies)
+    const { PREBUILT_TEMPLATES } = require('../templates/prebuilt-templates');
+    const now = new Date().toISOString();
+
+    for (const template of PREBUILT_TEMPLATES) {
+      database.prepare(`
+        INSERT OR REPLACE INTO landing_page_templates (
+          id, name, description, category, template_type, is_system_template,
+          template_config, preview_image, use_count, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        template.id,
+        template.name,
+        template.description,
+        template.category,
+        template.template_type,
+        template.is_system_template,
+        template.template_config,
+        template.preview_image,
+        template.use_count,
+        now,
+        now
+      );
+    }
+
+    console.log(`✅ Seeded ${PREBUILT_TEMPLATES.length} pre-built templates`);
+  } catch (error) {
+    console.error('❌ Error seeding templates:', error);
+    // Don't throw - allow app to continue
+  }
 }
 
 /**

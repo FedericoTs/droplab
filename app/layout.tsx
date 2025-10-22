@@ -25,8 +25,9 @@ export default function RootLayout({
 }>) {
   const pathname = usePathname();
 
-  // CRITICAL: Editor routes should be FULL-SCREEN (no sidebar)
+  // CRITICAL: Editor routes and landing pages should be FULL-SCREEN (no sidebar)
   const isEditorRoute = pathname?.startsWith("/dm-creative/editor");
+  const isLandingPage = pathname?.startsWith("/lp/");
 
   return (
     <html lang="en">
@@ -40,8 +41,8 @@ export default function RootLayout({
       >
         <SettingsProvider>
           <IndustryModuleProvider>
-            {isEditorRoute ? (
-              // STANDALONE EDITOR - No sidebar, full screen
+            {isEditorRoute || isLandingPage ? (
+              // STANDALONE PAGES - No sidebar, full screen
               <>
                 {children}
                 <Toaster />

@@ -32,13 +32,19 @@ export async function POST(request: NextRequest) {
       phoneNumber, // NEW: 24/7 phone number from form
       sceneDescription, // NEW: Custom scene description for AI image generation
       // V2 Image Generation Parameters (optional - backward compatible)
-      imageQuality,
-      imageAspectRatio,
+      imageQuality: requestedQuality,
+      imageAspectRatio: requestedAspectRatio,
       layoutTemplate, // Layout template for template-aware image generation
       // Template reuse parameters
       skipImageGeneration, // Skip DALL-E generation when using existing template
       existingBackgroundImage, // Use this background instead of generating new one
+      // Landing Page Template
+      landingPageTemplateId, // Selected landing page template (professional, modern, etc.)
     } = body;
+
+    // Use user-provided settings or defaults (not hard-coded to max)
+    const imageQuality = requestedQuality || 'medium'; // User-controlled: low/medium/high
+    const imageAspectRatio = requestedAspectRatio || '1024x1024'; // User-controlled aspect ratio
 
     if (!recipient || !message) {
       return NextResponse.json(
@@ -275,6 +281,29 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       console.error("Error saving landing page:", error);
       // Don't fail the request, just log the error
+    }
+
+    // Create campaign-wide landing page with selected template
+    try {
+      const { upsertCampaignLandingPage } = require('@/lib/database/campaign-landing-page-queries');
+
+      upsertCampaignLandingPage(
+        campaign.id,
+        {
+          title: `${finalCampaignName} - Schedule Consultation`,
+          message: message,
+          companyName: companyName,
+          formFields: ['name', 'email', 'phone', 'preferredDate'],
+          ctaText: 'Book Appointment',
+          thankYouMessage: 'Thank you! We will contact you soon.',
+          fallbackMessage: 'Welcome! Schedule your consultation today.',
+        },
+        landingPageTemplateId || 'medical' // Default to Medical if not provided
+      );
+      console.log(`✅ Campaign landing page created with template: ${landingPageTemplateId || 'medical'}`);
+    } catch (error) {
+      console.error('❌ Error creating campaign landing page:', error);
+      // Don't fail the request, just log
     }
 
     // Save assets to database for template previews and campaign details
