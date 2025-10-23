@@ -481,15 +481,29 @@ return NextResponse.json(errorResponse('Failed', 'ERROR_CODE'), { status: 500 })
 
 ### 🔄 In Progress
 
-None - Phase 2C complete
+**Phase 3: Database & Query Consistency** 📋 PLANNED
+- Detailed plan created: `PHASE3_DATABASE_CONSISTENCY_PLAN.md`
+- Strategy: Additive utilities + selective migration (15-20 critical functions)
+- Risk: LOW (no breaking changes)
 
-### 📋 Next Up
+### 📋 Plan Overview
 
-**Phase 3: Database & Query Consistency**
-- [ ] Review database query patterns
-- [ ] Standardize error handling in query functions
-- [ ] Add comprehensive logging
-- [ ] Expected duration: ~3-4 hours
+**Database Analysis Complete**:
+- 160 exported functions across 15 files
+- 73 functions have try-catch (46% coverage)
+- 214 console.log statements (inconsistent)
+- 14 explicit error throws
+- 302 nullable return types (consistent pattern)
+
+**Pragmatic Approach**:
+1. Create database logger utility (structured logging)
+2. Create validation helpers (consistent input checking)
+3. Migrate 15-20 critical functions (highest impact)
+4. Document patterns for future migrations
+
+**Out of Scope**: Rewriting all 160 functions (too risky, diminishing returns)
+
+See `PHASE3_DATABASE_CONSISTENCY_PLAN.md` for complete implementation details.
 
 ---
 
