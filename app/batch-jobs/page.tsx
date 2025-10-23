@@ -28,6 +28,8 @@ import {
   Activity
 } from "lucide-react";
 import { toast } from "sonner";
+// Import standardized KPI utilities for consistent percentage formatting
+import { formatPercentage } from "@/lib/utils/kpi-calculator";
 
 interface BatchJob {
   id: string;
@@ -420,7 +422,7 @@ export default function BatchJobsPage() {
                               />
                             </div>
                             <span className="text-xs font-medium text-slate-700">
-                              {(job.progressPercent || 0).toFixed(0)}%
+                              {formatPercentage((job.progressPercent || 0) / 100, 0)}
                             </span>
                           </div>
                         </div>

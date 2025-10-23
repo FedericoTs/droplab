@@ -4,6 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Store, Users, AlertCircle, CheckCircle, TrendingUp } from 'lucide-react';
 import { StoreDistribution } from '@/lib/csv-processor';
+// Import standardized KPI utilities for consistent calculations
+import { calculateConversionRate, formatPercentage } from '@/lib/utils/kpi-calculator';
 
 interface StoreDistributionPreviewProps {
   distribution: {
@@ -112,7 +114,7 @@ export function StoreDistributionPreview({ distribution }: StoreDistributionPrev
                     />
                   </div>
                   <span className="text-xs text-slate-500 w-12 text-right">
-                    {Math.round((store.count / distribution.recipientsWithStores) * 100)}%
+                    {formatPercentage(calculateConversionRate(store.count, distribution.recipientsWithStores), 0)}
                   </span>
                 </div>
               </div>

@@ -13,6 +13,8 @@ import {
 import { Loader2, Sparkles, CheckCircle2, AlertCircle, X, Download, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { PerformanceMatrixGrid } from "@/components/campaigns/performance-matrix-grid";
+// Import standardized KPI utilities for consistent calculations
+import { calculateConversionRate, formatPercentage } from "@/lib/utils/kpi-calculator";
 
 interface Store {
   store_id: string;
@@ -189,8 +191,7 @@ export default function PerformanceMatrixPage() {
               {data.summary.auto_approve_count}
             </div>
             <p className="text-xs text-green-700 mt-1">
-              {((data.summary.auto_approve_count / data.summary.total_stores) * 100).toFixed(1)}% of
-              stores
+              {formatPercentage(calculateConversionRate(data.summary.auto_approve_count, data.summary.total_stores), 1)} of stores
             </p>
           </CardContent>
         </Card>
@@ -207,8 +208,7 @@ export default function PerformanceMatrixPage() {
               {data.summary.needs_review_count}
             </div>
             <p className="text-xs text-yellow-700 mt-1">
-              {((data.summary.needs_review_count / data.summary.total_stores) * 100).toFixed(1)}% of
-              stores
+              {formatPercentage(calculateConversionRate(data.summary.needs_review_count, data.summary.total_stores), 1)} of stores
             </p>
           </CardContent>
         </Card>
@@ -225,7 +225,7 @@ export default function PerformanceMatrixPage() {
               {data.summary.skip_count}
             </div>
             <p className="text-xs text-slate-700 mt-1">
-              {((data.summary.skip_count / data.summary.total_stores) * 100).toFixed(1)}% of stores
+              {formatPercentage(calculateConversionRate(data.summary.skip_count, data.summary.total_stores), 1)} of stores
             </p>
           </CardContent>
         </Card>
