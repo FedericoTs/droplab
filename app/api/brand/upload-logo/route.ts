@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { saveAsset, getAssetPublicUrl } from '@/lib/database/asset-management';
 import { updateBrandKit, getBrandProfile } from '@/lib/database/tracking-queries';
+import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 /**
  * POST /api/brand/upload-logo
@@ -14,14 +15,14 @@ export async function POST(request: NextRequest) {
 
     if (!file) {
       return NextResponse.json(
-        { success: false, error: 'Logo file is required' },
+        errorResponse('Logo file is required', 'MISSING_FILE'),
         { status: 400 }
       );
     }
 
     if (!companyName) {
       return NextResponse.json(
-        { success: false, error: 'Company name is required' },
+        errorResponse('Company name is required', 'MISSING_COMPANY_NAME'),
         { status: 400 }
       );
     }
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
     const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp'];
     if (!validTypes.includes(file.type)) {
       return NextResponse.json(
-        { success: false, error: 'Invalid file type. Please upload PNG, JPG, SVG, or WebP' },
+        errorResponse('Invalid file type. Please upload PNG, JPG, SVG, or WebP', 'INVALID_FILE_TYPE'),
         { status: 400 }
       );
     }
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
     const maxSize = 5 * 1024 * 1024; // 5MB
     if (file.size > maxSize) {
       return NextResponse.json(
-        { success: false, error: 'File size too large. Maximum 5MB allowed' },
+        errorResponse('File size too large. Maximum 5MB allowed', 'FILE_TOO_LARGE'),
         { status: 400 }
       );
     }
@@ -80,19 +81,20 @@ export async function POST(request: NextRequest) {
       logoAssetId: asset.id,
     });
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        assetId: asset.id,
-        logoUrl,
-        brandProfile: updatedProfile,
-      },
-      message: 'Logo uploaded successfully',
-    });
+    return NextResponse.json(
+      successResponse(
+        {
+          assetId: asset.id,
+          logoUrl,
+          brandProfile: updatedProfile,
+        },
+        'Logo uploaded successfully'
+      )
+    );
   } catch (error) {
     console.error('Error uploading logo:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to upload logo' },
+      errorResponse('Failed to upload logo', 'UPLOAD_ERROR'),
       { status: 500 }
     );
   }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 /**
  * POST /api/brand/analyze-website
@@ -11,7 +12,7 @@ export async function POST(request: NextRequest) {
 
     if (!websiteUrl) {
       return NextResponse.json(
-        { success: false, error: 'Website URL is required' },
+        errorResponse('Website URL is required', 'MISSING_URL'),
         { status: 400 }
       );
     }
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
       url = new URL(websiteUrl);
     } catch (e) {
       return NextResponse.json(
-        { success: false, error: 'Invalid URL format' },
+        errorResponse('Invalid URL format', 'INVALID_URL'),
         { status: 400 }
       );
     }
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
-        { success: false, error: 'OpenAI API key not configured' },
+        errorResponse('OpenAI API key not configured', 'API_KEY_MISSING'),
         { status: 500 }
       );
     }
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     if (!htmlResponse.ok) {
       return NextResponse.json(
-        { success: false, error: `Failed to fetch website (${htmlResponse.status})` },
+        errorResponse(`Failed to fetch website (${htmlResponse.status})`, 'FETCH_FAILED'),
         { status: 500 }
       );
     }
@@ -169,38 +170,39 @@ Return ONLY a JSON object with this exact structure:
     }
 
     // Return extracted brand data
-    return NextResponse.json({
-      success: true,
-      data: {
-        // Company Profile
-        companyName,
-        industry: brandData.industry || 'General',
-        brandVoice: brandData.brandVoice || 'Professional and trustworthy',
-        tone: brandData.tone || 'Warm and reassuring',
-        targetAudience: brandData.targetAudience || 'General consumers',
-        keyPhrases: brandData.keyPhrases || [],
-        brandValues: brandData.brandValues || [],
-        communicationStyleNotes: brandData.communicationStyleNotes || [],
-        websiteUrl,
-        // Visual Brand Kit
-        logoUrl,
-        primaryColor: colors.primary || '#1E3A8A',
-        secondaryColor: colors.secondary || '#FF6B35',
-        accentColor: colors.accent || '#10B981',
-        headingFont: fonts.heading || 'Inter',
-        bodyFont: fonts.body || 'Open Sans',
-        landingPageTemplate: brandData.recommendedTemplate || 'professional',
-      },
-      message: 'Website analyzed successfully - comprehensive brand guidelines extracted',
-    });
+    return NextResponse.json(
+      successResponse(
+        {
+          // Company Profile
+          companyName,
+          industry: brandData.industry || 'General',
+          brandVoice: brandData.brandVoice || 'Professional and trustworthy',
+          tone: brandData.tone || 'Warm and reassuring',
+          targetAudience: brandData.targetAudience || 'General consumers',
+          keyPhrases: brandData.keyPhrases || [],
+          brandValues: brandData.brandValues || [],
+          communicationStyleNotes: brandData.communicationStyleNotes || [],
+          websiteUrl,
+          // Visual Brand Kit
+          logoUrl,
+          primaryColor: colors.primary || '#1E3A8A',
+          secondaryColor: colors.secondary || '#FF6B35',
+          accentColor: colors.accent || '#10B981',
+          headingFont: fonts.heading || 'Inter',
+          bodyFont: fonts.body || 'Open Sans',
+          landingPageTemplate: brandData.recommendedTemplate || 'professional',
+        },
+        'Website analyzed successfully - comprehensive brand guidelines extracted'
+      )
+    );
 
   } catch (error) {
     console.error('Error analyzing website:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to analyze website'
-      },
+      errorResponse(
+        error instanceof Error ? error.message : 'Failed to analyze website',
+        'ANALYSIS_ERROR'
+      ),
       { status: 500 }
     );
   }

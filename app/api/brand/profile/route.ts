@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getBrandProfile, saveBrandProfile } from "@/lib/database/tracking-queries";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 /**
  * GET /api/brand/profile?companyName=xxx
@@ -12,7 +13,7 @@ export async function GET(request: NextRequest) {
 
     if (!companyName) {
       return NextResponse.json(
-        { success: false, error: "Company name is required" },
+        errorResponse("Company name is required", "MISSING_COMPANY_NAME"),
         { status: 400 }
       );
     }
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
 
     if (!profile) {
       return NextResponse.json(
-        { success: false, error: "Brand profile not found" },
+        errorResponse("Brand profile not found", "PROFILE_NOT_FOUND"),
         { status: 404 }
       );
     }
@@ -33,20 +34,19 @@ export async function GET(request: NextRequest) {
       values: profile.brand_values ? JSON.parse(profile.brand_values) : [],
     };
 
-    return NextResponse.json({
-      success: true,
-      data: parsedProfile,
-    });
+    return NextResponse.json(
+      successResponse(parsedProfile, "Brand profile retrieved successfully")
+    );
   } catch (error: unknown) {
     console.error("Error fetching brand profile:", error);
 
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
 
     return NextResponse.json(
-      {
-        success: false,
-        error: `Failed to fetch brand profile: ${errorMessage}`,
-      },
+      errorResponse(
+        `Failed to fetch brand profile: ${errorMessage}`,
+        "FETCH_ERROR"
+      ),
       { status: 500 }
     );
   }
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
 
     if (!companyName) {
       return NextResponse.json(
-        { success: false, error: "Company name is required" },
+        errorResponse("Company name is required", "MISSING_COMPANY_NAME"),
         { status: 400 }
       );
     }
@@ -85,20 +85,19 @@ export async function POST(request: NextRequest) {
       values: profile.brand_values ? JSON.parse(profile.brand_values) : [],
     };
 
-    return NextResponse.json({
-      success: true,
-      data: parsedProfile,
-    });
+    return NextResponse.json(
+      successResponse(parsedProfile, "Brand profile saved successfully")
+    );
   } catch (error: unknown) {
     console.error("Error saving brand profile:", error);
 
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
 
     return NextResponse.json(
-      {
-        success: false,
-        error: `Failed to save brand profile: ${errorMessage}`,
-      },
+      errorResponse(
+        `Failed to save brand profile: ${errorMessage}`,
+        "SAVE_ERROR"
+      ),
       { status: 500 }
     );
   }

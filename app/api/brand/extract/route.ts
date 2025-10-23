@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { saveBrandProfile } from "@/lib/database/tracking-queries";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 /**
  * POST /api/brand/extract
@@ -13,14 +14,14 @@ export async function POST(request: NextRequest) {
 
     if (!content || !companyName) {
       return NextResponse.json(
-        { success: false, error: "Content and company name are required" },
+        errorResponse("Content and company name are required", "MISSING_FIELDS"),
         { status: 400 }
       );
     }
 
     if (!apiKey) {
       return NextResponse.json(
-        { success: false, error: "OpenAI API key is required" },
+        errorResponse("OpenAI API key is required", "API_KEY_MISSING"),
         { status: 400 }
       );
     }
@@ -84,17 +85,19 @@ Return ONLY a valid JSON object with these exact keys:
 
     console.log(`Brand profile saved: ${brandProfile.id}`);
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        brandVoice: extracted.brandVoice,
-        tone: extracted.tone,
-        keyPhrases: extracted.keyPhrases,
-        values: extracted.values,
-        targetAudience: extracted.targetAudience,
-        profileId: brandProfile.id,
-      },
-    });
+    return NextResponse.json(
+      successResponse(
+        {
+          brandVoice: extracted.brandVoice,
+          tone: extracted.tone,
+          keyPhrases: extracted.keyPhrases,
+          values: extracted.values,
+          targetAudience: extracted.targetAudience,
+          profileId: brandProfile.id,
+        },
+        "Brand intelligence extracted successfully"
+      )
+    );
   } catch (error: unknown) {
     console.error("Error extracting brand voice:", error);
 
@@ -102,10 +105,10 @@ Return ONLY a valid JSON object with these exact keys:
       error instanceof Error ? error.message : "Unknown error occurred";
 
     return NextResponse.json(
-      {
-        success: false,
-        error: `Failed to extract brand intelligence: ${errorMessage}`,
-      },
+      errorResponse(
+        `Failed to extract brand intelligence: ${errorMessage}`,
+        "EXTRACTION_ERROR"
+      ),
       { status: 500 }
     );
   }
