@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Store, Users, Eye, TrendingUp, Loader2 } from 'lucide-react';
+// Import standardized KPI utilities for consistent calculations
+import { calculateConversionRate, formatPercentage } from '@/lib/utils/kpi-calculator';
 
 interface StoreDeploymentStat {
   deployment_id: string;
@@ -76,9 +78,10 @@ export function CampaignStoreStats({ campaignId }: CampaignStoreStatsProps) {
       <CardContent className="space-y-2">
         <div className="max-h-64 overflow-y-auto space-y-2">
           {stats.map((stat) => {
-            const conversionRate = stat.recipients_count > 0
-              ? ((stat.conversions / stat.recipients_count) * 100).toFixed(1)
-              : '0.0';
+            const conversionRate = formatPercentage(
+              calculateConversionRate(stat.conversions, stat.recipients_count),
+              1
+            );
 
             return (
               <div
