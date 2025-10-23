@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCampaignAnalytics, getRecipientsByCampaign, getRecipientJourney } from "@/lib/database/tracking-queries";
 import { getCampaignCallMetrics, getCallsByDay } from "@/lib/database/call-tracking-queries";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 export async function GET(
   request: Request,
@@ -14,10 +15,7 @@ export async function GET(
 
     if (!analytics) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Campaign not found",
-        },
+        errorResponse("Campaign not found", "CAMPAIGN_NOT_FOUND"),
         { status: 404 }
       );
     }
@@ -39,22 +37,24 @@ export async function GET(
       };
     });
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        ...analytics,
-        callMetrics,
-        callsByDay,
-        recipients: recipientsWithJourney,
-      },
-    });
+    return NextResponse.json(
+      successResponse(
+        {
+          ...analytics,
+          callMetrics,
+          callsByDay,
+          recipients: recipientsWithJourney,
+        },
+        "Campaign analytics with call metrics retrieved successfully"
+      )
+    );
   } catch (error) {
     console.error("Error fetching campaign analytics:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to fetch campaign analytics",
-      },
+      errorResponse(
+        error instanceof Error ? error.message : "Failed to fetch campaign analytics",
+        "FETCH_ERROR"
+      ),
       { status: 500 }
     );
   }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 // Dynamic import of retail queries (optional feature)
 function getRetailQueries() {
@@ -14,32 +15,30 @@ export async function GET(request: NextRequest) {
     const retail = getRetailQueries();
 
     if (!retail) {
-      return NextResponse.json({
-        success: false,
-        error: "Retail module not enabled",
-        data: [],
-      });
+      return NextResponse.json(
+        errorResponse("Retail module not enabled", "MODULE_NOT_ENABLED")
+      );
     }
 
     // Get regional performance
     const regions = retail.getRegionalPerformance();
 
-    return NextResponse.json({
-      success: true,
-      data: regions,
-      count: regions.length,
-    });
+    return NextResponse.json(
+      successResponse(
+        {
+          regions,
+          count: regions.length,
+        },
+        "Regional performance retrieved successfully"
+      )
+    );
   } catch (error: unknown) {
     console.error("Error fetching regional performance:", error);
 
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch regional performance";
 
     return NextResponse.json(
-      {
-        success: false,
-        error: `Failed to fetch regional performance: ${errorMessage}`,
-        data: [],
-      },
+      errorResponse(errorMessage, "FETCH_ERROR"),
       { status: 500 }
     );
   }

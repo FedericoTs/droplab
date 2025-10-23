@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 // Dynamic import of retail queries (optional feature)
 function getRetailQueries() {
@@ -14,11 +15,9 @@ export async function GET(request: NextRequest) {
     const retail = getRetailQueries();
 
     if (!retail) {
-      return NextResponse.json({
-        success: false,
-        error: "Retail module not enabled",
-        data: [],
-      });
+      return NextResponse.json(
+        errorResponse("Retail module not enabled", "MODULE_NOT_ENABLED")
+      );
     }
 
     // Get query params
@@ -32,22 +31,22 @@ export async function GET(request: NextRequest) {
     // Get top performing stores
     const stores = retail.getTopPerformingStores(limit, sortBy);
 
-    return NextResponse.json({
-      success: true,
-      data: stores,
-      count: stores.length,
-    });
+    return NextResponse.json(
+      successResponse(
+        {
+          stores,
+          count: stores.length,
+        },
+        "Top performing stores retrieved successfully"
+      )
+    );
   } catch (error: unknown) {
     console.error("Error fetching top stores:", error);
 
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch top stores";
 
     return NextResponse.json(
-      {
-        success: false,
-        error: `Failed to fetch top stores: ${errorMessage}`,
-        data: [],
-      },
+      errorResponse(errorMessage, "FETCH_ERROR"),
       { status: 500 }
     );
   }
