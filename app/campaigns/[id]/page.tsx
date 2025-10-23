@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+// Import standardized KPI utilities for consistent calculations
+import { calculateConversionRate, formatPercentage } from "@/lib/utils/kpi-calculator";
 
 interface Recipient {
   id: string;
@@ -212,9 +214,10 @@ export default function CampaignDetailPage() {
     });
   };
 
-  const responseRate = data.totalRecipients > 0
-    ? ((data.uniqueVisitors / data.totalRecipients) * 100).toFixed(1)
-    : "0.0";
+  const responseRate = formatPercentage(
+    calculateConversionRate(data.uniqueVisitors, data.totalRecipients),
+    1
+  );
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
