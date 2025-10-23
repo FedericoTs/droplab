@@ -5,27 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Eye, TrendingUp, Target, QrCode, CheckCircle, Loader2, Clock, BarChart3, Phone } from "lucide-react";
 import { DateRangePicker } from "./date-range-picker";
 import { SankeyChart } from "./sankey-chart";
-// SMOKE TEST: Import new standardized utilities
-import { calculateConversionRate, formatPercentage, formatDuration as formatDurationUtil } from "@/lib/utils/kpi-calculator";
-
-// Helper function for duration formatting
-const formatDuration = (seconds?: number | null) => {
-  if (!seconds || seconds === 0) return "0s";
-  const totalSeconds = Math.round(Number(seconds));
-
-  if (totalSeconds < 60) {
-    return `${totalSeconds}s`;
-  }
-
-  const mins = Math.floor(totalSeconds / 60);
-  const secs = totalSeconds % 60;
-
-  if (secs === 0) {
-    return `${mins}m`;
-  }
-
-  return `${mins}m ${secs}s`;
-};
+// Import standardized KPI utilities for consistent calculations
+import { calculateConversionRate, formatPercentage, formatDuration } from "@/lib/utils/kpi-calculator";
 
 interface EngagementMetric {
   value: number;
@@ -143,26 +124,11 @@ export function DashboardOverview() {
     );
   }
 
-  // Response rate calculation
-  const responseRate = stats.totalRecipients > 0
-    ? ((stats.totalPageViews / stats.totalRecipients) * 100).toFixed(1)
-    : "0.0";
-
-  // SMOKE TEST: Verify new utilities produce identical results
-  const responseRateNew = formatPercentage(
+  // Response rate calculation using standardized utility
+  const responseRate = formatPercentage(
     calculateConversionRate(stats.totalPageViews, stats.totalRecipients),
     1
   );
-
-  // Log comparison for verification (will be removed after testing)
-  if (typeof window !== 'undefined' && (responseRate + '%') !== responseRateNew) {
-    console.warn('[SMOKE TEST] Response rate mismatch:', {
-      existing: responseRate + '%',
-      new: responseRateNew,
-      pageViews: stats.totalPageViews,
-      recipients: stats.totalRecipients
-    });
-  }
 
   return (
     <div className="space-y-6">
@@ -261,7 +227,7 @@ export function DashboardOverview() {
                   {stats.totalPageViews}
                 </p>
                 <p className="text-xs text-slate-500 mt-1">
-                  {responseRate}% response rate
+                  {responseRate} response rate
                 </p>
               </div>
               <Eye className="h-10 w-10 text-green-600" />
@@ -310,33 +276,12 @@ export function DashboardOverview() {
               <div
                 className="bg-blue-600 h-2 rounded-full"
                 style={{
-                  width: `${stats.totalRecipients > 0 ? Math.min((stats.qrScans / stats.totalRecipients) * 100, 100) : 0}%`,
+                  width: `${Math.min(calculateConversionRate(stats.qrScans, stats.totalRecipients) * 100, 100)}%`,
                 }}
               />
             </div>
             <p className="text-xs text-slate-500 mt-2">
-              {stats.totalRecipients > 0
-                ? ((stats.qrScans / stats.totalRecipients) * 100).toFixed(1)
-                : "0.0"}% scan rate
-              {/* SMOKE TEST: Verify scan rate calculation */}
-              {(() => {
-                const scanRateOld = stats.totalRecipients > 0
-                  ? ((stats.qrScans / stats.totalRecipients) * 100).toFixed(1)
-                  : "0.0";
-                const scanRateNew = formatPercentage(
-                  calculateConversionRate(stats.qrScans, stats.totalRecipients),
-                  1
-                );
-                if (typeof window !== 'undefined' && scanRateOld + '%' !== scanRateNew) {
-                  console.warn('[SMOKE TEST] Scan rate mismatch:', {
-                    existing: scanRateOld + '%',
-                    new: scanRateNew,
-                    scans: stats.qrScans,
-                    recipients: stats.totalRecipients
-                  });
-                }
-                return null;
-              })()}
+              {formatPercentage(calculateConversionRate(stats.qrScans, stats.totalRecipients), 1)} scan rate
             </p>
           </CardContent>
         </Card>
@@ -358,33 +303,12 @@ export function DashboardOverview() {
               <div
                 className="bg-green-600 h-2 rounded-full"
                 style={{
-                  width: `${stats.totalPageViews > 0 ? Math.min((stats.formSubmissions / stats.totalPageViews) * 100, 100) : 0}%`,
+                  width: `${Math.min(calculateConversionRate(stats.formSubmissions, stats.totalPageViews) * 100, 100)}%`,
                 }}
               />
             </div>
             <p className="text-xs text-slate-500 mt-2">
-              {stats.totalPageViews > 0
-                ? ((stats.formSubmissions / stats.totalPageViews) * 100).toFixed(1)
-                : "0.0"}% of page views
-              {/* SMOKE TEST: Verify form submission rate */}
-              {(() => {
-                const formRateOld = stats.totalPageViews > 0
-                  ? ((stats.formSubmissions / stats.totalPageViews) * 100).toFixed(1)
-                  : "0.0";
-                const formRateNew = formatPercentage(
-                  calculateConversionRate(stats.formSubmissions, stats.totalPageViews),
-                  1
-                );
-                if (typeof window !== 'undefined' && formRateOld + '%' !== formRateNew) {
-                  console.warn('[SMOKE TEST] Form rate mismatch:', {
-                    existing: formRateOld + '%',
-                    new: formRateNew,
-                    submissions: stats.formSubmissions,
-                    pageViews: stats.totalPageViews
-                  });
-                }
-                return null;
-              })()}
+              {formatPercentage(calculateConversionRate(stats.formSubmissions, stats.totalPageViews), 1)} of page views
             </p>
             <p className="text-[10px] text-slate-400 mt-0.5">
               Visitor engagement (Forms ÷ Views)
@@ -414,19 +338,6 @@ export function DashboardOverview() {
                 <div>
                   <p className="text-purple-900 font-semibold">{formatDuration(stats.callMetrics.average_duration)}</p>
                   <p className="text-purple-600">avg duration</p>
-                  {/* SMOKE TEST: Verify duration formatting */}
-                  {(() => {
-                    const durationOld = formatDuration(stats.callMetrics.average_duration);
-                    const durationNew = formatDurationUtil(stats.callMetrics.average_duration);
-                    if (typeof window !== 'undefined' && durationOld !== durationNew) {
-                      console.warn('[SMOKE TEST] Duration format mismatch:', {
-                        existing: durationOld,
-                        new: durationNew,
-                        seconds: stats.callMetrics.average_duration
-                      });
-                    }
-                    return null;
-                  })()}
                 </div>
               </div>
               <p className="text-[10px] text-purple-600 mt-2">
