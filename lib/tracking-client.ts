@@ -93,3 +93,19 @@ export async function trackFormSubmission(
     conversionData: formData,
   });
 }
+
+/**
+ * Track appointment booking (convenience function)
+ * CRITICAL: Use this for appointment forms to ensure Sankey diagram shows web appointments correctly
+ * This tracks as "appointment_booked" which is what the Sankey query expects
+ */
+export async function trackAppointmentBooked(
+  trackingId: string,
+  appointmentData: Record<string, unknown>
+): Promise<void> {
+  await trackConversionClient({
+    trackingId,
+    conversionType: "appointment_booked",
+    conversionData: appointmentData,
+  });
+}

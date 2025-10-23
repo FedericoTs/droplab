@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar, Clock, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
-import { trackFormSubmission } from "@/lib/tracking-client";
+import { trackAppointmentBooked } from "@/lib/tracking-client";
 
 interface AppointmentFormProps {
   recipientName: string;
@@ -41,9 +41,10 @@ export function AppointmentForm({ recipientName, questionnaireResults }: Appoint
       questionnaireResults,
     });
 
-    // Track conversion in database
+    // Track conversion in database as appointment_booked
+    // CRITICAL: Using trackAppointmentBooked ensures Sankey diagram shows web appointments
     if (trackingId) {
-      await trackFormSubmission(trackingId, {
+      await trackAppointmentBooked(trackingId, {
         ...formData,
         questionnaireResults,
         appointmentDate: formData.preferredDate,

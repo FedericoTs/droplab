@@ -109,6 +109,7 @@ export default function CampaignLandingPageClient({
             campaign_id: campaignId,
             tracking_id: mode === 'personalized' ? recipientData?.tracking_id : undefined,
             mode,
+            templateId: templateId,  // ✅ CRITICAL: Pass template ID for CTA-aligned tracking
             formData,
           }),
         });
@@ -131,7 +132,7 @@ export default function CampaignLandingPageClient({
             key={snippet.id}
             id={`tracking-${snippet.id}`}
             strategy="afterInteractive"
-            dangerouslySetInnerHTML={{ __html: snippet.script_content }}
+            dangerouslySetInnerHTML={{ __html: snippet.code }}
           />
         ))}
 
@@ -225,6 +226,7 @@ export default function CampaignLandingPageClient({
           campaign_id: campaignId,
           tracking_id: mode === 'personalized' ? recipientData?.tracking_id : undefined,
           mode,
+          templateId: undefined,  // ✅ No template in fallback mode, will use form_submission
           formData,
         }),
       });

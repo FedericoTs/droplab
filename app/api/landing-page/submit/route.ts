@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/database/connection';
+import { getConversionTypeForTemplate } from '@/lib/template-conversion-mapper';
 
 /**
  * POST /api/landing-page/submit
  * Handle form submissions from campaign landing pages
+ *
+ * NOW SUPPORTS CTA-ALIGNED TRACKING:
+ * - Uses templateId to determine correct conversion_type
+ * - Tracks appointments as 'appointment_booked'
+ * - Tracks downloads as 'download'
+ * - Falls back to 'form_submission' for unknown templates
  *
  * Supports both:
  * - Personalized submissions (with tracking_id)
@@ -12,10 +19,11 @@ import { getDatabase } from '@/lib/database/connection';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { campaign_id, tracking_id, mode, formData } = body as {
+    const { campaign_id, tracking_id, mode, formData, templateId } = body as {
       campaign_id: string;
       tracking_id?: string;
       mode: 'personalized' | 'generic';
+      templateId?: string; // ✅ NEW: Template ID for CTA-aligned tracking
       formData: {
         name: string;
         email: string;
@@ -37,6 +45,15 @@ export async function POST(request: NextRequest) {
     const submissionId = `sub_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
     const now = new Date().toISOString();
 
+    // ✅ CRITICAL: Determine conversion type based on template CTA
+    // This enables accurate analytics differentiation between:
+    // - Appointments ('appointment_booked')
+    // - Downloads ('download')
+    // - Generic forms ('form_submission')
+    const conversionType = getConversionTypeForTemplate(templateId);
+
+    console.log(`[Landing Page Submit] Campaign: ${campaign_id}, Template: ${templateId || 'none'}, Conversion Type: ${conversionType}`);
+
     if (mode === 'personalized' && tracking_id) {
       // Personalized submission - create conversion record
       db.prepare(`
@@ -46,15 +63,15 @@ export async function POST(request: NextRequest) {
       `).run(
         submissionId,
         tracking_id,
-        'form_submission',
+        conversionType,  // ✅ NOW DYNAMIC based on CTA!
         JSON.stringify(formData),
         now
       );
 
-      console.log(`✅ Personalized form submission recorded: ${tracking_id}`);
+      console.log(`✅ Personalized ${conversionType} recorded for tracking_id: ${tracking_id}`);
     } else {
       // Generic submission - log for now (could create a generic submissions table in future)
-      console.log(`✅ Generic form submission for campaign ${campaign_id}:`, formData);
+      console.log(`✅ Generic ${conversionType} for campaign ${campaign_id}:`, formData);
       // TODO: Create generic_submissions table for campaign-level tracking
     }
 

@@ -26,9 +26,13 @@ export async function GET(
     // Parse page_data JSON
     const parsedData = JSON.parse(landingPage.page_data);
 
+    // Add campaign_id to the response so the redirect can work
     return NextResponse.json({
       success: true,
-      data: parsedData,
+      data: {
+        ...parsedData,
+        campaignId: landingPage.campaign_id, // Add campaign ID for redirect
+      },
     });
   } catch (error) {
     console.error('Error fetching landing page:', error);

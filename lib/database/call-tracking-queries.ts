@@ -232,8 +232,13 @@ export function getCampaignCallMetrics(campaignId: string): CallMetrics {
 /**
  * Get overall call metrics (all campaigns)
  */
-export function getAllCallMetrics(): CallMetrics {
+export function getAllCallMetrics(startDate?: string, endDate?: string): CallMetrics {
   const db = getDatabase();
+
+  // Build date filter
+  const dateFilter = startDate && endDate
+    ? `WHERE DATE(call_started_at) BETWEEN DATE('${startDate}') AND DATE('${endDate}')`
+    : '';
 
   const countsStmt = db.prepare(`
     SELECT
@@ -245,6 +250,7 @@ export function getAllCallMetrics(): CallMetrics {
       AVG(CASE WHEN call_duration_seconds IS NOT NULL AND call_duration_seconds > 0 THEN call_duration_seconds ELSE NULL END) as average_duration,
       COUNT(CASE WHEN call_duration_seconds IS NOT NULL AND call_duration_seconds > 0 THEN 1 END) as calls_with_duration
     FROM elevenlabs_calls
+    ${dateFilter}
   `);
 
   const counts = countsStmt.get() as {
@@ -257,14 +263,23 @@ export function getAllCallMetrics(): CallMetrics {
     calls_with_duration: number;
   };
 
-  const todayStmt = db.prepare(`SELECT COUNT(*) as count FROM elevenlabs_calls WHERE DATE(call_started_at) = DATE('now')`);
-  const today = todayStmt.get() as { count: number };
+  // Time-based counts (only meaningful without custom date range)
+  let today, week, month;
+  if (startDate && endDate) {
+    // When filtering by custom date range, time-based counts aren't meaningful
+    today = { count: 0 };
+    week = { count: 0 };
+    month = { count: 0 };
+  } else {
+    const todayStmt = db.prepare(`SELECT COUNT(*) as count FROM elevenlabs_calls WHERE DATE(call_started_at) = DATE('now')`);
+    today = todayStmt.get() as { count: number };
 
-  const weekStmt = db.prepare(`SELECT COUNT(*) as count FROM elevenlabs_calls WHERE DATE(call_started_at) >= DATE('now', '-7 days')`);
-  const week = weekStmt.get() as { count: number };
+    const weekStmt = db.prepare(`SELECT COUNT(*) as count FROM elevenlabs_calls WHERE DATE(call_started_at) >= DATE('now', '-7 days')`);
+    week = weekStmt.get() as { count: number };
 
-  const monthStmt = db.prepare(`SELECT COUNT(*) as count FROM elevenlabs_calls WHERE DATE(call_started_at) >= DATE('now', 'start of month')`);
-  const month = monthStmt.get() as { count: number };
+    const monthStmt = db.prepare(`SELECT COUNT(*) as count FROM elevenlabs_calls WHERE DATE(call_started_at) >= DATE('now', 'start of month')`);
+    month = monthStmt.get() as { count: number };
+  }
 
   const conversion_rate =
     counts.total_calls > 0 ? (counts.conversions / counts.total_calls) * 100 : 0;
