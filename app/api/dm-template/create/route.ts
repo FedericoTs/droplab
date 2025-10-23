@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createDMTemplate } from "@/lib/database/template-queries";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,10 +20,7 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     if (!campaignId || !name || !canvasJSON || !backgroundImage) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Missing required fields",
-        },
+        errorResponse("Missing required fields", "MISSING_FIELDS"),
         { status: 400 }
       );
     }
@@ -42,17 +40,16 @@ export async function POST(request: NextRequest) {
 
     console.log(`✅ DM template created: ${templateId}`);
 
-    return NextResponse.json({
-      success: true,
-      templateId,
-    });
+    return NextResponse.json(
+      successResponse({ templateId }, "DM template created successfully")
+    );
   } catch (error) {
     console.error("Error creating DM template:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
+      errorResponse(
+        error instanceof Error ? error.message : "Failed to create DM template",
+        "CREATE_ERROR"
+      ),
       { status: 500 }
     );
   }

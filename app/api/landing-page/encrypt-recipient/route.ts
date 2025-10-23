@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { encryptRecipientId } from '@/lib/landing-page/encryption';
 import { getRecipientById } from '@/lib/database/campaign-landing-page-queries';
+import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 /**
  * POST /api/landing-page/encrypt-recipient
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
     // Validate input
     if (!recipient_id || !campaign_id) {
       return NextResponse.json(
-        { error: 'Missing required fields: recipient_id, campaign_id' },
+        errorResponse('Missing required fields: recipient_id, campaign_id', 'MISSING_FIELDS'),
         { status: 400 }
       );
     }
@@ -30,14 +31,14 @@ export async function POST(request: NextRequest) {
 
     if (!recipient) {
       return NextResponse.json(
-        { error: 'Recipient not found' },
+        errorResponse('Recipient not found', 'RECIPIENT_NOT_FOUND'),
         { status: 404 }
       );
     }
 
     if (recipient.campaign_id !== campaign_id) {
       return NextResponse.json(
-        { error: 'Recipient does not belong to this campaign' },
+        errorResponse('Recipient does not belong to this campaign', 'CAMPAIGN_MISMATCH'),
         { status: 400 }
       );
     }
@@ -49,21 +50,28 @@ export async function POST(request: NextRequest) {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const landingPageUrl = `${baseUrl}/lp/campaign/${campaign_id}?r=${encryptedToken}`;
 
-    return NextResponse.json({
-      success: true,
-      encrypted_token: encryptedToken,
-      landing_page_url: landingPageUrl,
-      recipient: {
-        id: recipient.id,
-        name: recipient.name,
-        lastname: recipient.lastname,
-        campaign_id: recipient.campaign_id,
-      },
-    });
+    return NextResponse.json(
+      successResponse(
+        {
+          encrypted_token: encryptedToken,
+          landing_page_url: landingPageUrl,
+          recipient: {
+            id: recipient.id,
+            name: recipient.name,
+            lastname: recipient.lastname,
+            campaign_id: recipient.campaign_id,
+          },
+        },
+        'Recipient token encrypted successfully'
+      )
+    );
   } catch (error) {
     console.error('Error encrypting recipient ID:', error);
     return NextResponse.json(
-      { error: 'Failed to encrypt recipient ID' },
+      errorResponse(
+        error instanceof Error ? error.message : 'Failed to encrypt recipient ID',
+        'ENCRYPTION_ERROR'
+      ),
       { status: 500 }
     );
   }

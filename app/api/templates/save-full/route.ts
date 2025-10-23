@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createCampaignTemplate } from "@/lib/database/campaign-management";
 import { createDMTemplate } from "@/lib/database/template-queries";
 import { getDatabase } from "@/lib/database/connection";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,10 +12,7 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     if (!campaignData || !dmData) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Both campaign and DM data are required",
-        },
+        errorResponse("Both campaign and DM data are required", "MISSING_DATA"),
         { status: 400 }
       );
     }
@@ -22,10 +20,7 @@ export async function POST(request: NextRequest) {
     // Validate campaign data
     if (!campaignData.name || !campaignData.message) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Campaign name and message are required",
-        },
+        errorResponse("Campaign name and message are required", "MISSING_CAMPAIGN_FIELDS"),
         { status: 400 }
       );
     }
@@ -33,10 +28,7 @@ export async function POST(request: NextRequest) {
     // Validate DM data
     if (!dmData.canvasJSON || !dmData.backgroundImage) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Canvas JSON and background image are required",
-        },
+        errorResponse("Canvas JSON and background image are required", "MISSING_DM_FIELDS"),
         { status: 400 }
       );
     }
@@ -83,14 +75,15 @@ export async function POST(request: NextRequest) {
 
       db.exec("COMMIT");
 
-      return NextResponse.json({
-        success: true,
-        data: {
-          campaignTemplateId: campaignTemplate.id,
-          dmTemplateId: dmTemplateId,
-        },
-        message: "Template saved successfully",
-      });
+      return NextResponse.json(
+        successResponse(
+          {
+            campaignTemplateId: campaignTemplate.id,
+            dmTemplateId: dmTemplateId,
+          },
+          "Template saved successfully"
+        )
+      );
     } catch (error) {
       db.exec("ROLLBACK");
       throw error;
@@ -98,10 +91,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Error creating full template:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Failed to save template",
-      },
+      errorResponse(
+        error instanceof Error ? error.message : "Failed to save template",
+        "SAVE_ERROR"
+      ),
       { status: 500 }
     );
   }
