@@ -13,6 +13,7 @@ import {
   logWebhookAttempt,
   checkRateLimit,
 } from '@/lib/elevenlabs/webhook-handler';
+import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 interface ElevenLabsWebhookPayload {
   event: 'conversation.ended' | string;
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest) {
       logWebhookAttempt('unknown', validation.ip || 'unknown', false, validation.error);
 
       return NextResponse.json(
-        { success: false, error: validation.error },
+        errorResponse(validation.error || 'Webhook validation failed', 'VALIDATION_ERROR'),
         { status: 403 }
       );
     }
@@ -79,7 +80,7 @@ export async function POST(request: NextRequest) {
       logWebhookAttempt('unknown', rateLimitKey, false, 'Rate limit exceeded');
 
       return NextResponse.json(
-        { success: false, error: 'Rate limit exceeded' },
+        errorResponse('Rate limit exceeded', 'RATE_LIMIT_ERROR'),
         { status: 429 }
       );
     }
@@ -97,7 +98,7 @@ export async function POST(request: NextRequest) {
     if (!payload.conversation_id) {
       console.error('[Webhook] Missing conversation_id in payload');
       return NextResponse.json(
-        { success: false, error: 'Missing conversation_id' },
+        errorResponse('Missing conversation_id', 'MISSING_CONVERSATION_ID'),
         { status: 400 }
       );
     }
@@ -105,7 +106,9 @@ export async function POST(request: NextRequest) {
     // Only process conversation.ended events (ignore other event types)
     if (payload.event && payload.event !== 'conversation.ended') {
       console.log('[Webhook] Ignoring event type:', payload.event);
-      return NextResponse.json({ success: true, message: 'Event ignored' });
+      return NextResponse.json(
+        successResponse(null, 'Event ignored')
+      );
     }
 
     // Convert webhook payload to call record
@@ -141,29 +144,31 @@ export async function POST(request: NextRequest) {
     logWebhookAttempt(payload.conversation_id, validation.ip || 'unknown', true);
 
     // Return 200 OK quickly to acknowledge webhook
-    return NextResponse.json({
-      success: true,
-      message: 'Webhook processed successfully',
-      data: {
-        callId,
-        conversation_id: payload.conversation_id,
-        attributed: !!callRecord.campaign_id,
-      },
-    });
+    return NextResponse.json(
+      successResponse(
+        {
+          callId,
+          conversation_id: payload.conversation_id,
+          attributed: !!callRecord.campaign_id,
+        },
+        'Webhook processed successfully'
+      )
+    );
   } catch (error) {
     const duration = Date.now() - startTime;
     console.error('[Webhook] Error processing webhook:', error);
     console.error('[Webhook] Processing duration:', duration, 'ms');
 
-    // Return 200 OK even on error to prevent webhook retries
+    // ⚠️ WEBHOOK PATTERN: Return 200 OK even on error to prevent webhook retries
+    // Webhooks should return 200 to acknowledge receipt, even if processing fails
     // Log error for manual investigation
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        message: 'Webhook received but processing failed',
-      },
-      { status: 200 } // Return 200 to prevent ElevenLabs from retrying
+      errorResponse(
+        `Webhook received but processing failed: ${errorMessage}`,
+        'WEBHOOK_PROCESSING_ERROR'
+      ),
+      { status: 200 } // Intentional 200 to prevent ElevenLabs from retrying
     );
   }
 }
@@ -215,11 +220,14 @@ function convertWebhookToCall(payload: ElevenLabsWebhookPayload): Omit<
  * Returns webhook status and configuration info
  */
 export async function GET() {
-  return NextResponse.json({
-    success: true,
-    message: 'ElevenLabs webhook endpoint is active',
-    endpoint: '/api/webhooks/elevenlabs',
-    methods: ['POST'],
-    version: '1.0.0',
-  });
+  return NextResponse.json(
+    successResponse(
+      {
+        endpoint: '/api/webhooks/elevenlabs',
+        methods: ['POST'],
+        version: '1.0.0',
+      },
+      'ElevenLabs webhook endpoint is active'
+    )
+  );
 }

@@ -4,6 +4,7 @@ import { generateDMCreativeImage } from "@/lib/ai/openai";
 import { generateDMCreativeImageV2, ImageQuality, ImageSize } from "@/lib/ai/openai-v2";
 import { createCampaign, createRecipient, saveLandingPage } from "@/lib/database/tracking-queries";
 import { saveAsset } from "@/lib/database/asset-management";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 // Note: Image composition moved to client-side to avoid native module issues
 import {
   DMGenerateRequest,
@@ -48,14 +49,14 @@ export async function POST(request: NextRequest) {
 
     if (!recipient || !message) {
       return NextResponse.json(
-        { success: false, error: "Missing required fields" },
+        errorResponse("Missing required fields", "MISSING_FIELDS"),
         { status: 400 }
       );
     }
 
     if (!apiKey) {
       return NextResponse.json(
-        { success: false, error: "OpenAI API key is required" },
+        errorResponse("OpenAI API key is required", "API_KEY_MISSING"),
         { status: 400 }
       );
     }
@@ -356,15 +357,17 @@ export async function POST(request: NextRequest) {
       creativeImageUrl: backgroundImage, // Pass background, client will compose
     };
 
-    const response: DMGenerateResponse = {
-      success: true,
-      data: dmData,
-      campaignId: campaign.id, // Include campaign ID for reference
-      campaignName: campaign.name,
-      imageMetadata, // Include V2 image metadata (cost, quality, size) if available
-    };
-
-    return NextResponse.json(response);
+    return NextResponse.json(
+      successResponse(
+        {
+          ...dmData,
+          campaignId: campaign.id, // Include campaign ID for reference
+          campaignName: campaign.name,
+          imageMetadata, // Include V2 image metadata (cost, quality, size) if available
+        },
+        "Direct mail generated successfully"
+      )
+    );
   } catch (error: unknown) {
     console.error("Error generating direct mail:", error);
 
@@ -372,10 +375,10 @@ export async function POST(request: NextRequest) {
       error instanceof Error ? error.message : "Unknown error occurred";
 
     return NextResponse.json(
-      {
-        success: false,
-        error: `Failed to generate direct mail: ${errorMessage}`,
-      },
+      errorResponse(
+        `Failed to generate direct mail: ${errorMessage}`,
+        "GENERATION_ERROR"
+      ),
       { status: 500 }
     );
   }
