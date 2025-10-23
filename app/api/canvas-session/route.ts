@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCanvasSession } from '@/lib/database/canvas-queries';
+import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,7 +9,7 @@ export async function GET(request: NextRequest) {
 
     if (!sessionId) {
       return NextResponse.json(
-        { success: false, error: 'Session ID is required' },
+        errorResponse('Session ID is required', 'MISSING_SESSION_ID'),
         { status: 400 }
       );
     }
@@ -17,19 +18,21 @@ export async function GET(request: NextRequest) {
 
     if (!session) {
       return NextResponse.json(
-        { success: false, error: 'Session not found' },
+        errorResponse('Session not found', 'SESSION_NOT_FOUND'),
         { status: 404 }
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      data: session,
-    });
+    return NextResponse.json(
+      successResponse(session, 'Canvas session retrieved successfully')
+    );
   } catch (error) {
     console.error('Error fetching canvas session:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch session data' },
+      errorResponse(
+        error instanceof Error ? error.message : 'Failed to fetch session data',
+        'FETCH_ERROR'
+      ),
       { status: 500 }
     );
   }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 // Dynamic import of retail queries (optional feature)
 function getRetailQueries() {
@@ -21,31 +22,24 @@ export async function GET(
 
     if (!retail) {
       // Retail module not enabled, return empty result
-      return NextResponse.json({
-        success: true,
-        data: [],
-        message: "Retail module not enabled",
-      });
+      return NextResponse.json(
+        successResponse([], "Retail module not enabled")
+      );
     }
 
     // Get deployment stats for this campaign
     const stats = retail.getDeploymentStats(campaignId);
 
-    return NextResponse.json({
-      success: true,
-      data: stats,
-    });
+    return NextResponse.json(
+      successResponse(stats, "Store stats retrieved successfully")
+    );
   } catch (error: unknown) {
     console.error("Error fetching store stats:", error);
 
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch store stats";
 
     return NextResponse.json(
-      {
-        success: false,
-        error: `Failed to fetch store stats: ${errorMessage}`,
-        data: [],
-      },
+      errorResponse(errorMessage, "FETCH_ERROR"),
       { status: 500 }
     );
   }

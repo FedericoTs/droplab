@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateDMCreativeImageV2, ImageQuality, ImageSize } from "@/lib/ai/openai-v2";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 /**
  * API Route for fine-tuning modal: Generate ONLY the background image
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
 
     if (!message || !apiKey) {
       return NextResponse.json(
-        { success: false, error: "Missing required fields" },
+        errorResponse("Missing required fields", "MISSING_FIELDS"),
         { status: 400 }
       );
     }
@@ -121,23 +122,24 @@ export async function POST(request: NextRequest) {
       backgroundImage = await generateDMCreativeImage(message, companyContext, apiKey);
     }
 
-    return NextResponse.json({
-      success: true,
-      backgroundImage,
-      promptUsed,
-      metadata: imageMetadata,
-    });
+    return NextResponse.json(
+      successResponse(
+        {
+          backgroundImage,
+          promptUsed,
+          metadata: imageMetadata,
+        },
+        "Background image generated successfully"
+      )
+    );
   } catch (error: unknown) {
     console.error("Error generating background:", error);
 
     const errorMessage =
-      error instanceof Error ? error.message : "Unknown error occurred";
+      error instanceof Error ? error.message : "Failed to generate background";
 
     return NextResponse.json(
-      {
-        success: false,
-        error: `Failed to generate background: ${errorMessage}`,
-      },
+      errorResponse(errorMessage, "GENERATION_ERROR"),
       { status: 500 }
     );
   }

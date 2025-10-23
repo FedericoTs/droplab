@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createCanvasSession } from '@/lib/database/canvas-queries';
+import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
         !recipientName || !recipientLastname || !message || !companyName ||
         !canvasWidth || !canvasHeight || !phoneNumber) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields' },
+        errorResponse('Missing required fields', 'MISSING_FIELDS'),
         { status: 400 }
       );
     }
@@ -63,14 +64,16 @@ export async function POST(request: NextRequest) {
 
     console.log(`✅ Canvas session created: ${sessionId}`);
 
-    return NextResponse.json({
-      success: true,
-      sessionId,
-    });
+    return NextResponse.json(
+      successResponse({ sessionId }, 'Canvas session created successfully')
+    );
   } catch (error) {
     console.error('Error creating canvas session:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to create session' },
+      errorResponse(
+        error instanceof Error ? error.message : 'Failed to create session',
+        'CREATE_ERROR'
+      ),
       { status: 500 }
     );
   }
