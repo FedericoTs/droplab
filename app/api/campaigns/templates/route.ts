@@ -5,6 +5,7 @@ import {
   initializeSystemTemplates,
 } from '@/lib/database/campaign-management';
 import { copyAssets } from '@/lib/database/asset-management';
+import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 /**
  * GET /api/campaigns/templates
@@ -20,20 +21,19 @@ export async function GET(request: NextRequest) {
 
     const templates = getAllTemplates(category);
 
-    return NextResponse.json({
-      success: true,
-      data: templates.map((t) => ({
-        ...t,
-        template_data: JSON.parse(t.template_data),
-      })),
-    });
+    return NextResponse.json(
+      successResponse(
+        templates.map((t) => ({
+          ...t,
+          template_data: JSON.parse(t.template_data),
+        })),
+        "Templates retrieved successfully"
+      )
+    );
   } catch (error) {
     console.error('Error fetching templates:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to fetch templates',
-      },
+      errorResponse('Failed to fetch templates', 'FETCH_ERROR'),
       { status: 500 }
     );
   }
@@ -50,10 +50,7 @@ export async function POST(request: NextRequest) {
 
     if (!name || !templateData) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Name and template data are required',
-        },
+        errorResponse('Name and template data are required', 'MISSING_FIELDS'),
         { status: 400 }
       );
     }
@@ -79,21 +76,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        ...template,
-        template_data: JSON.parse(template.template_data),
-      },
-      message: 'Template created successfully',
-    });
+    return NextResponse.json(
+      successResponse(
+        {
+          ...template,
+          template_data: JSON.parse(template.template_data),
+        },
+        'Template created successfully'
+      )
+    );
   } catch (error) {
     console.error('Error creating template:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to create template',
-      },
+      errorResponse('Failed to create template', 'CREATE_ERROR'),
       { status: 500 }
     );
   }

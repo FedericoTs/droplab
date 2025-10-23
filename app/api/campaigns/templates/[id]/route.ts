@@ -5,6 +5,7 @@ import {
   updateTemplate,
   incrementTemplateUseCount,
 } from '@/lib/database/campaign-management';
+import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 /**
  * GET /api/campaigns/templates/[id]
@@ -20,28 +21,24 @@ export async function GET(
 
     if (!template) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Template not found',
-        },
+        errorResponse('Template not found', 'TEMPLATE_NOT_FOUND'),
         { status: 404 }
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        ...template,
-        template_data: JSON.parse(template.template_data),
-      },
-    });
+    return NextResponse.json(
+      successResponse(
+        {
+          ...template,
+          template_data: JSON.parse(template.template_data),
+        },
+        "Template retrieved successfully"
+      )
+    );
   } catch (error) {
     console.error('Error fetching template:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to fetch template',
-      },
+      errorResponse('Failed to fetch template', 'FETCH_ERROR'),
       { status: 500 }
     );
   }
@@ -69,25 +66,21 @@ export async function PATCH(
 
     if (!success) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Failed to update template (template not found or is a system template)',
-        },
+        errorResponse(
+          'Failed to update template (template not found or is a system template)',
+          'UPDATE_FAILED'
+        ),
         { status: 400 }
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Template updated successfully',
-    });
+    return NextResponse.json(
+      successResponse(null, 'Template updated successfully')
+    );
   } catch (error) {
     console.error('Error updating template:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to update template',
-      },
+      errorResponse('Failed to update template', 'UPDATE_ERROR'),
       { status: 500 }
     );
   }
@@ -107,25 +100,21 @@ export async function DELETE(
 
     if (!success) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Failed to delete template (template not found or is a system template)',
-        },
+        errorResponse(
+          'Failed to delete template (template not found or is a system template)',
+          'DELETE_FAILED'
+        ),
         { status: 400 }
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Template deleted successfully',
-    });
+    return NextResponse.json(
+      successResponse(null, 'Template deleted successfully')
+    );
   } catch (error) {
     console.error('Error deleting template:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to delete template',
-      },
+      errorResponse('Failed to delete template', 'DELETE_ERROR'),
       { status: 500 }
     );
   }
@@ -143,17 +132,13 @@ export async function POST(
     const { id } = await params;
     incrementTemplateUseCount(id);
 
-    return NextResponse.json({
-      success: true,
-      message: 'Template use count incremented',
-    });
+    return NextResponse.json(
+      successResponse(null, 'Template use count incremented')
+    );
   } catch (error) {
     console.error('Error incrementing template use count:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to increment template use count',
-      },
+      errorResponse('Failed to increment template use count', 'INCREMENT_ERROR'),
       { status: 500 }
     );
   }

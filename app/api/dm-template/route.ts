@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDMTemplate, getDMTemplateByCampaignTemplate } from "@/lib/database/template-queries";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,10 +11,10 @@ export async function GET(request: NextRequest) {
     // Support both query methods
     if (!templateId && !campaignTemplateId) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Either 'id' or 'campaignTemplateId' is required",
-        },
+        errorResponse(
+          "Either 'id' or 'campaignTemplateId' is required",
+          "MISSING_PARAMETER"
+        ),
         { status: 400 }
       );
     }
@@ -29,23 +30,22 @@ export async function GET(request: NextRequest) {
     }
 
     if (!template) {
-      return NextResponse.json({
-        success: true,
-        data: null, // Not an error - template just doesn't exist yet
-      });
+      // Not an error - template just doesn't exist yet
+      return NextResponse.json(
+        successResponse(null, "Template not found")
+      );
     }
 
-    return NextResponse.json({
-      success: true,
-      data: template,
-    });
+    return NextResponse.json(
+      successResponse(template, "DM template retrieved successfully")
+    );
   } catch (error) {
     console.error("Error fetching DM template:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
+      errorResponse(
+        error instanceof Error ? error.message : "Unknown error",
+        "FETCH_ERROR"
+      ),
       { status: 500 }
     );
   }
