@@ -4,6 +4,26 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Eye, TrendingUp, Target, QrCode, CheckCircle, Loader2, Clock, BarChart3, Phone } from "lucide-react";
 import { DateRangePicker } from "./date-range-picker";
+import { SankeyChart } from "./sankey-chart";
+
+// Helper function for duration formatting
+const formatDuration = (seconds?: number | null) => {
+  if (!seconds || seconds === 0) return "0s";
+  const totalSeconds = Math.round(Number(seconds));
+
+  if (totalSeconds < 60) {
+    return `${totalSeconds}s`;
+  }
+
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+
+  if (secs === 0) {
+    return `${mins}m`;
+  }
+
+  return `${mins}m ${secs}s`;
+};
 
 interface EngagementMetric {
   value: number;
@@ -52,8 +72,19 @@ export function DashboardOverview() {
     loadStats();
   }, []);
 
-  const loadStats = async (startDate?: string, endDate?: string) => {
-    setLoading(true);
+  // Separate effect for auto-refresh to avoid recreating interval
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadStats(dateRange.start, dateRange.end, false);
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [dateRange]);
+
+  const loadStats = async (startDate?: string, endDate?: string, showLoading = true) => {
+    if (showLoading) {
+      setLoading(true);
+    }
     try {
       const params = new URLSearchParams();
       if (startDate && endDate) {
@@ -71,7 +102,9 @@ export function DashboardOverview() {
     } catch (error) {
       console.error("Failed to load dashboard stats:", error);
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   };
 
@@ -323,7 +356,7 @@ export function DashboardOverview() {
                   <p className="text-purple-600">successful</p>
                 </div>
                 <div>
-                  <p className="text-purple-900 font-semibold">{stats.callMetrics.average_duration}s</p>
+                  <p className="text-purple-900 font-semibold">{formatDuration(stats.callMetrics.average_duration)}</p>
                   <p className="text-purple-600">avg duration</p>
                 </div>
               </div>
@@ -445,6 +478,9 @@ export function DashboardOverview() {
           </CardContent>
         </Card>
       )}
+
+      {/* Customer Journey Sankey Chart */}
+      <SankeyChart />
 
       {/* Performance Summary */}
       <Card className="border-slate-200">

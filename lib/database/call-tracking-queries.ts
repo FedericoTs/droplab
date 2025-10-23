@@ -213,7 +213,7 @@ export function getCampaignCallMetrics(campaignId: string): CallMetrics {
   const month = monthStmt.get(campaignId) as { count: number };
 
   const conversion_rate =
-    counts.successful_calls > 0 ? (counts.conversions / counts.successful_calls) * 100 : 0;
+    counts.total_calls > 0 ? (counts.conversions / counts.total_calls) * 100 : 0;
 
   return {
     total_calls: counts.total_calls || 0,
@@ -242,7 +242,8 @@ export function getAllCallMetrics(): CallMetrics {
       SUM(CASE WHEN call_status = 'failure' THEN 1 ELSE 0 END) as failed_calls,
       SUM(CASE WHEN call_status = 'unknown' THEN 1 ELSE 0 END) as unknown_calls,
       SUM(CASE WHEN is_conversion = 1 THEN 1 ELSE 0 END) as conversions,
-      AVG(CASE WHEN call_duration_seconds IS NOT NULL THEN call_duration_seconds ELSE NULL END) as average_duration
+      AVG(CASE WHEN call_duration_seconds IS NOT NULL AND call_duration_seconds > 0 THEN call_duration_seconds ELSE NULL END) as average_duration,
+      COUNT(CASE WHEN call_duration_seconds IS NOT NULL AND call_duration_seconds > 0 THEN 1 END) as calls_with_duration
     FROM elevenlabs_calls
   `);
 
@@ -253,6 +254,7 @@ export function getAllCallMetrics(): CallMetrics {
     unknown_calls: number;
     conversions: number;
     average_duration: number | null;
+    calls_with_duration: number;
   };
 
   const todayStmt = db.prepare(`SELECT COUNT(*) as count FROM elevenlabs_calls WHERE DATE(call_started_at) = DATE('now')`);
@@ -265,7 +267,11 @@ export function getAllCallMetrics(): CallMetrics {
   const month = monthStmt.get() as { count: number };
 
   const conversion_rate =
-    counts.successful_calls > 0 ? (counts.conversions / counts.successful_calls) * 100 : 0;
+    counts.total_calls > 0 ? (counts.conversions / counts.total_calls) * 100 : 0;
+
+  console.log('[Call Metrics] Total calls:', counts.total_calls);
+  console.log('[Call Metrics] Calls with duration:', counts.calls_with_duration);
+  console.log('[Call Metrics] Average duration:', counts.average_duration);
 
   return {
     total_calls: counts.total_calls || 0,
@@ -274,7 +280,7 @@ export function getAllCallMetrics(): CallMetrics {
     unknown_calls: counts.unknown_calls || 0,
     conversions: counts.conversions || 0,
     conversion_rate: Math.round(conversion_rate * 10) / 10,
-    average_duration: Math.round(counts.average_duration || 0),
+    average_duration: counts.average_duration || 0, // Keep as decimal for accurate display
     calls_today: today.count || 0,
     calls_this_week: week.count || 0,
     calls_this_month: month.count || 0,
@@ -383,4 +389,97 @@ export function manuallyAttributeCall(conversationId: string, campaignId: string
   stmt.run(campaignId, recipientId || null, conversationId);
 
   console.log('[DB] Manually attributed call:', conversationId, 'to campaign:', campaignId);
+}
+
+/**
+ * Update call conversions based on appointment bookings
+ * Links calls to appointments via phone number or recipient_id
+ * Returns number of calls updated
+ */
+export function syncCallConversionsWithAppointments(): number {
+  const db = getDatabase();
+
+  // Update is_conversion for calls that have matching appointment bookings
+  // Match by: 1) recipient_id if available, 2) phone number normalization
+  const stmt = db.prepare(`
+    UPDATE elevenlabs_calls
+    SET is_conversion = 1
+    WHERE conversation_id IN (
+      SELECT DISTINCT c.conversation_id
+      FROM elevenlabs_calls c
+      LEFT JOIN recipients r ON c.recipient_id = r.id
+      LEFT JOIN conversions conv ON conv.tracking_id = r.tracking_id
+      WHERE conv.conversion_type = 'appointment_booked'
+        AND (
+          c.recipient_id IS NOT NULL
+          OR (
+            c.caller_phone_number IS NOT NULL
+            AND r.phone IS NOT NULL
+            AND REPLACE(REPLACE(REPLACE(REPLACE(c.caller_phone_number, ' ', ''), '-', ''), '(', ''), ')', '')
+              = REPLACE(REPLACE(REPLACE(REPLACE(r.phone, ' ', ''), '-', ''), '(', ''), ')', '')
+          )
+        )
+    )
+  `);
+
+  const result = stmt.run();
+
+  console.log(`[DB] Synced ${result.changes} call conversions with appointments`);
+
+  return result.changes;
+}
+
+/**
+ * Get call conversion rate based on actual appointment bookings
+ */
+export function getCallConversionRate(): {
+  total_calls: number;
+  calls_with_appointments: number;
+  conversion_rate: number;
+} {
+  const db = getDatabase();
+
+  const stmt = db.prepare(`
+    SELECT
+      COUNT(*) as total_calls,
+      SUM(CASE WHEN is_conversion = 1 THEN 1 ELSE 0 END) as calls_with_appointments
+    FROM elevenlabs_calls
+  `);
+
+  const result = stmt.get() as {
+    total_calls: number;
+    calls_with_appointments: number;
+  };
+
+  const conversion_rate =
+    result.total_calls > 0
+      ? (result.calls_with_appointments / result.total_calls) * 100
+      : 0;
+
+  return {
+    total_calls: result.total_calls || 0,
+    calls_with_appointments: result.calls_with_appointments || 0,
+    conversion_rate: Math.round(conversion_rate * 10) / 10,
+  };
+}
+
+/**
+ * Get recent calls (most recent first)
+ */
+export function getRecentCalls(limit: number = 50): ElevenLabsCall[] {
+  const db = getDatabase();
+
+  const stmt = db.prepare(`
+    SELECT *
+    FROM elevenlabs_calls
+    ORDER BY call_started_at DESC
+    LIMIT ?
+  `);
+
+  const calls = stmt.all(limit) as ElevenLabsCall[];
+
+  return calls.map((call) => ({
+    ...call,
+    is_conversion: Boolean(call.is_conversion),
+  }));
 }

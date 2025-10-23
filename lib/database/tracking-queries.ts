@@ -1096,6 +1096,7 @@ export interface TimeSeriesData {
   pageViews: number;
   conversions: number;
   uniqueVisitors: number;
+  calls: number;
 }
 
 export interface CampaignTimeSeriesData {
@@ -1173,6 +1174,22 @@ export function getTimeSeriesAnalytics(
     count: number;
   }>;
 
+  // Get daily calls
+  const callsStmt = db.prepare(`
+    SELECT
+      DATE(call_started_at) as date,
+      COUNT(*) as count
+    FROM elevenlabs_calls
+    WHERE DATE(call_started_at) BETWEEN ? AND ?
+    GROUP BY DATE(call_started_at)
+    ORDER BY date ASC
+  `);
+
+  const calls = callsStmt.all(start, end) as Array<{
+    date: string;
+    count: number;
+  }>;
+
   // Create a map of all dates in range
   const dateMap = new Map<string, TimeSeriesData>();
   const currentDate = new Date(start);
@@ -1185,6 +1202,7 @@ export function getTimeSeriesAnalytics(
       pageViews: 0,
       conversions: 0,
       uniqueVisitors: 0,
+      calls: 0,
     });
     currentDate.setDate(currentDate.getDate() + 1);
   }
@@ -1203,6 +1221,11 @@ export function getTimeSeriesAnalytics(
   visitors.forEach((v) => {
     const data = dateMap.get(v.date);
     if (data) data.uniqueVisitors = v.count;
+  });
+
+  calls.forEach((c) => {
+    const data = dateMap.get(c.date);
+    if (data) data.calls = c.count;
   });
 
   return Array.from(dateMap.values());
@@ -1278,6 +1301,23 @@ export function getCampaignTimeSeriesAnalytics(
     count: number;
   }>;
 
+  // Get daily calls for campaign
+  const callsStmt = db.prepare(`
+    SELECT
+      DATE(call_started_at) as date,
+      COUNT(*) as count
+    FROM elevenlabs_calls
+    WHERE campaign_id = ?
+      AND DATE(call_started_at) BETWEEN ? AND ?
+    GROUP BY DATE(call_started_at)
+    ORDER BY date ASC
+  `);
+
+  const calls = callsStmt.all(campaignId, start, end) as Array<{
+    date: string;
+    count: number;
+  }>;
+
   // Create a map of all dates in range
   const dateMap = new Map<string, TimeSeriesData>();
   const currentDate = new Date(start);
@@ -1290,6 +1330,7 @@ export function getCampaignTimeSeriesAnalytics(
       pageViews: 0,
       conversions: 0,
       uniqueVisitors: 0,
+      calls: 0,
     });
     currentDate.setDate(currentDate.getDate() + 1);
   }
@@ -1308,6 +1349,11 @@ export function getCampaignTimeSeriesAnalytics(
   visitors.forEach((v) => {
     const data = dateMap.get(v.date);
     if (data) data.uniqueVisitors = v.count;
+  });
+
+  calls.forEach((c) => {
+    const data = dateMap.get(c.date);
+    if (data) data.calls = c.count;
   });
 
   return Array.from(dateMap.values());
@@ -1635,4 +1681,137 @@ export function getOverallEngagementMetrics(startDate?: string, endDate?: string
 
   const stmt = db.prepare(query);
   return (hasDateFilter ? stmt.get(startDate, endDate) : stmt.get()) as any;
+}
+
+// ==================== SANKEY CHART DATA ====================
+
+export interface SankeyNode {
+  name: string;
+}
+
+export interface SankeyLink {
+  source: number;
+  target: number;
+  value: number;
+}
+
+export interface SankeyData {
+  nodes: SankeyNode[];
+  links: SankeyLink[];
+  metrics: {
+    totalRecipients: number;
+    qrScans: number;
+    landingPageVisits: number;
+    totalCalls: number;
+    webAppointments: number;
+    callAppointments: number;
+    totalAppointments: number;
+  };
+}
+
+/**
+ * Get Sankey chart data for customer journey visualization
+ * Flow: Recipients → QR Scans → Landing Page Visits → Calls/Appointments
+ */
+export function getSankeyChartData(): SankeyData {
+  const db = getDatabase();
+
+  // Total recipients (contacted people)
+  const totalRecipientsStmt = db.prepare("SELECT COUNT(*) as count FROM recipients");
+  const totalRecipients = (totalRecipientsStmt.get() as { count: number }).count;
+
+  // QR code scans
+  const qrScansStmt = db.prepare(`
+    SELECT COUNT(DISTINCT tracking_id) as count
+    FROM events
+    WHERE event_type = 'qr_scan'
+  `);
+  const qrScans = (qrScansStmt.get() as { count: number }).count;
+
+  // Landing page visits
+  const landingPageVisitsStmt = db.prepare(`
+    SELECT COUNT(DISTINCT tracking_id) as count
+    FROM events
+    WHERE event_type = 'page_view'
+  `);
+  const landingPageVisits = (landingPageVisitsStmt.get() as { count: number }).count;
+
+  // Total calls
+  const totalCallsStmt = db.prepare("SELECT COUNT(*) as count FROM elevenlabs_calls");
+  const totalCalls = (totalCallsStmt.get() as { count: number }).count;
+
+  // Appointments booked via web (direct from landing page)
+  const webAppointmentsStmt = db.prepare(`
+    SELECT COUNT(DISTINCT cv.tracking_id) as count
+    FROM conversions cv
+    WHERE cv.conversion_type = 'appointment_booked'
+  `);
+  const webAppointments = (webAppointmentsStmt.get() as { count: number }).count;
+
+  // Appointments booked via calls
+  const callAppointmentsStmt = db.prepare(`
+    SELECT COUNT(*) as count
+    FROM elevenlabs_calls
+    WHERE is_conversion = 1
+  `);
+  const callAppointments = (callAppointmentsStmt.get() as { count: number }).count;
+
+  // Total appointments (unique)
+  const totalAppointmentsStmt = db.prepare(`
+    SELECT COUNT(DISTINCT tracking_id) as count
+    FROM conversions
+    WHERE conversion_type = 'appointment_booked'
+  `);
+  const totalAppointments = (totalAppointmentsStmt.get() as { count: number }).count;
+
+  // Nodes (indexed from 0)
+  const nodes: SankeyNode[] = [
+    { name: "Recipients" },          // 0
+    { name: "QR Scans" },           // 1
+    { name: "Landing Page Visits" }, // 2
+    { name: "Calls" },              // 3
+    { name: "Appointments" },       // 4
+  ];
+
+  // Links (flows between nodes)
+  const links: SankeyLink[] = [];
+
+  // Recipients → QR Scans
+  if (qrScans > 0) {
+    links.push({ source: 0, target: 1, value: qrScans });
+  }
+
+  // QR Scans → Landing Page Visits
+  if (qrScans > 0 && landingPageVisits > 0) {
+    links.push({ source: 1, target: 2, value: Math.min(qrScans, landingPageVisits) });
+  }
+
+  // Landing Page Visits → Appointments (direct web bookings)
+  if (landingPageVisits > 0 && webAppointments > 0) {
+    links.push({ source: 2, target: 4, value: webAppointments });
+  }
+
+  // Landing Page Visits → Calls
+  if (landingPageVisits > 0 && totalCalls > 0) {
+    links.push({ source: 2, target: 3, value: totalCalls });
+  }
+
+  // Calls → Appointments (appointments booked via calls)
+  if (totalCalls > 0 && callAppointments > 0) {
+    links.push({ source: 3, target: 4, value: callAppointments });
+  }
+
+  return {
+    nodes,
+    links,
+    metrics: {
+      totalRecipients,
+      qrScans,
+      landingPageVisits,
+      totalCalls,
+      webAppointments,
+      callAppointments,
+      totalAppointments,
+    },
+  };
 }

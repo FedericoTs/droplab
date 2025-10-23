@@ -1,14 +1,63 @@
 "use client";
 
+import { Suspense, useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Target, Activity, TrendingUp } from "lucide-react";
+import { BarChart3, Target, Activity, TrendingUp, Phone, Loader2 } from "lucide-react";
 import { DashboardOverview } from "@/components/analytics/dashboard-overview";
 import { CampaignList } from "@/components/analytics/campaign-list";
 import { RecentActivityFeed } from "@/components/analytics/recent-activity-feed";
 import { ChartsView } from "@/components/analytics/charts-view";
+import { CallsView } from "@/components/analytics/calls-view";
 
-export default function AnalyticsPage() {
+function AnalyticsContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "overview");
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
+
+  // Global ElevenLabs sync - runs every 2 minutes regardless of active tab
+  useEffect(() => {
+    const syncFromElevenLabs = async () => {
+      try {
+        const response = await fetch("/api/jobs/sync-elevenlabs-calls", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        });
+        const result = await response.json();
+
+        if (!result.success) {
+          console.error('Failed to sync ElevenLabs calls:', result.error);
+        }
+      } catch (error) {
+        console.error('Error syncing ElevenLabs calls:', error);
+      }
+    };
+
+    // Initial sync on mount
+    syncFromElevenLabs();
+
+    // Auto-sync every 2 minutes
+    const syncInterval = setInterval(() => {
+      syncFromElevenLabs();
+    }, 120000); // 2 minutes
+
+    return () => clearInterval(syncInterval);
+  }, []);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    router.push(`/analytics?tab=${value}`, { scroll: false });
+  };
+
   return (
     <div className="p-8 max-w-7xl mx-auto">
       <div className="mb-8">
@@ -18,8 +67,8 @@ export default function AnalyticsPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full max-w-3xl grid-cols-4 h-auto p-1">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+        <TabsList className="grid w-full max-w-4xl grid-cols-5 h-auto p-1">
           <TabsTrigger value="overview" className="gap-2 py-3">
             <BarChart3 className="h-4 w-4" />
             <span className="font-medium">Overview</span>
@@ -27,6 +76,10 @@ export default function AnalyticsPage() {
           <TabsTrigger value="campaigns" className="gap-2 py-3">
             <Target className="h-4 w-4" />
             <span className="font-medium">Campaigns</span>
+          </TabsTrigger>
+          <TabsTrigger value="calls" className="gap-2 py-3">
+            <Phone className="h-4 w-4" />
+            <span className="font-medium">Calls</span>
           </TabsTrigger>
           <TabsTrigger value="charts" className="gap-2 py-3">
             <TrendingUp className="h-4 w-4" />
@@ -46,6 +99,10 @@ export default function AnalyticsPage() {
           <CampaignList />
         </TabsContent>
 
+        <TabsContent value="calls" className="space-y-6">
+          <CallsView />
+        </TabsContent>
+
         <TabsContent value="charts" className="space-y-6">
           <ChartsView />
         </TabsContent>
@@ -55,5 +112,20 @@ export default function AnalyticsPage() {
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+export default function AnalyticsPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-8 max-w-7xl mx-auto flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+          <p className="text-sm text-slate-600">Loading analytics...</p>
+        </div>
+      </div>
+    }>
+      <AnalyticsContent />
+    </Suspense>
   );
 }
