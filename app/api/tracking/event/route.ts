@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { trackEvent } from "@/lib/database/tracking-queries";
 import type { Event } from "@/lib/database/tracking-queries";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 /**
  * POST /api/tracking/event
@@ -14,14 +15,14 @@ export async function POST(request: NextRequest) {
     // Validation
     if (!trackingId || typeof trackingId !== "string") {
       return NextResponse.json(
-        { success: false, error: "Missing or invalid tracking ID" },
+        errorResponse("Missing or invalid tracking ID", "INVALID_TRACKING_ID"),
         { status: 400 }
       );
     }
 
     if (!eventType || typeof eventType !== "string") {
       return NextResponse.json(
-        { success: false, error: "Missing or invalid event type" },
+        errorResponse("Missing or invalid event type", "INVALID_EVENT_TYPE"),
         { status: 400 }
       );
     }
@@ -37,10 +38,10 @@ export async function POST(request: NextRequest) {
 
     if (!validEventTypes.includes(eventType as Event["event_type"])) {
       return NextResponse.json(
-        {
-          success: false,
-          error: `Invalid event type. Must be one of: ${validEventTypes.join(", ")}`,
-        },
+        errorResponse(
+          `Invalid event type. Must be one of: ${validEventTypes.join(", ")}`,
+          "INVALID_EVENT_TYPE"
+        ),
         { status: 400 }
       );
     }
@@ -62,22 +63,24 @@ export async function POST(request: NextRequest) {
       userAgent,
     });
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        eventId: event.id,
-        trackingId: event.tracking_id,
-        eventType: event.event_type,
-        timestamp: event.created_at,
-      },
-    });
+    return NextResponse.json(
+      successResponse(
+        {
+          eventId: event.id,
+          trackingId: event.tracking_id,
+          eventType: event.event_type,
+          timestamp: event.created_at,
+        },
+        "Event tracked successfully"
+      )
+    );
   } catch (error) {
     console.error("Error tracking event:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Failed to track event",
-      },
+      errorResponse(
+        error instanceof Error ? error.message : "Failed to track event",
+        "TRACKING_ERROR"
+      ),
       { status: 500 }
     );
   }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { trackConversion } from "@/lib/database/tracking-queries";
 import type { Conversion } from "@/lib/database/tracking-queries";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 /**
  * POST /api/tracking/conversion
@@ -14,14 +15,14 @@ export async function POST(request: NextRequest) {
     // Validation
     if (!trackingId || typeof trackingId !== "string") {
       return NextResponse.json(
-        { success: false, error: "Missing or invalid tracking ID" },
+        errorResponse("Missing or invalid tracking ID", "INVALID_TRACKING_ID"),
         { status: 400 }
       );
     }
 
     if (!conversionType || typeof conversionType !== "string") {
       return NextResponse.json(
-        { success: false, error: "Missing or invalid conversion type" },
+        errorResponse("Missing or invalid conversion type", "INVALID_CONVERSION_TYPE"),
         { status: 400 }
       );
     }
@@ -36,10 +37,10 @@ export async function POST(request: NextRequest) {
 
     if (!validConversionTypes.includes(conversionType as Conversion["conversion_type"])) {
       return NextResponse.json(
-        {
-          success: false,
-          error: `Invalid conversion type. Must be one of: ${validConversionTypes.join(", ")}`,
-        },
+        errorResponse(
+          `Invalid conversion type. Must be one of: ${validConversionTypes.join(", ")}`,
+          "INVALID_CONVERSION_TYPE"
+        ),
         { status: 400 }
       );
     }
@@ -51,22 +52,24 @@ export async function POST(request: NextRequest) {
       conversionData: conversionData ? conversionData : undefined,
     });
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        conversionId: conversion.id,
-        trackingId: conversion.tracking_id,
-        conversionType: conversion.conversion_type,
-        timestamp: conversion.created_at,
-      },
-    });
+    return NextResponse.json(
+      successResponse(
+        {
+          conversionId: conversion.id,
+          trackingId: conversion.tracking_id,
+          conversionType: conversion.conversion_type,
+          timestamp: conversion.created_at,
+        },
+        "Conversion tracked successfully"
+      )
+    );
   } catch (error) {
     console.error("Error tracking conversion:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Failed to track conversion",
-      },
+      errorResponse(
+        error instanceof Error ? error.message : "Failed to track conversion",
+        "TRACKING_ERROR"
+      ),
       { status: 500 }
     );
   }
