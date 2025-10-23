@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { syncElevenLabsCalls } from '@/lib/elevenlabs/call-sync';
+import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 export async function POST(request: NextRequest) {
   console.log('[API] Sync ElevenLabs calls endpoint called');
@@ -17,11 +18,11 @@ export async function POST(request: NextRequest) {
 
     if (!apiKey) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'ElevenLabs API key not configured',
-          message: 'Please set ELEVENLABS_API_KEY in environment variables',
-        },
+        errorResponse(
+          'ElevenLabs API key not configured',
+          'API_KEY_MISSING',
+          'Please set ELEVENLABS_API_KEY in environment variables'
+        ),
         { status: 500 }
       );
     }
@@ -37,27 +38,29 @@ export async function POST(request: NextRequest) {
 
     // Return result
     if (result.success) {
-      return NextResponse.json({
-        success: true,
-        message: 'Call sync completed successfully',
-        data: {
-          newCalls: result.newCalls,
-          attributedCalls: result.attributedCalls,
-          errors: result.errors,
-          lastSyncTimestamp: result.lastSyncTimestamp,
-        },
-      });
-    } else {
       return NextResponse.json(
-        {
-          success: false,
-          message: 'Call sync completed with errors',
-          data: {
+        successResponse(
+          {
             newCalls: result.newCalls,
             attributedCalls: result.attributedCalls,
             errors: result.errors,
+            lastSyncTimestamp: result.lastSyncTimestamp,
           },
-        },
+          'Call sync completed successfully'
+        )
+      );
+    } else {
+      return NextResponse.json(
+        errorResponse(
+          'Call sync completed with errors',
+          'SYNC_WITH_ERRORS',
+          undefined,
+          {
+            newCalls: result.newCalls,
+            attributedCalls: result.attributedCalls,
+            errors: result.errors,
+          }
+        ),
         { status: 500 }
       );
     }
@@ -65,11 +68,11 @@ export async function POST(request: NextRequest) {
     console.error('[API] Error in sync-elevenlabs-calls:', error);
 
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        message: 'Failed to sync ElevenLabs calls',
-      },
+      errorResponse(
+        error instanceof Error ? error.message : 'Unknown error',
+        'SYNC_ERROR',
+        'Failed to sync ElevenLabs calls'
+      ),
       { status: 500 }
     );
   }
@@ -79,9 +82,13 @@ export async function POST(request: NextRequest) {
  * GET endpoint to check sync status
  */
 export async function GET() {
-  return NextResponse.json({
-    message: 'ElevenLabs call sync endpoint',
-    usage: 'POST to this endpoint to trigger sync',
-    methods: ['POST', 'GET'],
-  });
+  return NextResponse.json(
+    successResponse(
+      {
+        usage: 'POST to this endpoint to trigger sync',
+        methods: ['POST', 'GET'],
+      },
+      'ElevenLabs call sync endpoint'
+    )
+  );
 }

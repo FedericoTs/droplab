@@ -6,6 +6,7 @@ import {
   buildAgentMetadata,
 } from "@/lib/ai/elevenlabs";
 import { CallInitiateRequest, CallInitiateResponse } from "@/types/call";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest) {
 
     if (!phoneNumber || !callObjective) {
       return NextResponse.json(
-        { success: false, error: "Missing required fields" },
+        errorResponse("Missing required fields", "MISSING_FIELDS"),
         { status: 400 }
       );
     }
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
     const validation = validatePhoneNumber(phoneNumber);
     if (!validation.valid) {
       return NextResponse.json(
-        { success: false, error: validation.error },
+        errorResponse(validation.error || "Invalid phone number", "INVALID_PHONE_NUMBER"),
         { status: 400 }
       );
     }
@@ -55,37 +56,35 @@ export async function POST(request: NextRequest) {
       }
     });
 
+    // ⚠️ DEMO MODE PATTERN: Return 200 with error for missing API key
+    // This allows frontend to show demo message instead of error state
     if (!apiKey) {
       return NextResponse.json(
-        {
-          success: false,
-          error:
-            "ElevenLabs API key not configured. Please add it in Settings.",
-          message:
-            "Demo Mode: Call would be initiated if API key was configured.",
-        },
-        { status: 200 } // Return 200 for demo purposes
+        errorResponse(
+          "ElevenLabs API key not configured. Please add it in Settings.",
+          "API_KEY_MISSING",
+          "Demo Mode: Call would be initiated if API key was configured."
+        ),
+        { status: 200 } // Intentional 200 for demo mode
       );
     }
 
     if (!agentId) {
       return NextResponse.json(
-        {
-          success: false,
-          error:
-            "ElevenLabs Agent ID not configured. Please add it in Settings.",
-        },
+        errorResponse(
+          "ElevenLabs Agent ID not configured. Please add it in Settings.",
+          "AGENT_ID_MISSING"
+        ),
         { status: 400 }
       );
     }
 
     if (!phoneNumberId) {
       return NextResponse.json(
-        {
-          success: false,
-          error:
-            "ElevenLabs Phone Number ID not configured. Please add it in Settings. This is the ID of your configured phone number in ElevenLabs.",
-        },
+        errorResponse(
+          "ElevenLabs Phone Number ID not configured. Please add it in Settings. This is the ID of your configured phone number in ElevenLabs.",
+          "PHONE_NUMBER_ID_MISSING"
+        ),
         { status: 400 }
       );
     }
@@ -126,14 +125,15 @@ export async function POST(request: NextRequest) {
       metadata,
     });
 
-    const response: CallInitiateResponse = {
-      success: true,
-      callId: result.callId,
-      status: result.status,
-      message: "Call initiated successfully (Demo Mode)",
-    };
-
-    return NextResponse.json(response);
+    return NextResponse.json(
+      successResponse(
+        {
+          callId: result.callId,
+          status: result.status,
+        },
+        "Call initiated successfully (Demo Mode)"
+      )
+    );
   } catch (error: unknown) {
     console.error("Error initiating call:", error);
 
@@ -141,10 +141,10 @@ export async function POST(request: NextRequest) {
       error instanceof Error ? error.message : "Unknown error occurred";
 
     return NextResponse.json(
-      {
-        success: false,
-        error: `Failed to initiate call: ${errorMessage}`,
-      },
+      errorResponse(
+        `Failed to initiate call: ${errorMessage}`,
+        "CALL_INITIATE_ERROR"
+      ),
       { status: 500 }
     );
   }

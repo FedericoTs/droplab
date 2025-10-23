@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getBrandProfile, updateBrandKit } from '@/lib/database/tracking-queries';
+import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 /**
  * GET /api/brand/config
@@ -12,7 +13,7 @@ export async function GET(request: NextRequest) {
 
     if (!companyName) {
       return NextResponse.json(
-        { success: false, error: 'Company name is required' },
+        errorResponse('Company name is required', 'MISSING_COMPANY_NAME'),
         { status: 400 }
       );
     }
@@ -21,30 +22,31 @@ export async function GET(request: NextRequest) {
 
     if (!brandProfile) {
       // Return default brand config
-      return NextResponse.json({
-        success: true,
-        data: {
-          companyName,
-          primaryColor: '#1E3A8A',
-          secondaryColor: '#FF6B35',
-          accentColor: '#10B981',
-          backgroundColor: '#FFFFFF',
-          textColor: '#1F2937',
-          headingFont: 'Inter',
-          bodyFont: 'Open Sans',
-          landingPageTemplate: 'professional',
-        },
-      });
+      return NextResponse.json(
+        successResponse(
+          {
+            companyName,
+            primaryColor: '#1E3A8A',
+            secondaryColor: '#FF6B35',
+            accentColor: '#10B981',
+            backgroundColor: '#FFFFFF',
+            textColor: '#1F2937',
+            headingFont: 'Inter',
+            bodyFont: 'Open Sans',
+            landingPageTemplate: 'professional',
+          },
+          'Default brand configuration returned'
+        )
+      );
     }
 
-    return NextResponse.json({
-      success: true,
-      data: brandProfile,
-    });
+    return NextResponse.json(
+      successResponse(brandProfile, 'Brand configuration retrieved successfully')
+    );
   } catch (error) {
     console.error('Error fetching brand config:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch brand configuration' },
+      errorResponse('Failed to fetch brand configuration', 'FETCH_ERROR'),
       { status: 500 }
     );
   }
@@ -75,7 +77,7 @@ export async function POST(request: NextRequest) {
 
     if (!companyName) {
       return NextResponse.json(
-        { success: false, error: 'Company name is required' },
+        errorResponse('Company name is required', 'MISSING_COMPANY_NAME'),
         { status: 400 }
       );
     }
@@ -98,20 +100,18 @@ export async function POST(request: NextRequest) {
 
     if (!updatedProfile) {
       return NextResponse.json(
-        { success: false, error: 'Failed to update brand configuration' },
+        errorResponse('Failed to update brand configuration', 'UPDATE_ERROR'),
         { status: 500 }
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      data: updatedProfile,
-      message: 'Brand configuration updated successfully',
-    });
+    return NextResponse.json(
+      successResponse(updatedProfile, 'Brand configuration updated successfully')
+    );
   } catch (error) {
     console.error('Error updating brand config:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to update brand configuration' },
+      errorResponse('Failed to update brand configuration', 'UPDATE_ERROR'),
       { status: 500 }
     );
   }

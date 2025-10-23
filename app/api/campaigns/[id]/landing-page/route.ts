@@ -6,6 +6,7 @@ import {
   getCampaign,
   type CampaignLandingPageConfig,
 } from '@/lib/database/campaign-landing-page-queries';
+import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 /**
  * GET /api/campaigns/[id]/landing-page
@@ -21,27 +22,38 @@ export async function GET(
     // Check if campaign exists
     const campaign = getCampaign(campaignId);
     if (!campaign) {
-      return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
+      return NextResponse.json(
+        errorResponse('Campaign not found', 'CAMPAIGN_NOT_FOUND'),
+        { status: 404 }
+      );
     }
 
     // Fetch landing page config
     const landingPage = getCampaignLandingPage(campaignId);
 
     if (!landingPage) {
-      return NextResponse.json({ error: 'Landing page not found' }, { status: 404 });
+      return NextResponse.json(
+        errorResponse('Landing page not found', 'LANDING_PAGE_NOT_FOUND'),
+        { status: 404 }
+      );
     }
 
     // Parse and return config
     const config = JSON.parse(landingPage.page_config);
 
-    return NextResponse.json({
-      ...landingPage,
-      page_config: config, // Return parsed config
-    });
+    return NextResponse.json(
+      successResponse(
+        {
+          ...landingPage,
+          page_config: config, // Return parsed config
+        },
+        'Landing page configuration retrieved successfully'
+      )
+    );
   } catch (error) {
     console.error('Error fetching campaign landing page:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch landing page' },
+      errorResponse('Failed to fetch landing page', 'FETCH_ERROR'),
       { status: 500 }
     );
   }
@@ -61,7 +73,10 @@ export async function POST(
     // Check if campaign exists
     const campaign = getCampaign(campaignId);
     if (!campaign) {
-      return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
+      return NextResponse.json(
+        errorResponse('Campaign not found', 'CAMPAIGN_NOT_FOUND'),
+        { status: 404 }
+      );
     }
 
     // Parse request body
@@ -74,7 +89,10 @@ export async function POST(
     // Validate config
     if (!config.title || !config.message || !config.companyName) {
       return NextResponse.json(
-        { error: 'Missing required config fields: title, message, companyName' },
+        errorResponse(
+          'Missing required config fields: title, message, companyName',
+          'MISSING_FIELDS'
+        ),
         { status: 400 }
       );
     }
@@ -82,14 +100,20 @@ export async function POST(
     // Create landing page
     const landingPage = upsertCampaignLandingPage(campaignId, config, templateId);
 
-    return NextResponse.json({
-      ...landingPage,
-      page_config: JSON.parse(landingPage.page_config),
-    }, { status: 201 });
+    return NextResponse.json(
+      successResponse(
+        {
+          ...landingPage,
+          page_config: JSON.parse(landingPage.page_config),
+        },
+        'Landing page created successfully'
+      ),
+      { status: 201 }
+    );
   } catch (error) {
     console.error('Error creating campaign landing page:', error);
     return NextResponse.json(
-      { error: 'Failed to create landing page' },
+      errorResponse('Failed to create landing page', 'CREATE_ERROR'),
       { status: 500 }
     );
   }
@@ -109,14 +133,20 @@ export async function PATCH(
     // Check if campaign exists
     const campaign = getCampaign(campaignId);
     if (!campaign) {
-      return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
+      return NextResponse.json(
+        errorResponse('Campaign not found', 'CAMPAIGN_NOT_FOUND'),
+        { status: 404 }
+      );
     }
 
     // Check if landing page exists
     const existing = getCampaignLandingPage(campaignId);
     if (!existing) {
       return NextResponse.json(
-        { error: 'Landing page not found. Use POST to create.' },
+        errorResponse(
+          'Landing page not found. Use POST to create.',
+          'LANDING_PAGE_NOT_FOUND'
+        ),
         { status: 404 }
       );
     }
@@ -139,14 +169,19 @@ export async function PATCH(
       templateId !== undefined ? templateId : existing.campaign_template_id || undefined
     );
 
-    return NextResponse.json({
-      ...landingPage,
-      page_config: JSON.parse(landingPage.page_config),
-    });
+    return NextResponse.json(
+      successResponse(
+        {
+          ...landingPage,
+          page_config: JSON.parse(landingPage.page_config),
+        },
+        'Landing page updated successfully'
+      )
+    );
   } catch (error) {
     console.error('Error updating campaign landing page:', error);
     return NextResponse.json(
-      { error: 'Failed to update landing page' },
+      errorResponse('Failed to update landing page', 'UPDATE_ERROR'),
       { status: 500 }
     );
   }
