@@ -3,6 +3,7 @@ import { generateQRCode } from "@/lib/qr-generator";
 import { createCampaign, createRecipient } from "@/lib/database/tracking-queries";
 import { RecipientData } from "@/types/dm-creative";
 import { analyzeStoreDistribution } from "@/lib/csv-processor";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 // Import retail queries only when needed (optional feature)
 let retailQueries: any = null;
@@ -25,14 +26,14 @@ export async function POST(request: NextRequest) {
 
     if (!recipients || !Array.isArray(recipients) || recipients.length === 0) {
       return NextResponse.json(
-        { success: false, error: "No recipients provided" },
+        errorResponse("No recipients provided", "MISSING_RECIPIENTS"),
         { status: 400 }
       );
     }
 
     if (!message) {
       return NextResponse.json(
-        { success: false, error: "Message is required" },
+        errorResponse("Message is required", "MISSING_MESSAGE"),
         { status: 400 }
       );
     }
@@ -174,33 +175,37 @@ export async function POST(request: NextRequest) {
     }
 
     // Return response with deployment info if applicable
-    return NextResponse.json({
-      success: true,
-      data: dmDataList,
-      campaignId: campaign.id,
-      campaignName: campaign.name,
-      count: dmDataList.length,
-      // PHASE 8C: Include store deployment info
-      storeDeployment: hasStoreDeployment ? {
-        enabled: true,
-        totalStores: storeDistribution.uniqueStores.length,
-        deployments: deployments,
-        recipientsWithStores: storeDistribution.recipientsWithStores,
-        recipientsWithoutStores: storeDistribution.recipientsWithoutStores,
-      } : {
-        enabled: false,
-      },
-    });
+    return NextResponse.json(
+      successResponse(
+        {
+          dmData: dmDataList,
+          campaignId: campaign.id,
+          campaignName: campaign.name,
+          count: dmDataList.length,
+          // PHASE 8C: Include store deployment info
+          storeDeployment: hasStoreDeployment ? {
+            enabled: true,
+            totalStores: storeDistribution.uniqueStores.length,
+            deployments: deployments,
+            recipientsWithStores: storeDistribution.recipientsWithStores,
+            recipientsWithoutStores: storeDistribution.recipientsWithoutStores,
+          } : {
+            enabled: false,
+          },
+        },
+        `Batch generated successfully: ${dmDataList.length} direct mails created`
+      )
+    );
   } catch (error: unknown) {
     console.error("Error generating batch direct mails:", error);
 
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
 
     return NextResponse.json(
-      {
-        success: false,
-        error: `Failed to generate batch: ${errorMessage}`,
-      },
+      errorResponse(
+        `Failed to generate batch: ${errorMessage}`,
+        "BATCH_GENERATION_ERROR"
+      ),
       { status: 500 }
     );
   }

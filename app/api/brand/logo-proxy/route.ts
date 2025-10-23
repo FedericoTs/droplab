@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 /**
  * Logo Proxy API
@@ -12,7 +13,7 @@ export async function GET(request: NextRequest) {
 
     if (!logoUrl) {
       return NextResponse.json(
-        { success: false, error: 'Logo URL is required' },
+        errorResponse('Logo URL is required', 'MISSING_URL'),
         { status: 400 }
       );
     }
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest) {
     if (!response.ok) {
       console.error(`❌ Failed to fetch logo: ${response.status} ${response.statusText}`);
       return NextResponse.json(
-        { success: false, error: `Failed to fetch logo: ${response.statusText}` },
+        errorResponse(`Failed to fetch logo: ${response.statusText}`, 'FETCH_FAILED'),
         { status: response.status }
       );
     }
@@ -48,17 +49,24 @@ export async function GET(request: NextRequest) {
     console.log(`✅ Logo proxied successfully: ${buffer.length} bytes, ${contentType}`);
 
     // Return as JSON with data URL
-    return NextResponse.json({
-      success: true,
-      dataUrl,
-      contentType,
-      size: buffer.length,
-    });
+    return NextResponse.json(
+      successResponse(
+        {
+          dataUrl,
+          contentType,
+          size: buffer.length,
+        },
+        'Logo proxied successfully'
+      )
+    );
 
   } catch (error) {
     console.error('❌ Error proxying logo:', error);
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Failed to proxy logo' },
+      errorResponse(
+        error instanceof Error ? error.message : 'Failed to proxy logo',
+        'PROXY_ERROR'
+      ),
       { status: 500 }
     );
   }

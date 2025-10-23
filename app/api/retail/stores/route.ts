@@ -6,6 +6,7 @@ import {
   getRetailStates,
   getRetailStoreCount,
 } from '@/lib/database/retail-queries';
+import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 // GET: List stores with pagination and filtering
 export async function GET(request: Request) {
@@ -26,14 +27,14 @@ export async function GET(request: Request) {
     // Validate pagination parameters
     if (page < 1) {
       return NextResponse.json(
-        { success: false, error: 'Page must be >= 1' },
+        errorResponse('Page must be >= 1', 'INVALID_PAGE'),
         { status: 400 }
       );
     }
 
     if (pageSize < 1 || pageSize > 1000) {
       return NextResponse.json(
-        { success: false, error: 'Page size must be between 1 and 1000' },
+        errorResponse('Page size must be between 1 and 1000', 'INVALID_PAGE_SIZE'),
         { status: 400 }
       );
     }
@@ -55,21 +56,25 @@ export async function GET(request: Request) {
     const states = getRetailStates();
     const totalCount = getRetailStoreCount();
 
-    return NextResponse.json({
-      success: true,
-      data: result,
-      filters: {
-        regions,
-        states,
-      },
-      meta: {
-        totalStores: totalCount,
-      },
-    });
+    return NextResponse.json(
+      successResponse(
+        {
+          ...result,
+          filters: {
+            regions,
+            states,
+          },
+          meta: {
+            totalStores: totalCount,
+          },
+        },
+        'Stores retrieved successfully'
+      )
+    );
   } catch (error: any) {
     console.error('Error fetching stores:', error);
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to fetch stores' },
+      errorResponse(error.message || 'Failed to fetch stores', 'FETCH_ERROR'),
       { status: 500 }
     );
   }
@@ -83,7 +88,7 @@ export async function POST(request: Request) {
     // Validate required fields
     if (!body.storeNumber || !body.name) {
       return NextResponse.json(
-        { success: false, error: 'Store number and name are required' },
+        errorResponse('Store number and name are required', 'MISSING_FIELDS'),
         { status: 400 }
       );
     }
@@ -105,24 +110,22 @@ export async function POST(request: Request) {
       timezone: body.timezone,
     });
 
-    return NextResponse.json({
-      success: true,
-      data: store,
-      message: 'Store created successfully',
-    });
+    return NextResponse.json(
+      successResponse(store, 'Store created successfully')
+    );
   } catch (error: any) {
     console.error('Error creating store:', error);
 
     // Check for duplicate store number
     if (error.message && error.message.includes('UNIQUE constraint')) {
       return NextResponse.json(
-        { success: false, error: 'Store number already exists' },
+        errorResponse('Store number already exists', 'DUPLICATE_STORE'),
         { status: 409 }
       );
     }
 
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to create store' },
+      errorResponse(error.message || 'Failed to create store', 'CREATE_ERROR'),
       { status: 500 }
     );
   }

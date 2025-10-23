@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { bulkCreateRetailStores } from '@/lib/database/retail-queries';
+import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 // POST: Bulk import stores from CSV data
 export async function POST(request: Request) {
@@ -8,14 +9,14 @@ export async function POST(request: Request) {
 
     if (!body.stores || !Array.isArray(body.stores)) {
       return NextResponse.json(
-        { success: false, error: 'Invalid request: stores array is required' },
+        errorResponse('Invalid request: stores array is required', 'MISSING_STORES'),
         { status: 400 }
       );
     }
 
     if (body.stores.length === 0) {
       return NextResponse.json(
-        { success: false, error: 'No stores to import' },
+        errorResponse('No stores to import', 'EMPTY_STORES'),
         { status: 400 }
       );
     }
@@ -29,20 +30,21 @@ export async function POST(request: Request) {
     // Import stores
     const result = bulkCreateRetailStores(body.stores);
 
-    return NextResponse.json({
-      success: result.errors.length === 0,
-      data: {
-        created: result.created,
-        failed: result.errors.length,
-        total: body.stores.length,
-      },
-      errors: result.errors,
-      message: `Successfully imported ${result.created} of ${body.stores.length} stores`,
-    });
+    return NextResponse.json(
+      successResponse(
+        {
+          created: result.created,
+          failed: result.errors.length,
+          total: body.stores.length,
+          errors: result.errors,
+        },
+        `Successfully imported ${result.created} of ${body.stores.length} stores`
+      )
+    );
   } catch (error: any) {
     console.error('Error importing stores:', error);
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to import stores' },
+      errorResponse(error.message || 'Failed to import stores', 'IMPORT_ERROR'),
       { status: 500 }
     );
   }
