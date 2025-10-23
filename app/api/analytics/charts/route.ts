@@ -5,6 +5,7 @@ import {
   getFunnelData,
   getCampaignsComparisonData,
 } from "@/lib/database/tracking-queries";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 // GET: Get analytics chart data
 export async function GET(request: Request) {
@@ -18,10 +19,7 @@ export async function GET(request: Request) {
 
     if (!type) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Missing 'type' parameter",
-        },
+        errorResponse("Missing 'type' parameter", "MISSING_TYPE"),
         { status: 400 }
       );
     }
@@ -34,46 +32,48 @@ export async function GET(request: Request) {
             startDate,
             endDate
           );
-          return NextResponse.json({ success: true, data });
+          return NextResponse.json(
+            successResponse(data, "Campaign timeseries data retrieved successfully")
+          );
         } else {
           const data = getTimeSeriesAnalytics(startDate, endDate);
-          return NextResponse.json({ success: true, data });
+          return NextResponse.json(
+            successResponse(data, "Timeseries data retrieved successfully")
+          );
         }
 
       case "funnel":
         const funnelData = getFunnelData(campaignId || undefined);
-        return NextResponse.json({ success: true, data: funnelData });
+        return NextResponse.json(
+          successResponse(funnelData, "Funnel data retrieved successfully")
+        );
 
       case "comparison":
         if (!campaignIds) {
           return NextResponse.json(
-            {
-              success: false,
-              error: "Missing 'campaignIds' parameter for comparison",
-            },
+            errorResponse("Missing 'campaignIds' parameter for comparison", "MISSING_CAMPAIGN_IDS"),
             { status: 400 }
           );
         }
         const ids = campaignIds.split(",");
         const comparisonData = getCampaignsComparisonData(ids);
-        return NextResponse.json({ success: true, data: comparisonData });
+        return NextResponse.json(
+          successResponse(comparisonData, "Comparison data retrieved successfully")
+        );
 
       default:
         return NextResponse.json(
-          {
-            success: false,
-            error: `Invalid chart type: ${type}`,
-          },
+          errorResponse(`Invalid chart type: ${type}`, "INVALID_TYPE"),
           { status: 400 }
         );
     }
   } catch (error) {
     console.error("Error fetching chart data:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to fetch chart data",
-      },
+      errorResponse(
+        error instanceof Error ? error.message : "Failed to fetch chart data",
+        "FETCH_ERROR"
+      ),
       { status: 500 }
     );
   }

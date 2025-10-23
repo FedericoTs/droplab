@@ -3,6 +3,7 @@ import {
   getOverallEngagementMetrics,
   getEngagementMetricsForCampaign,
 } from "@/lib/database/tracking-queries";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 /**
  * GET /api/analytics/engagement-metrics
@@ -64,17 +65,16 @@ export async function GET(request: NextRequest) {
       recipientsWithConversions: metrics.recipients_with_conversions || metrics.conversions_count || 0,
     };
 
-    return NextResponse.json({
-      success: true,
-      data: formatted,
-    });
+    return NextResponse.json(
+      successResponse(formatted, "Engagement metrics retrieved successfully")
+    );
   } catch (error) {
     console.error("Error fetching engagement metrics:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to fetch engagement metrics",
-      },
+      errorResponse(
+        error instanceof Error ? error.message : "Failed to fetch engagement metrics",
+        "FETCH_ERROR"
+      ),
       { status: 500 }
     );
   }

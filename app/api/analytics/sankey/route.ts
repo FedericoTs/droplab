@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
 import { getSankeyChartData } from "@/lib/database/tracking-queries";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 export async function GET(request: NextRequest) {
   try {
@@ -31,19 +32,18 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({
-      success: true,
-      data,
-    });
+    return NextResponse.json(
+      successResponse(data, "Sankey chart data retrieved successfully")
+    );
   } catch (error) {
     console.error("[Sankey API] ❌ Error fetching Sankey chart data:", error);
     console.error("[Sankey API] Error stack:", error instanceof Error ? error.stack : 'No stack trace');
     return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to fetch Sankey chart data",
-        details: error instanceof Error ? error.message : String(error)
-      },
+      errorResponse(
+        "Failed to fetch Sankey chart data",
+        "FETCH_ERROR",
+        { details: error instanceof Error ? error.message : String(error) }
+      ),
       { status: 500 }
     );
   }
