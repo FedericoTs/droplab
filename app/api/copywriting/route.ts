@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateCopyVariations } from "@/lib/ai/openai";
 import { getBrandProfile } from "@/lib/database/tracking-queries";
 import { CopywritingRequest, CopywritingResponse, BrandMetadata } from "@/types/copywriting";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,7 +11,7 @@ export async function POST(request: NextRequest) {
 
     if (!prompt || !companyContext) {
       return NextResponse.json(
-        { success: false, error: "Missing required fields" },
+        errorResponse("Missing required fields", "MISSING_FIELDS"),
         { status: 400 }
       );
     }
@@ -20,10 +21,7 @@ export async function POST(request: NextRequest) {
 
     if (!apiKey) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "OpenAI API key not configured. Please add it in Settings.",
-        },
+        errorResponse("OpenAI API key not configured. Please add it in Settings.", "API_KEY_MISSING"),
         { status: 500 }
       );
     }
@@ -61,13 +59,15 @@ export async function POST(request: NextRequest) {
       brandProfile
     );
 
-    const response: CopywritingResponse = {
-      success: true,
-      variations,
-      brandMetadata,
-    };
-
-    return NextResponse.json(response);
+    return NextResponse.json(
+      successResponse(
+        {
+          variations,
+          brandMetadata,
+        },
+        "Copy variations generated successfully"
+      )
+    );
   } catch (error: unknown) {
     console.error("Error in copywriting API:", error);
 
@@ -75,11 +75,7 @@ export async function POST(request: NextRequest) {
       error instanceof Error ? error.message : "Unknown error occurred";
 
     return NextResponse.json(
-      {
-        success: false,
-        error: `Failed to generate copy variations: ${errorMessage}`,
-        variations: [],
-      },
+      errorResponse(`Failed to generate copy variations: ${errorMessage}`, "GENERATION_ERROR"),
       { status: 500 }
     );
   }
