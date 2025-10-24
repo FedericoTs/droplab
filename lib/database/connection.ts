@@ -2,9 +2,9 @@ import Database from "better-sqlite3";
 import path from "path";
 
 // Database file location
-// Using marketing.db which contains all historical data (143MB)
-// Previously used dm-tracking.db (25MB) which was created fresh
-const DB_PATH = path.join(process.cwd(), "marketing.db");
+// REVERTED: dm-tracking.db is the CURRENT database with user-created DM templates
+// marketing.db was old/backup data - switching to it caused user templates to disappear
+const DB_PATH = path.join(process.cwd(), "dm-tracking.db");
 
 // Singleton database instance
 let db: Database.Database | null = null;
