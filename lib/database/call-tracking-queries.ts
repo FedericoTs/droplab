@@ -4,6 +4,8 @@
 
 import { getDatabase } from './connection';
 import { nanoid } from 'nanoid';
+import { dbLogger } from './logger';
+import { validateRequired, validateString, validateId, validateEnum, validateISODate } from './validators';
 
 export interface ElevenLabsCall {
   id: string;
@@ -41,10 +43,23 @@ export interface CallMetrics {
  * Uses conversation_id as unique identifier to prevent duplicates
  */
 export function upsertElevenLabsCall(call: Omit<ElevenLabsCall, 'id' | 'created_at' | 'synced_at'>): string {
+  const operation = 'upsertElevenLabsCall';
+
+  // Validate required inputs
+  validateString(call.conversation_id, 'conversation_id', operation, { minLength: 1 });
+  validateISODate(call.call_started_at, 'call_started_at', operation);
+  validateEnum(call.call_status, 'call_status', operation, ['success', 'failure', 'unknown'] as const);
+
   const db = getDatabase();
 
   const id = nanoid();
   const now = new Date().toISOString();
+
+  dbLogger.info(operation, 'elevenlabs_calls', id, {
+    conversationId: call.conversation_id,
+    callStatus: call.call_status,
+    campaignId: call.campaign_id,
+  });
 
   const stmt = db.prepare(`
     INSERT INTO elevenlabs_calls (
@@ -67,25 +82,29 @@ export function upsertElevenLabsCall(call: Omit<ElevenLabsCall, 'id' | 'created_
       synced_at = excluded.synced_at
   `);
 
-  stmt.run(
-    id,
-    call.conversation_id,
-    call.agent_id || null,
-    call.elevenlabs_phone_number || null,
-    call.caller_phone_number || null,
-    call.call_started_at,
-    call.call_ended_at || null,
-    call.call_duration_seconds || null,
-    call.call_status,
-    call.campaign_id || null,
-    call.recipient_id || null,
-    call.is_conversion ? 1 : 0,
-    call.raw_data || null,
-    now,
-    now
-  );
-
-  console.log('[DB] Upserted ElevenLabs call:', call.conversation_id);
+  try {
+    stmt.run(
+      id,
+      call.conversation_id,
+      call.agent_id || null,
+      call.elevenlabs_phone_number || null,
+      call.caller_phone_number || null,
+      call.call_started_at,
+      call.call_ended_at || null,
+      call.call_duration_seconds || null,
+      call.call_status,
+      call.campaign_id || null,
+      call.recipient_id || null,
+      call.is_conversion ? 1 : 0,
+      call.raw_data || null,
+      now,
+      now
+    );
+    dbLogger.debug(`${operation} completed`, { conversationId: call.conversation_id });
+  } catch (error) {
+    dbLogger.error(operation, error as Error, { conversationId: call.conversation_id });
+    throw error;
+  }
 
   return id;
 }
@@ -158,7 +177,14 @@ export function getCallsByCampaign(campaignId: string): ElevenLabsCall[] {
  * Get call metrics for a campaign
  */
 export function getCampaignCallMetrics(campaignId: string): CallMetrics {
+  const operation = 'getCampaignCallMetrics';
+
+  // Validate input
+  validateId(campaignId, 'campaignId', operation);
+
   const db = getDatabase();
+
+  dbLogger.debug(operation, { campaignId });
 
   // Get total counts
   const countsStmt = db.prepare(`
@@ -233,7 +259,19 @@ export function getCampaignCallMetrics(campaignId: string): CallMetrics {
  * Get overall call metrics (all campaigns)
  */
 export function getAllCallMetrics(startDate?: string, endDate?: string): CallMetrics {
+  const operation = 'getAllCallMetrics';
+
+  // Validate date inputs if provided
+  if (startDate) {
+    validateISODate(startDate, 'startDate', operation);
+  }
+  if (endDate) {
+    validateISODate(endDate, 'endDate', operation);
+  }
+
   const db = getDatabase();
+
+  dbLogger.debug(operation, { startDate, endDate });
 
   // Use conditional query building with proper parameterization to prevent SQL injection
   let counts: {
