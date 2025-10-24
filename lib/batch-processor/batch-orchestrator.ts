@@ -150,7 +150,7 @@ export async function processBatchJob(payload: BatchJobPayload): Promise<void> {
             recipient: {
               name: recipient.name,
               lastname: recipient.lastname,
-              address: recipient.address,
+              address: recipient.address || '',
               city: recipient.city,
               zip: recipient.zip,
             },

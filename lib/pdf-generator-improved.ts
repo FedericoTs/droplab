@@ -116,7 +116,7 @@ export async function generateDirectMailPDFImproved(
   const { orientation, format } = calculatePDFLayout(dimensions);
 
   const doc = new jsPDF({
-    orientation,
+    orientation: orientation as 'portrait' | 'landscape',
     unit: "mm",
     format,
   });

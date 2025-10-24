@@ -234,7 +234,7 @@ export async function processBatchJobOptimized(payload: BatchJobPayload): Promis
           recipient: {
             name: recipient.name,
             lastname: recipient.lastname,
-            address: recipient.address,
+            address: recipient.address || '',
             city: recipient.city,
             zip: recipient.zip,
           },

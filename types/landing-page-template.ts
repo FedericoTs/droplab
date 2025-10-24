@@ -66,6 +66,12 @@ export interface TemplateConfig {
     backgroundImage: string | null;
     cardShadow: boolean;
   };
+
+  // Branding
+  branding?: {
+    logoUrl?: string;
+    [key: string]: any;
+  };
 }
 
 export interface TrackingSnippet {

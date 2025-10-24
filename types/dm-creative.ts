@@ -1,4 +1,5 @@
 export interface RecipientData {
+  id?: string;
   name: string;
   lastname: string;
   address: string;

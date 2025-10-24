@@ -80,7 +80,7 @@ export const MAX_PUPPETEER_INSTANCES = 4; // Reuse browser instances
 export async function checkRedisConnection(): Promise<boolean> {
   try {
     const { default: Redis } = await import("ioredis");
-    const redis = new Redis(redisConnection);
+    const redis = new Redis(redisConnection as any);
     const pong = await redis.ping();
     await redis.quit();
     return pong === "PONG";

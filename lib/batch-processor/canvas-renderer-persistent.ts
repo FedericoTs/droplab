@@ -156,8 +156,9 @@ class PersistentPageWorker {
           const oldDisplaySize = Math.min(oldDisplayWidth, oldDisplayHeight);
 
           // Load new QR code image
+          // @ts-expect-error - Fabric.js v6 FabricImage API
           fabric.FabricImage.fromURL(dataUrl, { crossOrigin: 'anonymous' })
-            .then((newQR) => {
+            .then((newQR: any) => {
               const qrNaturalSize = newQR.width || 300;
               const properScale = oldDisplaySize / qrNaturalSize;
 
@@ -176,7 +177,7 @@ class PersistentPageWorker {
               canvas.renderAll();
               window.renderComplete = true;
             })
-            .catch((err) => {
+            .catch((err: any) => {
               console.error('QR code load failed:', err);
               window.renderError = err.message;
             });
@@ -202,7 +203,7 @@ class PersistentPageWorker {
       // Reset flags for next render
       await this.page.evaluate(() => {
         window.renderComplete = false;
-        window.renderError = null;
+        window.renderError = undefined;
         window.qrUpdatePending = null;
       });
 
@@ -218,7 +219,7 @@ class PersistentPageWorker {
       });
 
       // Convert to base64 data URL
-      const base64Image = imageBuffer.toString('base64');
+      const base64Image = (imageBuffer as Buffer).toString('base64');
       return `data:image/png;base64,${base64Image}`;
     } finally {
       this.rendering = false;
@@ -557,7 +558,7 @@ declare global {
   interface Window {
     canvasInitialized?: boolean;
     renderComplete?: boolean;
-    renderError?: string | null;
+    renderError?: string | undefined;
     qrUpdatePending?: {
       oldObj: any;
       dataUrl: string;

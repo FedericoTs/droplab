@@ -356,7 +356,7 @@ export async function renderTemplateToImage(
     });
 
     // Convert to base64 data URL
-    const base64Image = imageBuffer.toString('base64');
+    const base64Image = (imageBuffer as Buffer).toString('base64');
     const dataUrl = `data:image/png;base64,${base64Image}`;
 
     console.log(`✅ Template rendered successfully`);

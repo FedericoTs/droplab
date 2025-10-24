@@ -77,8 +77,8 @@ export async function POST(request: NextRequest) {
         call_ended_at: new Date().toISOString(),
         call_duration_seconds: 60,
         call_status: 'success' as const,
-        campaign_id: null,
-        recipient_id: null,
+        campaign_id: undefined,
+        recipient_id: undefined,
         is_conversion: false,
         raw_data: JSON.stringify({ test: true })
       };

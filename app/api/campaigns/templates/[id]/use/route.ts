@@ -42,7 +42,7 @@ export async function POST(
             name: template.name,
             description: template.description,
             category: template.category,
-            templateData: template.template_data,
+            templateData: template.template_config,
             // Include DM template ID for canvas editor
             dmTemplateId: dmTemplate?.id || null,
           },

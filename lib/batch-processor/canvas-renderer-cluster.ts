@@ -299,7 +299,7 @@ async function renderTask({ page, data }: { page: Page; data: ClusterTaskData })
   });
 
   // Convert to base64 data URL
-  const base64Image = imageBuffer.toString('base64');
+  const base64Image = (imageBuffer as Buffer).toString('base64');
   return `data:image/png;base64,${base64Image}`;
 }
 
