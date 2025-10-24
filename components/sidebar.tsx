@@ -76,7 +76,7 @@ export function Sidebar() {
   // Build sections array (add retail section if module is active)
   const activeSections = [...sections];
   if (industryModule.isModuleEnabled() && industryModule.getModuleType() === 'retail') {
-    activeSections.push({ id: "retail", label: "🏪 Retail Module", collapsible: true });
+    activeSections.push({ id: "retail", label: "Retail Module", collapsible: true });
   }
 
   // Load collapsed sections from localStorage
