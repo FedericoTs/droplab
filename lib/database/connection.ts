@@ -2,7 +2,9 @@ import Database from "better-sqlite3";
 import path from "path";
 
 // Database file location
-const DB_PATH = path.join(process.cwd(), "dm-tracking.db");
+// Using marketing.db which contains all historical data (143MB)
+// Previously used dm-tracking.db (25MB) which was created fresh
+const DB_PATH = path.join(process.cwd(), "marketing.db");
 
 // Singleton database instance
 let db: Database.Database | null = null;
