@@ -48,11 +48,15 @@ export default function DeploymentsPage() {
       const response = await fetch("/api/retail/deployments");
       const result = await response.json();
 
-      if (result.success) {
-        setDeployments(result.data);
+      if (result.success && result.data) {
+        // API returns { deployments: [], count: number }
+        setDeployments(result.data.deployments || []);
+      } else {
+        setDeployments([]);
       }
     } catch (error) {
       console.error("Failed to load deployments:", error);
+      setDeployments([]);
     } finally {
       setLoading(false);
     }

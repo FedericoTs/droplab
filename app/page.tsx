@@ -149,10 +149,11 @@ export default function HomePage() {
             const deploymentsRes = await fetch("/api/retail/deployments");
             if (deploymentsRes.ok) {
               const deploymentsData = await deploymentsRes.json();
-              if (deploymentsData.success && deploymentsData.data.length > 0) {
+              // API returns { deployments: [], count: number }
+              if (deploymentsData.success && deploymentsData.data?.deployments?.length > 0) {
                 // Group by campaign and get unique campaigns
                 const campaignMap = new Map<string, RecentCampaignWithStores>();
-                deploymentsData.data.forEach((deployment: any) => {
+                deploymentsData.data.deployments.forEach((deployment: any) => {
                   if (!campaignMap.has(deployment.campaign_id)) {
                     campaignMap.set(deployment.campaign_id, {
                       id: deployment.campaign_id,
