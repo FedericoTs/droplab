@@ -45,7 +45,7 @@ export async function validateWebhookRequest(
   }
 
   // 3. Get client IP for logging
-  const ip = getClientIP(request);
+  const ip = getClientIP(request) ?? undefined;
 
   // 4. IP whitelist validation (optional)
   if (process.env.ELEVENLABS_WEBHOOK_IP_WHITELIST) {

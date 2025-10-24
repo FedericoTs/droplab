@@ -13,25 +13,42 @@ import { successResponse, errorResponse } from '@/lib/utils/api-response';
  */
 export async function GET(request: NextRequest) {
   try {
+    console.log('🔍 [Templates API] GET request received');
+
     // Initialize system templates if needed
+    console.log('🔄 [Templates API] Initializing system templates...');
     initializeSystemTemplates();
 
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category') || undefined;
+    console.log('📋 [Templates API] Category filter:', category || 'all');
 
+    console.log('📊 [Templates API] Fetching templates from database...');
     const templates = getAllTemplates(category);
+    console.log('✅ [Templates API] Templates fetched:', {
+      count: templates.length,
+      ids: templates.map(t => t.id).slice(0, 5),
+      firstTemplate: templates[0] ? { id: templates[0].id, name: templates[0].name } : null
+    });
+
+    const processedTemplates = templates.map((t) => ({
+      ...t,
+      template_data: JSON.parse(t.template_data),
+    }));
+
+    console.log('✅ [Templates API] Returning', processedTemplates.length, 'templates');
 
     return NextResponse.json(
       successResponse(
-        templates.map((t) => ({
-          ...t,
-          template_data: JSON.parse(t.template_data),
-        })),
+        processedTemplates,
         "Templates retrieved successfully"
       )
     );
   } catch (error) {
-    console.error('Error fetching templates:', error);
+    console.error('❌ [Templates API] Error fetching templates:', error);
+    if (error instanceof Error) {
+      console.error('❌ [Templates API] Error stack:', error.stack);
+    }
     return NextResponse.json(
       errorResponse('Failed to fetch templates', 'FETCH_ERROR'),
       { status: 500 }

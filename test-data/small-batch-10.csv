@@ -1,0 +1,11 @@
+name,lastname,address,city,zip,email,phone
+John,Doe,123 Main St,New York,10001,john.doe@email.com,
+Jane,Smith,456 Oak Ave,Los Angeles,90001,jane.smith@email.com,
+Michael,Johnson,789 Pine Rd,Chicago,60601,michael.j@email.com,
+Emily,Williams,321 Elm St,Houston,77001,emily.w@email.com,
+David,Brown,654 Maple Dr,Phoenix,85001,david.b@email.com,555-0105
+Sarah,Jones,987 Cedar Ln,Philadelphia,19101,sarah.j@email.com,555-0106
+James,Garcia,147 Birch Ct,San Antonio,78201,james.g@email.com,555-0107
+Lisa,Martinez,258 Willow Way,San Diego,92101,lisa.m@email.com,555-0108
+Robert,Rodriguez,369 Spruce St,Dallas,75201,robert.r@email.com,555-0109
+Maria,Davis,741 Ash Ave,San Jose,95101,maria.d@email.com,555-0110

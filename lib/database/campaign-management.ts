@@ -79,17 +79,46 @@ export function createCampaignTemplate(data: {
 export function getAllTemplates(category?: string): CampaignTemplate[] {
   const db = getDatabase();
 
+  console.log('📊 [getAllTemplates] Querying database for templates, category:', category || 'all');
+
   let query = 'SELECT * FROM campaign_templates ORDER BY use_count DESC, created_at DESC';
   let stmt;
 
-  if (category) {
-    query = 'SELECT * FROM campaign_templates WHERE category = ? ORDER BY use_count DESC, created_at DESC';
-    stmt = db.prepare(query);
-    return stmt.all(category) as CampaignTemplate[];
-  }
+  try {
+    if (category) {
+      query = 'SELECT * FROM campaign_templates WHERE category = ? ORDER BY use_count DESC, created_at DESC';
+      console.log('📊 [getAllTemplates] Query:', query, 'Param:', category);
+      stmt = db.prepare(query);
+      const results = stmt.all(category) as CampaignTemplate[];
+      console.log('✅ [getAllTemplates] Found', results.length, 'templates for category:', category);
+      return results;
+    }
 
-  stmt = db.prepare(query);
-  return stmt.all() as CampaignTemplate[];
+    console.log('📊 [getAllTemplates] Query:', query);
+    stmt = db.prepare(query);
+    const results = stmt.all() as CampaignTemplate[];
+    console.log('✅ [getAllTemplates] Found', results.length, 'total templates');
+
+    if (results.length === 0) {
+      console.log('⚠️ [getAllTemplates] No templates found! Checking if table exists...');
+      try {
+        const tableCheck = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='campaign_templates'").get();
+        console.log('📋 [getAllTemplates] Table check result:', tableCheck);
+
+        if (tableCheck) {
+          const count = db.prepare('SELECT COUNT(*) as count FROM campaign_templates').get() as { count: number };
+          console.log('📊 [getAllTemplates] Total rows in campaign_templates:', count.count);
+        }
+      } catch (checkError) {
+        console.error('❌ [getAllTemplates] Error checking table:', checkError);
+      }
+    }
+
+    return results;
+  } catch (error) {
+    console.error('❌ [getAllTemplates] Database error:', error);
+    throw error;
+  }
 }
 
 /**

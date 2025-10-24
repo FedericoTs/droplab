@@ -225,6 +225,44 @@ export const CanvasEditorWorkspace = forwardRef<CanvasEditorWorkspaceHandle, Can
   }, [backgroundImage, canvasWidth, canvasHeight]);
 
   /**
+   * PHASE 2: Delete selected object (with confirmation for standard layers)
+   */
+  const handleDelete = useCallback(() => {
+    const canvas = fabricCanvasRef.current;
+    if (!canvas) return;
+
+    const activeObject = canvas.getActiveObject();
+    if (!activeObject) {
+      toast.error("Please select an object to delete");
+      return;
+    }
+
+    const objData = (activeObject as any).data;
+    const variableType = objData?.variableType || objData?.type;
+    const displayName = objData?.displayName || variableType || "this object";
+
+    // Check if this is a standard layer (requires confirmation)
+    const standardLayers = ['logo', 'background-image', 'message', 'qr-code', 'customer-name', 'customer-address', 'phone-number'];
+    const isStandardLayer = standardLayers.includes(variableType);
+
+    if (isStandardLayer) {
+      // Confirmation required for standard layers
+      if (!window.confirm(`Are you sure you want to delete "${displayName}"? This is a standard layer used for variable replacement.`)) {
+        return;
+      }
+    }
+
+    // Remove from canvas
+    canvas.remove(activeObject);
+    canvas.renderAll();
+    setSelectedElement(null);
+    toast.success(`Deleted ${displayName}`);
+
+    // Note: saveToHistory would be called here, but it creates a circular dependency
+    // The delete operation itself is captured by the canvas modification event
+  }, []);
+
+  /**
    * PHASE 2: Keyboard event handler (Delete key)
    */
   useEffect(() => {
@@ -232,7 +270,7 @@ export const CanvasEditorWorkspace = forwardRef<CanvasEditorWorkspaceHandle, Can
       // Delete/Backspace key
       if (e.key === "Delete" || e.key === "Backspace") {
         // Don't trigger if user is typing in an input/textarea
-        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextArea) {
+        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
           return;
         }
 
@@ -546,49 +584,6 @@ export const CanvasEditorWorkspace = forwardRef<CanvasEditorWorkspaceHandle, Can
         });
     };
     reader.readAsDataURL(file);
-  };
-
-  /**
-   * PHASE 2: Delete selected object (with confirmation for standard layers)
-   */
-  const handleDelete = () => {
-    const canvas = fabricCanvasRef.current;
-    if (!canvas) return;
-
-    const activeObject = canvas.getActiveObject();
-    if (!activeObject) {
-      toast.error("Please select an object to delete");
-      return;
-    }
-
-    const objData = (activeObject as any).data;
-    const variableType = objData?.variableType || objData?.type;
-    const displayName = objData?.displayName || variableType || "this object";
-
-    // Check if this is a standard layer (requires confirmation)
-    const standardLayers = ['logo', 'background-image', 'message', 'qr-code', 'customer-name', 'customer-address', 'phone-number'];
-    const isStandardLayer = standardLayers.includes(variableType);
-
-    if (isStandardLayer) {
-      // Confirmation required for standard layers
-      if (!window.confirm(`Are you sure you want to delete "${displayName}"? This is a standard layer used for variable replacement.`)) {
-        return;
-      }
-    }
-
-    // Remove from canvas
-    canvas.remove(activeObject);
-    canvas.renderAll();
-    saveToHistory();
-
-    // Remove from elements state
-    const objId = objData?.id;
-    if (objId) {
-      setElements((prev) => prev.filter((el) => el.id !== objId));
-    }
-
-    toast.success(`Deleted ${displayName}`);
-    setSelectedElement(null);
   };
 
   /**

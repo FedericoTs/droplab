@@ -100,10 +100,21 @@ export function TemplateLibrary() {
 
   const loadTemplates = async () => {
     try {
+      console.log('🔍 [Template Library] Fetching templates...');
       const response = await fetch("/api/campaigns/templates");
+      console.log('📡 [Template Library] Response status:', response.status);
+
       const result = await response.json();
+      console.log('📦 [Template Library] Response data:', {
+        success: result.success,
+        dataCount: result.data?.length,
+        hasData: !!result.data,
+        error: result.error
+      });
 
       if (result.success) {
+        console.log('✅ [Template Library] Templates received:', result.data.length);
+
         // Fetch assets and DM templates for each template
         const templatesWithData = await Promise.all(
           result.data.map(async (template: Template) => {
@@ -122,16 +133,20 @@ export function TemplateLibrary() {
                 dmTemplate: dmTemplateResult.success && dmTemplateResult.data ? dmTemplateResult.data : undefined,
               };
             } catch (error) {
-              console.error(`Failed to load data for template ${template.id}:`, error);
+              console.error(`❌ Failed to load data for template ${template.id}:`, error);
               return { ...template, assets: [], dmTemplate: undefined };
             }
           })
         );
 
+        console.log('✅ [Template Library] Templates with data loaded:', templatesWithData.length);
         setTemplates(templatesWithData);
+      } else {
+        console.error('❌ [Template Library] API returned error:', result.error);
+        toast.error(result.error || "Failed to load templates");
       }
     } catch (error) {
-      console.error("Failed to load templates:", error);
+      console.error("❌ [Template Library] Failed to load templates:", error);
       toast.error("Failed to load templates");
     } finally {
       setLoading(false);
