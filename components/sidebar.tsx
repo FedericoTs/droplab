@@ -1,32 +1,48 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useIndustryModule } from "@/lib/contexts/industry-module-context";
-import { FileText, Mail, Phone, Settings, BarChart3, Home, Sparkles, Bell, Store, Target, TrendingUp, Brain, Menu, X, Library, Layers, ShoppingCart, Users } from "lucide-react";
+import {
+  FileText, Mail, Phone, Settings, BarChart3, Home, Sparkles, Bell,
+  Store, Target, TrendingUp, Brain, Menu, X, Library, Layers,
+  ShoppingCart, Users, Plus, ChevronDown, ChevronRight
+} from "lucide-react";
 
+// Option A: Workflow-Based Navigation Structure
 const navigation = [
-  { name: "Home", href: "/", icon: Home, section: "main" },
-  { name: "Settings", href: "/settings", icon: Settings, section: "main" },
-  { name: "Templates", href: "/templates", icon: Library, section: "create" },
-  { name: "Copywriting", href: "/copywriting", icon: FileText, section: "create" },
-  { name: "DM Creative", href: "/dm-creative", icon: Mail, section: "create" },
-  { name: "Batch Jobs", href: "/batch-jobs", icon: Layers, section: "analyze" },
-  { name: "Analytics", href: "/analytics", icon: BarChart3, section: "analyze" },
-  { name: "Campaign Matrix", href: "/campaigns/matrix", icon: Sparkles, section: "analyze" },
-  { name: "Orders", href: "/campaigns/orders", icon: ShoppingCart, section: "analyze" },
-  { name: "Store Groups", href: "/store-groups", icon: Users, section: "analyze" },
-  { name: "Notifications", href: "/notifications", icon: Bell, section: "analyze" },
-  { name: "CC Operations", href: "/cc-operations", icon: Phone, section: "advanced" },
+  // Dashboard
+  { name: "Dashboard", href: "/", icon: Home, section: "dashboard" },
+
+  // Content & Campaigns
+  { name: "Templates", href: "/templates", icon: Library, section: "content" },
+  { name: "Copywriting", href: "/copywriting", icon: FileText, section: "content" },
+  { name: "DM Creative", href: "/dm-creative", icon: Mail, section: "content" },
+
+  // Orders & Fulfillment
+  { name: "New Order", href: "/campaigns/orders/new", icon: Plus, section: "orders", primary: true },
+  { name: "Orders", href: "/campaigns/orders", icon: ShoppingCart, section: "orders" },
+  { name: "Store Groups", href: "/store-groups", icon: Users, section: "orders" },
+  { name: "Background Jobs", href: "/batch-jobs", icon: Layers, section: "orders" },
+
+  // Insights & Analytics
+  { name: "Analytics", href: "/analytics", icon: BarChart3, section: "analytics" },
+  { name: "Campaign Matrix", href: "/campaigns/matrix", icon: Sparkles, section: "analytics" },
+  { name: "Notifications", href: "/notifications", icon: Bell, section: "analytics" },
+
+  // Settings & Tools
+  { name: "Settings", href: "/settings", icon: Settings, section: "settings" },
+  { name: "AI Call Center", href: "/cc-operations", icon: Phone, section: "settings" },
 ];
 
 const sections = [
-  { id: "main", label: "Getting Started" },
-  { id: "create", label: "Create" },
-  { id: "analyze", label: "Analyze" },
-  { id: "advanced", label: "Advanced" },
+  { id: "dashboard", label: "Dashboard", collapsible: false },
+  { id: "content", label: "Content & Campaigns", collapsible: true },
+  { id: "orders", label: "Orders & Fulfillment", collapsible: true },
+  { id: "analytics", label: "Insights & Analytics", collapsible: true },
+  { id: "settings", label: "Settings & Tools", collapsible: true },
 ];
 
 // Retail module navigation items (conditionally shown)
@@ -41,6 +57,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const industryModule = useIndustryModule();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 
   // Build navigation items based on active modules
   const allNavigation = [...navigation];
@@ -59,8 +76,49 @@ export function Sidebar() {
   // Build sections array (add retail section if module is active)
   const activeSections = [...sections];
   if (industryModule.isModuleEnabled() && industryModule.getModuleType() === 'retail') {
-    activeSections.push({ id: "retail", label: "🏪 Retail Module" });
+    activeSections.push({ id: "retail", label: "🏪 Retail Module", collapsible: true });
   }
+
+  // Load collapsed sections from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('collapsedSections');
+    if (saved) {
+      try {
+        setCollapsedSections(new Set(JSON.parse(saved)));
+      } catch (e) {
+        console.error('Failed to parse collapsed sections:', e);
+      }
+    }
+  }, []);
+
+  // Save collapsed sections to localStorage
+  useEffect(() => {
+    localStorage.setItem('collapsedSections', JSON.stringify(Array.from(collapsedSections)));
+  }, [collapsedSections]);
+
+  // Auto-expand section containing current page
+  useEffect(() => {
+    const currentItem = allNavigation.find(item => item.href === pathname);
+    if (currentItem && collapsedSections.has(currentItem.section)) {
+      setCollapsedSections(prev => {
+        const next = new Set(prev);
+        next.delete(currentItem.section);
+        return next;
+      });
+    }
+  }, [pathname]);
+
+  const toggleSection = (sectionId: string) => {
+    setCollapsedSections(prev => {
+      const next = new Set(prev);
+      if (next.has(sectionId)) {
+        next.delete(sectionId);
+      } else {
+        next.add(sectionId);
+      }
+      return next;
+    });
+  };
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
@@ -107,33 +165,52 @@ export function Sidebar() {
           const sectionItems = allNavigation.filter((item) => item.section === section.id);
           if (sectionItems.length === 0) return null;
 
+          const isCollapsed = collapsedSections.has(section.id);
+          const isCollapsible = section.collapsible !== false;
+
           return (
-            <div key={section.id} className="mb-6">
-              <h3 className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                {section.label}
-              </h3>
-              <div className="space-y-1">
-                {sectionItems.map((item) => {
-                  const isActive = pathname === item.href;
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      onClick={closeMobileMenu}
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                        isActive
-                          ? "bg-slate-900 text-white"
-                          : "text-slate-700 hover:bg-slate-200"
-                      )}
-                    >
-                      <Icon className="h-5 w-5" />
-                      {item.name}
-                    </Link>
-                  );
-                })}
-              </div>
+            <div key={section.id} className="mb-4">
+              {isCollapsible ? (
+                <button
+                  onClick={() => toggleSection(section.id)}
+                  className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider hover:bg-slate-100 rounded transition-colors"
+                >
+                  <span>{section.label}</span>
+                  {isCollapsed ? (
+                    <ChevronRight className="h-4 w-4 transition-transform" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 transition-transform" />
+                  )}
+                </button>
+              ) : (
+                <h3 className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  {section.label}
+                </h3>
+              )}
+              {!isCollapsed && (
+                <div className="space-y-1 mt-1">
+                  {sectionItems.map((item) => {
+                    const isActive = pathname === item.href;
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        onClick={closeMobileMenu}
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                          isActive
+                            ? "bg-slate-900 text-white"
+                            : "text-slate-700 hover:bg-slate-200"
+                        )}
+                      >
+                        <Icon className="h-5 w-5" />
+                        {item.name}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           );
         })}

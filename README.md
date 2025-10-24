@@ -111,21 +111,32 @@ Navigate to: **http://localhost:3000**
 
 ## 📊 Key Pages & Routes
 
-### Main Navigation
+### Main Navigation (Workflow-Based with Collapsible Sections)
+
+**Dashboard**
 - `/` - Home Dashboard
-- `/settings` - Platform settings
+
+**Content & Campaigns** ▼
 - `/templates` - Template library
 - `/copywriting` - AI copywriting
 - `/dm-creative` - DM creation
+
+**Orders & Fulfillment** ▼
+- `/campaigns/orders/new` - New Order (primary action)
+- `/campaigns/orders` - Order management
+- `/store-groups` - Store groups management
 - `/batch-jobs` - Batch processing status
+
+**Insights & Analytics** ▼
 - `/analytics` - Analytics dashboard
 - `/campaigns/matrix` - Campaign performance matrix
-- `/campaigns/orders` - Order management
-- `/store-groups` - Store groups management (NEW)
 - `/notifications` - User notifications
+
+**Settings & Tools** ▼
+- `/settings` - Platform settings
 - `/cc-operations` - Call center operations
 
-### Retail Module (When enabled)
+### Retail Module (When enabled) ▼
 - `/retail/stores` - Store management
 - `/retail/deployments` - Deployment tracking
 - `/retail/performance` - Performance analytics
