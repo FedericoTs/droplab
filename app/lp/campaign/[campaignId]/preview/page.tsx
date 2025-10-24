@@ -40,13 +40,17 @@ export default async function LandingPagePreview({ params, searchParams }: Previ
   const { campaignId } = await params;
   const { template, config: configParam } = await searchParams;
 
+  console.log('🔍 Loading preview for campaign:', campaignId);
+
   // Fetch campaign data (for campaign context like name, message)
   const campaign = getCampaign(campaignId);
 
   if (!campaign) {
-    console.log(`Preview: Campaign not found: ${campaignId}`);
+    console.log(`❌ Preview: Campaign not found: ${campaignId}`);
     notFound();
   }
+
+  console.log('✅ Campaign loaded:', campaign.name);
 
   // Parse customization config from query parameter OR load from database
   let customization: any = {};
