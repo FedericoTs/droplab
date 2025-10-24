@@ -1,5 +1,7 @@
 import { nanoid } from "nanoid";
 import { getDatabase } from "./connection";
+import { dbLogger } from "./logger";
+import { validateRequired, validateString, validateId } from "./validators";
 
 // ==================== TYPES ====================
 
@@ -77,12 +79,23 @@ export function createRetailStore(data: {
   lng?: number;
   timezone?: string;
 }): RetailStore {
+  const operation = 'createRetailStore';
+
+  // Validate required inputs
+  validateString(data.storeNumber, 'storeNumber', operation, { minLength: 1, maxLength: 50 });
+  validateString(data.name, 'name', operation, { minLength: 1, maxLength: 255 });
+
   ensureRetailModuleEnabled();
 
   const db = getDatabase();
   const id = nanoid(16);
   const created_at = new Date().toISOString();
   const updated_at = created_at;
+
+  dbLogger.info(operation, 'retail_stores', id, {
+    storeNumber: data.storeNumber,
+    name: data.name
+  });
 
   const stmt = db.prepare(`
     INSERT INTO retail_stores (
@@ -92,24 +105,30 @@ export function createRetailStore(data: {
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
   `);
 
-  stmt.run(
-    id,
-    data.storeNumber,
-    data.name,
-    data.address || null,
-    data.city || null,
-    data.state || null,
-    data.zip || null,
-    data.region || null,
-    data.district || null,
-    data.sizeCategory || null,
-    data.demographicProfile ? JSON.stringify(data.demographicProfile) : null,
-    data.lat || null,
-    data.lng || null,
-    data.timezone || 'America/New_York',
-    created_at,
-    updated_at
-  );
+  try {
+    stmt.run(
+      id,
+      data.storeNumber,
+      data.name,
+      data.address || null,
+      data.city || null,
+      data.state || null,
+      data.zip || null,
+      data.region || null,
+      data.district || null,
+      data.sizeCategory || null,
+      data.demographicProfile ? JSON.stringify(data.demographicProfile) : null,
+      data.lat || null,
+      data.lng || null,
+      data.timezone || 'America/New_York',
+      created_at,
+      updated_at
+    );
+    dbLogger.debug(`${operation} completed`, { id, storeNumber: data.storeNumber });
+  } catch (error) {
+    dbLogger.error(operation, error as Error, { storeNumber: data.storeNumber, name: data.name });
+    throw error;
+  }
 
   return {
     id,
@@ -268,6 +287,11 @@ export function updateRetailStore(
   id: string,
   data: Partial<Omit<RetailStore, 'id' | 'created_at' | 'updated_at'>>
 ): boolean {
+  const operation = 'updateRetailStore';
+
+  // Validate required ID
+  validateId(id, 'id', operation);
+
   ensureRetailModuleEnabled();
 
   const db = getDatabase();
@@ -333,7 +357,12 @@ export function updateRetailStore(
     params.push(data.is_active);
   }
 
-  if (updates.length === 0) return false;
+  if (updates.length === 0) {
+    dbLogger.warn(operation, 'No fields to update', { id });
+    return false;
+  }
+
+  dbLogger.info(operation, 'retail_stores', id, { fieldsUpdated: updates.length });
 
   updates.push('updated_at = ?');
   params.push(updated_at, id);
@@ -344,8 +373,19 @@ export function updateRetailStore(
     WHERE id = ?
   `);
 
-  const result = stmt.run(...params);
-  return result.changes > 0;
+  try {
+    const result = stmt.run(...params);
+    const success = result.changes > 0;
+    if (success) {
+      dbLogger.debug(`${operation} completed`, { id, fieldsUpdated: updates.length - 1 });
+    } else {
+      dbLogger.warn(operation, 'No rows updated (store not found?)', { id });
+    }
+    return success;
+  } catch (error) {
+    dbLogger.error(operation, error as Error, { id });
+    throw error;
+  }
 }
 
 /**
