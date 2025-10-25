@@ -263,19 +263,6 @@ export function createPlanItem(input: CreatePlanItemInput): PlanItem {
   const id = `item_${nanoid(12)}`;
   const now = new Date().toISOString();
 
-  // DEBUG: Log input to identify non-primitive values
-  console.log('[createPlanItem] DEBUG - Input types:', {
-    store_id: typeof input.store_id,
-    store_number: typeof input.store_number,
-    campaign_id: typeof input.campaign_id,
-    ai_reasoning: typeof input.ai_reasoning,
-    ai_reasoning_value: input.ai_reasoning,
-    ai_risk_factors: typeof input.ai_risk_factors,
-    ai_risk_factors_value: input.ai_risk_factors,
-    ai_auto_approved: typeof input.ai_auto_approved,
-    ai_auto_approved_value: input.ai_auto_approved,
-  });
-
   const stmt = db.prepare(`
     INSERT INTO plan_items (
       id, plan_id, store_id, store_number, store_name,
