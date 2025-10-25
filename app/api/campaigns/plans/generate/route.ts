@@ -126,6 +126,7 @@ export async function POST(request: NextRequest) {
 
       // Auto-approval
       ai_auto_approved: rec.ai_auto_approved,
+      ai_status_reason: null, // Optional: reason for auto-approval status
     }));
 
     const createdItems = bulkCreatePlanItems(planItems);

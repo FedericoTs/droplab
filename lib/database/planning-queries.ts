@@ -263,6 +263,19 @@ export function createPlanItem(input: CreatePlanItemInput): PlanItem {
   const id = `item_${nanoid(12)}`;
   const now = new Date().toISOString();
 
+  // DEBUG: Log input to identify non-primitive values
+  console.log('[createPlanItem] DEBUG - Input types:', {
+    store_id: typeof input.store_id,
+    store_number: typeof input.store_number,
+    campaign_id: typeof input.campaign_id,
+    ai_reasoning: typeof input.ai_reasoning,
+    ai_reasoning_value: input.ai_reasoning,
+    ai_risk_factors: typeof input.ai_risk_factors,
+    ai_risk_factors_value: input.ai_risk_factors,
+    ai_auto_approved: typeof input.ai_auto_approved,
+    ai_auto_approved_value: input.ai_auto_approved,
+  });
+
   const stmt = db.prepare(`
     INSERT INTO plan_items (
       id, plan_id, store_id, store_number, store_name,
@@ -308,9 +321,9 @@ export function createPlanItem(input: CreatePlanItemInput): PlanItem {
     input.quantity * (input.unit_cost || 0.05),
     input.wave || null,
     input.wave_name || null,
-    input.is_included !== undefined ? input.is_included : 1,
+    input.is_included !== undefined ? (typeof input.is_included === 'boolean' ? (input.is_included ? 1 : 0) : input.is_included) : 1,
     input.exclude_reason || null,
-    input.is_overridden || 0,
+    input.is_overridden !== undefined ? (typeof input.is_overridden === 'boolean' ? (input.is_overridden ? 1 : 0) : input.is_overridden) : 0,
     input.override_notes || null,
     input.ai_recommended_campaign_id || null,
     input.ai_recommended_campaign_name || null,
