@@ -831,10 +831,276 @@ function initializeSchema(database: Database.Database): void {
     ON store_group_members(store_id);
   `);
 
-  console.log("✅ Database schema initialized successfully (including retail, batch processing, and store groups tables)");
+  // Initialize Planning Workspace tables (Phase 1)
+  initializePlanningWorkspace(database);
+
+  console.log("✅ Database schema initialized successfully (including retail, batch processing, store groups, and planning workspace tables)");
 
   // Seed pre-built templates if they don't exist
   seedPrebuiltTemplates(database);
+}
+
+/**
+ * Initialize Planning Workspace database tables
+ * Phase 1: Campaign planning system with AI-driven recommendations
+ * @param database Database instance
+ */
+function initializePlanningWorkspace(database: Database.Database): void {
+  try {
+    console.log('🔄 Initializing Planning Workspace tables...');
+
+    // Table 1: campaign_plans (Master plan metadata)
+    database.exec(`
+      CREATE TABLE IF NOT EXISTS campaign_plans (
+        -- Identity
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+
+        -- Status workflow (ULTRA-SIMPLE: Only 3 states)
+        status TEXT NOT NULL DEFAULT 'draft',
+
+        -- Ownership & Collaboration
+        created_by TEXT,
+
+        -- Timestamps
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        approved_at TEXT,
+        executed_at TEXT,
+
+        -- Plan Summary (DENORMALIZED for performance)
+        total_stores INTEGER NOT NULL DEFAULT 0,
+        total_quantity INTEGER NOT NULL DEFAULT 0,
+        estimated_cost REAL NOT NULL DEFAULT 0,
+        expected_conversions REAL NOT NULL DEFAULT 0,
+        avg_confidence REAL NOT NULL DEFAULT 0,
+
+        -- Wave breakdown (JSON)
+        wave_summary TEXT,
+
+        -- User notes
+        notes TEXT,
+
+        -- Constraints
+        CHECK (status IN ('draft', 'approved', 'executed'))
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_campaign_plans_status ON campaign_plans(status);
+      CREATE INDEX IF NOT EXISTS idx_campaign_plans_created_at ON campaign_plans(created_at);
+    `);
+
+    // Table 2: plan_items (Store-level planning with AI reasoning)
+    database.exec(`
+      CREATE TABLE IF NOT EXISTS plan_items (
+        -- Identity
+        id TEXT PRIMARY KEY,
+        plan_id TEXT NOT NULL,
+
+        -- Store reference
+        store_id TEXT NOT NULL,
+        store_number TEXT NOT NULL,
+        store_name TEXT NOT NULL,
+
+        -- Current decision
+        campaign_id TEXT NOT NULL,
+        campaign_name TEXT NOT NULL,
+        quantity INTEGER NOT NULL,
+        unit_cost REAL NOT NULL DEFAULT 0.05,
+        total_cost REAL NOT NULL,
+
+        -- Wave assignment
+        wave TEXT,
+        wave_name TEXT,
+
+        -- Include/Exclude
+        is_included BOOLEAN NOT NULL DEFAULT 1,
+        exclude_reason TEXT,
+
+        -- User override tracking
+        is_overridden BOOLEAN NOT NULL DEFAULT 0,
+        override_notes TEXT,
+
+        -- AI RECOMMENDATION DATA (VISUAL REASONING)
+        ai_recommended_campaign_id TEXT,
+        ai_recommended_campaign_name TEXT,
+        ai_recommended_quantity INTEGER,
+
+        -- Overall confidence
+        ai_confidence REAL,
+        ai_confidence_level TEXT,
+
+        -- Score breakdown (VISUAL: 4 key factors, 0-100 each)
+        ai_score_store_performance REAL,
+        ai_score_creative_performance REAL,
+        ai_score_geographic_fit REAL,
+        ai_score_timing_alignment REAL,
+
+        -- Reasoning (JSON array of strings)
+        ai_reasoning TEXT,
+
+        -- Risk factors (JSON array of strings)
+        ai_risk_factors TEXT,
+
+        -- Expected outcome
+        ai_expected_conversion_rate REAL,
+        ai_expected_conversions REAL,
+
+        -- Auto-approval status
+        ai_auto_approved BOOLEAN,
+        ai_status_reason TEXT,
+
+        -- Timestamps
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+
+        -- Constraints
+        FOREIGN KEY (plan_id) REFERENCES campaign_plans(id) ON DELETE CASCADE,
+        CHECK (ai_confidence >= 0 AND ai_confidence <= 100),
+        CHECK (ai_confidence_level IN ('high', 'medium', 'low')),
+        CHECK (ai_score_store_performance >= 0 AND ai_score_store_performance <= 100),
+        CHECK (ai_score_creative_performance >= 0 AND ai_score_creative_performance <= 100),
+        CHECK (ai_score_geographic_fit >= 0 AND ai_score_geographic_fit <= 100),
+        CHECK (ai_score_timing_alignment >= 0 AND ai_score_timing_alignment <= 100)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_plan_items_plan_id ON plan_items(plan_id);
+      CREATE INDEX IF NOT EXISTS idx_plan_items_store_id ON plan_items(store_id);
+      CREATE INDEX IF NOT EXISTS idx_plan_items_wave ON plan_items(wave);
+      CREATE INDEX IF NOT EXISTS idx_plan_items_is_included ON plan_items(is_included);
+    `);
+
+    // Table 3: plan_waves (Wave definitions)
+    database.exec(`
+      CREATE TABLE IF NOT EXISTS plan_waves (
+        -- Identity
+        id TEXT PRIMARY KEY,
+        plan_id TEXT NOT NULL,
+
+        -- Wave metadata
+        wave_code TEXT NOT NULL,
+        wave_name TEXT NOT NULL,
+        wave_description TEXT,
+
+        -- Timing
+        start_date TEXT,
+        end_date TEXT,
+
+        -- Budget
+        budget_allocated REAL,
+
+        -- Summary (DENORMALIZED)
+        stores_count INTEGER NOT NULL DEFAULT 0,
+        total_quantity INTEGER NOT NULL DEFAULT 0,
+        total_cost REAL NOT NULL DEFAULT 0,
+
+        -- Ordering
+        display_order INTEGER NOT NULL DEFAULT 0,
+
+        -- Timestamps
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+
+        -- Constraints
+        FOREIGN KEY (plan_id) REFERENCES campaign_plans(id) ON DELETE CASCADE,
+        UNIQUE (plan_id, wave_code)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_plan_waves_plan_id ON plan_waves(plan_id);
+      CREATE INDEX IF NOT EXISTS idx_plan_waves_display_order ON plan_waves(display_order);
+    `);
+
+    // Table 4: plan_activity_log (Audit trail)
+    database.exec(`
+      CREATE TABLE IF NOT EXISTS plan_activity_log (
+        -- Identity
+        id TEXT PRIMARY KEY,
+        plan_id TEXT NOT NULL,
+
+        -- What happened?
+        action TEXT NOT NULL,
+        entity_type TEXT NOT NULL,
+        entity_id TEXT,
+
+        -- Details (JSON)
+        change_details TEXT,
+
+        -- Who & When
+        user_id TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+
+        -- User note
+        notes TEXT,
+
+        FOREIGN KEY (plan_id) REFERENCES campaign_plans(id) ON DELETE CASCADE
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_plan_activity_log_plan_id ON plan_activity_log(plan_id);
+      CREATE INDEX IF NOT EXISTS idx_plan_activity_log_created_at ON plan_activity_log(created_at);
+    `);
+
+    // View 1: plan_summary (Performance-optimized dashboard view)
+    database.exec(`
+      CREATE VIEW IF NOT EXISTS plan_summary AS
+      SELECT
+        p.id,
+        p.name,
+        p.description,
+        p.status,
+        p.created_at,
+        p.total_stores,
+        p.total_quantity,
+        p.estimated_cost,
+        p.expected_conversions,
+        p.avg_confidence,
+
+        -- Count breakdowns
+        COUNT(CASE WHEN pi.is_included = 1 THEN 1 END) as included_stores,
+        COUNT(CASE WHEN pi.is_included = 0 THEN 1 END) as excluded_stores,
+        COUNT(CASE WHEN pi.is_overridden = 1 THEN 1 END) as overridden_stores,
+        COUNT(CASE WHEN pi.ai_auto_approved = 1 THEN 1 END) as auto_approved_stores,
+
+        -- Wave count
+        COUNT(DISTINCT pi.wave) as waves_count,
+
+        -- Confidence breakdown
+        COUNT(CASE WHEN pi.ai_confidence_level = 'high' THEN 1 END) as high_confidence_stores,
+        COUNT(CASE WHEN pi.ai_confidence_level = 'medium' THEN 1 END) as medium_confidence_stores,
+        COUNT(CASE WHEN pi.ai_confidence_level = 'low' THEN 1 END) as low_confidence_stores
+
+      FROM campaign_plans p
+      LEFT JOIN plan_items pi ON p.id = pi.plan_id
+      GROUP BY p.id;
+    `);
+
+    // View 2: plan_item_with_store_details (Denormalized for UX)
+    database.exec(`
+      CREATE VIEW IF NOT EXISTS plan_item_with_store_details AS
+      SELECT
+        pi.*,
+
+        -- Store details (from retail_stores table)
+        rs.city,
+        rs.state,
+        rs.region,
+        rs.address,
+
+        -- Override indicator
+        CASE
+          WHEN pi.is_overridden = 1 THEN 'User Override'
+          WHEN pi.ai_auto_approved = 1 THEN 'Auto-Approved'
+          ELSE 'AI Recommended'
+        END as recommendation_source
+
+      FROM plan_items pi
+      LEFT JOIN retail_stores rs ON pi.store_id = rs.id;
+    `);
+
+    console.log('✅ Planning Workspace tables initialized successfully');
+  } catch (error) {
+    console.error('❌ Error initializing Planning Workspace tables:', error);
+    throw error;
+  }
 }
 
 /**
