@@ -29,6 +29,7 @@ import { AIReasoningPanel } from '@/components/planning/ai-reasoning';
 import { AIConfidenceScore } from '@/components/planning/ai-confidence-badge';
 import { OverridePanel, type OverrideChanges } from '@/components/planning/override-panel';
 import { PlanHealthDashboard } from '@/components/planning/plan-health-dashboard';
+import { StorePerformanceComparison } from '@/components/planning/store-performance-comparison';
 
 interface PlanEditorPageProps {
   params: Promise<{ id: string }>;
@@ -252,6 +253,8 @@ export default function PlanEditorPage({ params }: PlanEditorPageProps) {
                 <StoreRow
                   key={item.id}
                   item={item}
+                  allItems={items}
+                  plan={plan}
                   expanded={expandedRows.has(item.id)}
                   onToggle={() => toggleRowExpanded(item.id)}
                   canEdit={canEdit}
@@ -272,6 +275,8 @@ export default function PlanEditorPage({ params }: PlanEditorPageProps) {
  */
 function StoreRow({
   item,
+  allItems,
+  plan,
   expanded,
   onToggle,
   canEdit,
@@ -279,6 +284,8 @@ function StoreRow({
   onUpdate,
 }: {
   item: PlanItemWithStoreDetails;
+  allItems: PlanItemWithStoreDetails[];
+  plan: PlanSummary;
   expanded: boolean;
   onToggle: () => void;
   canEdit: boolean;
@@ -287,6 +294,27 @@ function StoreRow({
 }) {
   const [isOverrideMode, setIsOverrideMode] = useState(false);
   const isOverridden = item.is_overridden;
+
+  // Calculate plan averages from all items
+  const planAverage = {
+    avgConfidence: allItems.length > 0
+      ? allItems.reduce((sum, i) => sum + (i.ai_confidence ?? 0), 0) / allItems.length
+      : 0,
+    avgExpectedConversions: allItems.length > 0
+      ? allItems.reduce((sum, i) => sum + (i.ai_expected_conversions ?? 0), 0) / allItems.length
+      : 0,
+    avgQuantity: allItems.length > 0
+      ? allItems.reduce((sum, i) => sum + (i.quantity ?? 0), 0) / allItems.length
+      : 0,
+    avgCostPerPiece: plan.estimated_cost && plan.total_quantity > 0
+      ? plan.estimated_cost / plan.total_quantity
+      : undefined,
+  };
+
+  const planStats = {
+    totalStores: plan.total_stores,
+    highConfidenceStores: plan.high_confidence_stores,
+  };
 
   const handleOverrideSave = async (changes: OverrideChanges) => {
     try {
@@ -364,7 +392,7 @@ function StoreRow({
         </div>
       </div>
 
-      {/* Expanded: AI Reasoning Panel OR Override Panel */}
+      {/* Expanded: Performance Comparison + AI Reasoning OR Override Panel */}
       {expanded && (
         <div className="border-t bg-muted/20 p-6">
           {isOverrideMode ? (
@@ -375,6 +403,21 @@ function StoreRow({
             />
           ) : (
             <>
+              {/* Visual Performance Comparison */}
+              <div className="mb-6">
+                <StorePerformanceComparison
+                  store={{
+                    aiConfidence: item.ai_confidence ?? 0,
+                    expectedConversions: item.ai_expected_conversions ?? 0,
+                    quantity: item.quantity ?? 0,
+                    costPerPiece: planAverage.avgCostPerPiece,
+                  }}
+                  planAverage={planAverage}
+                  planStats={planStats}
+                />
+              </div>
+
+              {/* AI Reasoning Panel */}
               <AIReasoningPanel
                 confidence={item.ai_confidence}
                 confidenceLevel={item.ai_confidence_level}
