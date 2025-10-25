@@ -177,7 +177,7 @@ export function getAllCampaignCreativePerformance(
     WHERE c.created_at >= ?
 
     GROUP BY c.id, c.name
-    HAVING COUNT(DISTINCT r.id) > 0  -- Only campaigns with recipients
+    -- Removed HAVING clause to include campaigns without historical data (new campaigns)
     ORDER BY overall_conversion_rate DESC
   `;
 
