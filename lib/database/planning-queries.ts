@@ -325,7 +325,7 @@ export function createPlanItem(input: CreatePlanItemInput): PlanItem {
     input.ai_risk_factors ? JSON.stringify(input.ai_risk_factors) : null,
     input.ai_expected_conversion_rate || null,
     input.ai_expected_conversions || null,
-    input.ai_auto_approved || null,
+    input.ai_auto_approved !== undefined ? (input.ai_auto_approved ? 1 : 0) : null,
     input.ai_status_reason || null,
     now,
     now
