@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -21,7 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Sparkles, CheckCircle2, AlertCircle, X, Download, FileText, LayoutDashboard } from "lucide-react";
+import { Loader2, Sparkles, CheckCircle2, AlertCircle, X, Download, FileText, LayoutDashboard, Target, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { PerformanceMatrixGrid } from "@/components/campaigns/performance-matrix-grid";
@@ -516,10 +517,15 @@ export default function PerformanceMatrixPage() {
             <div className="flex gap-2">
               <Button
                 onClick={handleOpenPlanDialog}
-                className="bg-purple-600 hover:bg-purple-700 gap-2"
+                className="bg-purple-600 hover:bg-purple-700 gap-2 relative shadow-lg hover:shadow-xl transition-all animate-pulse hover:animate-none"
               >
                 <LayoutDashboard className="h-4 w-4" />
                 Create AI-Powered Plan
+                {data.summary.auto_approve_count > 0 && (
+                  <Badge className="ml-1 bg-white text-purple-700 hover:bg-white font-bold">
+                    {data.summary.auto_approve_count} stores
+                  </Badge>
+                )}
               </Button>
 
               <Button
@@ -645,6 +651,39 @@ export default function PerformanceMatrixPage() {
                 </li>
               </ul>
             </div>
+
+            {/* Visual Plan Preview */}
+            {data && data.summary.auto_approve_count > 0 && (
+              <div className="rounded-lg border-2 border-green-200 bg-green-50 p-4">
+                <h4 className="text-sm font-semibold text-green-900 mb-3 flex items-center gap-2">
+                  <Target className="h-4 w-4" />
+                  Plan Preview
+                </h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-10 w-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-lg">
+                      {data.summary.auto_approve_count}
+                    </div>
+                    <div>
+                      <div className="text-xs text-green-700">Recommended</div>
+                      <div className="text-sm font-semibold text-green-900">Stores</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center">
+                      <TrendingUp className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <div className="text-xs text-green-700">Projected</div>
+                      <div className="text-sm font-semibold text-green-900">High Quality</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3 text-xs text-green-700 bg-white bg-opacity-50 rounded p-2">
+                  <span className="font-semibold">Tip:</span> AI will analyze these {data.summary.auto_approve_count} auto-approved stores and provide detailed recommendations with visual KPIs including traffic light health indicators.
+                </div>
+              </div>
+            )}
           </div>
 
           <DialogFooter>
