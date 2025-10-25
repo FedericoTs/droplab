@@ -370,6 +370,112 @@ export interface UpdatePlanRequest {
   // Items and waves updated separately via dedicated endpoints
 }
 
+// ============================================================================
+// DATABASE INPUT TYPES (For planning-queries.ts)
+// ============================================================================
+
+/**
+ * Create Plan Input (for createPlan function)
+ * Direct database insertion - minimal fields required
+ */
+export interface CreatePlanInput {
+  id?: string; // Optional - will generate if not provided
+  name: string;
+  description?: string;
+  status?: PlanStatus;
+  created_by?: string;
+  notes?: string;
+}
+
+/**
+ * Update Plan Input (for updatePlan function)
+ */
+export interface UpdatePlanInput {
+  name?: string;
+  description?: string;
+  notes?: string;
+}
+
+/**
+ * Create Plan Item Input (for createPlanItem function)
+ */
+export interface CreatePlanItemInput {
+  plan_id: string;
+  store_id: string;
+  store_number: string;
+  store_name: string;
+  campaign_id: string;
+  campaign_name: string;
+  quantity: number;
+  unit_cost?: number;
+  total_cost?: number;
+  wave?: WaveCode | null;
+  wave_name?: string | null;
+  is_included?: boolean;
+  exclude_reason?: string | null;
+  is_overridden?: boolean;
+  override_notes?: string | null;
+
+  // AI recommendation fields
+  ai_recommended_campaign_id?: string | null;
+  ai_recommended_campaign_name?: string | null;
+  ai_recommended_quantity?: number | null;
+  ai_confidence?: number | null;
+  ai_confidence_level?: ConfidenceLevel | null;
+  ai_score_store_performance?: number | null;
+  ai_score_creative_performance?: number | null;
+  ai_score_geographic_fit?: number | null;
+  ai_score_timing_alignment?: number | null;
+  ai_reasoning?: string[] | null;
+  ai_risk_factors?: string[] | null;
+  ai_expected_conversion_rate?: number | null;
+  ai_expected_conversions?: number | null;
+  ai_auto_approved?: boolean | null;
+  ai_status_reason?: string | null;
+}
+
+/**
+ * Update Plan Item Input (for updatePlanItem function)
+ */
+export interface UpdatePlanItemInput {
+  campaign_id?: string;
+  campaign_name?: string;
+  quantity?: number;
+  unit_cost?: number;
+  wave?: WaveCode | null;
+  wave_name?: string | null;
+  is_included?: boolean;
+  exclude_reason?: string;
+  is_overridden?: boolean;
+  override_notes?: string;
+}
+
+/**
+ * Create Wave Input (for createWave function)
+ */
+export interface CreateWaveInput {
+  plan_id: string;
+  wave_code: WaveCode;
+  wave_name: string;
+  wave_description?: string;
+  start_date?: string;
+  end_date?: string;
+  budget_allocated?: number;
+  display_order: number;
+}
+
+/**
+ * Update Wave Input (for updateWave function)
+ */
+export interface UpdateWaveInput {
+  wave_name?: string;
+  wave_description?: string;
+  start_date?: string;
+  end_date?: string;
+  budget_allocated?: number;
+  display_order?: number;
+}
+
 /**
  * Update Plan Item Request
  * User action: "Change campaign" or "Adjust quantity"

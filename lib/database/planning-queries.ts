@@ -39,7 +39,7 @@ import type {
  */
 export function createPlan(input: CreatePlanInput): CampaignPlan {
   const db = getDatabase();
-  const id = `plan_${nanoid(12)}`;
+  const id = input.id || `plan_${nanoid(12)}`; // Use provided ID or generate new one
   const now = new Date().toISOString();
 
   const stmt = db.prepare(`
