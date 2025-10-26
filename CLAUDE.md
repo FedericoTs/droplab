@@ -120,22 +120,46 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - Agent configuration management
 - Note: Requires ElevenLabs API key with phone calling enabled
 
-### 6. Settings Tab (Enhanced - Phase 2)
-- **Two-tab interface**:
-  - **Company & Brand Tab**:
-    - Company name, industry, brand voice, target audience, tone
-    - **Brand Intelligence (AI-Powered)**:
-      - Upload marketing content for analysis
-      - AI extracts brand voice, tone, key phrases, values
-      - Auto-fills form fields with extracted data
-      - Displays AI-extracted elements as chips
+### 6. Settings Tab (Enhanced - Phase 2 + Brand Kit Update)
+- **Four-tab interface**:
+  - **Brand Intelligence Tab**:
+    - **AI Website Analyzer** (NEW):
+      - Enter any company website URL
+      - AI automatically extracts complete brand identity:
+        - Company name, industry, target audience
+        - Brand voice, tone, key phrases, values
+        - **Logo extraction** (via Clearbit API + HTML scraping fallback)
+        - **Color palette** (primary, secondary, accent colors from website CSS)
+        - **Typography** (heading and body fonts)
+        - **Landing page template** recommendation
+      - One-click auto-fill of all brand settings
+      - **Logo Detection Strategy**:
+        1. Clearbit Logo API (primary - 90% success rate)
+        2. Smart HTML scraping (SVG-first, header/nav prioritization)
+        3. Google Favicon (fallback)
+      - **Smart filtering**: Rejects external logos (partner/customer), product images, hero banners
+    - **Company Profile**:
+      - Manual fields: Company name, industry, brand voice, target audience, tone
+      - AI-extracted brand elements displayed as chips
       - Profile loaded indicator badge
-    - **Persistent storage**: Database + localStorage
+    - **Visual Brand Kit**:
+      - Logo upload with preview
+      - Color pickers (primary, secondary, accent)
+      - Font selection (Google Fonts)
+      - Landing page template selection
+      - Preview/Edit modes
+    - **Persistent storage**: Database (brand profiles + brand kit) + localStorage (API keys)
   - **Integrations Tab**:
     - API keys (OpenAI, ElevenLabs)
     - ElevenLabs agent management
     - Phone number configuration
+  - **Tracking Tab**:
+    - Landing page tracking snippets
+    - Analytics integration code
+  - **Industry Modules Tab**:
+    - Industry-specific features and templates
 - Used to personalize outputs across all features
+- **Auto-updates on website analysis**: Colors, logo, and fonts update immediately in UI
 
 ## Template System Architecture
 

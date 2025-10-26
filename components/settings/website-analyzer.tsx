@@ -62,6 +62,15 @@ export function WebsiteAnalyzer({ onBrandDataExtracted }: WebsiteAnalyzerProps) 
       const result = await response.json();
 
       if (result.success && result.data) {
+        console.log('✅ Website Analyzer received data:', result.data);
+        console.log('🎨 Brand Kit data:', {
+          logoUrl: result.data.logoUrl,
+          primaryColor: result.data.primaryColor,
+          secondaryColor: result.data.secondaryColor,
+          accentColor: result.data.accentColor,
+          headingFont: result.data.headingFont,
+          bodyFont: result.data.bodyFont,
+        });
         onBrandDataExtracted(result.data);
         toast.success("✨ Website analyzed! All fields auto-filled from your website.");
       } else {

@@ -23,6 +23,7 @@ interface BrandKitData {
   headingFont?: string;
   bodyFont?: string;
   landingPageTemplate?: string;
+  _timestamp?: number; // Used to force re-render on subsequent analyses
 }
 
 interface BrandKitManagerProps {
@@ -82,8 +83,12 @@ export const BrandKitManager = forwardRef<BrandKitManagerRef, BrandKitManagerPro
   // Load existing brand config ONCE on mount
   useEffect(() => {
     const loadBrandConfig = async () => {
-      if (initialLoadDone) return; // Skip if already loaded
+      if (initialLoadDone) {
+        console.log('⏭️ Skipping brand config load - already loaded');
+        return; // Skip if already loaded
+      }
 
+      console.log('📥 Loading brand config from database...');
       setLoading(true);
       try {
         const response = await fetch(`/api/brand/config?companyName=${encodeURIComponent(companyName)}`);
@@ -91,6 +96,11 @@ export const BrandKitManager = forwardRef<BrandKitManagerRef, BrandKitManagerPro
 
         if (result.success && result.data) {
           const hasData = result.data.logo_url || result.data.primary_color || result.data.heading_font;
+
+          console.log('💾 Loaded brand config from DB:', {
+            logoUrl: result.data.logo_url,
+            primaryColor: result.data.primary_color,
+          });
 
           setFormData({
             logoUrl: result.data.logo_url || '',
@@ -105,7 +115,10 @@ export const BrandKitManager = forwardRef<BrandKitManagerRef, BrandKitManagerPro
           });
 
           if (result.data.logo_url) {
+            console.log('🖼️ Setting logoPreview from DB to:', result.data.logo_url);
             setLogoPreview(result.data.logo_url);
+          } else {
+            console.log('🖼️ No logo in DB, logoPreview remains empty');
           }
 
           // Switch to preview mode if brand data exists
@@ -126,31 +139,56 @@ export const BrandKitManager = forwardRef<BrandKitManagerRef, BrandKitManagerPro
     }
   }, [companyName, initialLoadDone]);
 
+  // Debug: Log logoPreview changes
+  useEffect(() => {
+    console.log('🖼️ logoPreview state changed to:', logoPreview || '(empty)');
+  }, [logoPreview]);
+
   // Auto-fill form when extracted brand kit data is provided (from AI analyzer)
   useEffect(() => {
     if (extractedBrandKit && initialLoadDone) {
-      setFormData(prev => ({
-        ...prev,
-        logoUrl: extractedBrandKit.logoUrl || prev.logoUrl,
-        primaryColor: extractedBrandKit.primaryColor || prev.primaryColor,
-        secondaryColor: extractedBrandKit.secondaryColor || prev.secondaryColor,
-        accentColor: extractedBrandKit.accentColor || prev.accentColor,
-        headingFont: extractedBrandKit.headingFont || prev.headingFont,
-        bodyFont: extractedBrandKit.bodyFont || prev.bodyFont,
-        landingPageTemplate: extractedBrandKit.landingPageTemplate || prev.landingPageTemplate,
-      }));
+      console.log('🎨 BrandKitManager received new extractedBrandKit:', extractedBrandKit);
 
-      // Set logo preview if provided
-      if (extractedBrandKit.logoUrl) {
+      // ALWAYS replace with new AI-extracted values (don't fallback to prev values)
+      // This ensures subsequent website analyses override previous data
+      setFormData(prev => {
+        const newFormData = {
+          ...prev,
+          logoUrl: extractedBrandKit.logoUrl !== undefined ? extractedBrandKit.logoUrl : prev.logoUrl,
+          primaryColor: extractedBrandKit.primaryColor !== undefined ? extractedBrandKit.primaryColor : prev.primaryColor,
+          secondaryColor: extractedBrandKit.secondaryColor !== undefined ? extractedBrandKit.secondaryColor : prev.secondaryColor,
+          accentColor: extractedBrandKit.accentColor !== undefined ? extractedBrandKit.accentColor : prev.accentColor,
+          headingFont: extractedBrandKit.headingFont !== undefined ? extractedBrandKit.headingFont : prev.headingFont,
+          bodyFont: extractedBrandKit.bodyFont !== undefined ? extractedBrandKit.bodyFont : prev.bodyFont,
+          landingPageTemplate: extractedBrandKit.landingPageTemplate !== undefined ? extractedBrandKit.landingPageTemplate : prev.landingPageTemplate,
+        };
+
+        console.log('🔄 Updating formData from:', {
+          oldColors: { primary: prev.primaryColor, secondary: prev.secondaryColor, accent: prev.accentColor },
+          oldLogo: prev.logoUrl
+        });
+        console.log('🔄 Updating formData to:', {
+          newColors: { primary: newFormData.primaryColor, secondary: newFormData.secondaryColor, accent: newFormData.accentColor },
+          newLogo: newFormData.logoUrl
+        });
+
+        return newFormData;
+      });
+
+      // Set logo preview if provided (including empty string to clear previous logo)
+      if (extractedBrandKit.logoUrl !== undefined) {
         setLogoPreview(extractedBrandKit.logoUrl);
+        console.log('🖼️ Logo preview updated to:', extractedBrandKit.logoUrl);
       }
 
       // Switch to edit mode so user can review AI-extracted data
+      console.log('🔀 Switching to EDIT mode');
       setMode('edit');
 
       toast.success('✨ Visual Brand Kit auto-filled from website analysis!');
     }
-  }, [extractedBrandKit, initialLoadDone]);
+    // Watch timestamp to detect changes + extractedBrandKit to avoid stale closures
+  }, [extractedBrandKit?._timestamp, extractedBrandKit, initialLoadDone]);
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -415,9 +453,14 @@ export const BrandKitManager = forwardRef<BrandKitManagerRef, BrandKitManagerPro
               {logoPreview ? (
                 <div className="w-32 h-32 border-2 border-slate-200 rounded-lg overflow-hidden bg-white flex items-center justify-center p-2">
                   <img
+                    key={logoPreview}
                     src={logoPreview}
                     alt="Logo preview"
                     className="max-w-full max-h-full object-contain"
+                    onError={(e) => {
+                      console.error('❌ Logo failed to load:', logoPreview);
+                      e.currentTarget.style.display = 'none';
+                    }}
                   />
                 </div>
               ) : (
@@ -425,6 +468,8 @@ export const BrandKitManager = forwardRef<BrandKitManagerRef, BrandKitManagerPro
                   <Upload className="h-8 w-8 text-slate-400" />
                 </div>
               )}
+              {/* Debug: Show current logoPreview state */}
+              <div className="hidden">logoPreview: {logoPreview || '(empty)'}</div>
             </div>
 
             {/* Upload Button */}

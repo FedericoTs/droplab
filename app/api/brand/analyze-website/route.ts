@@ -67,8 +67,8 @@ export async function POST(request: NextRequest) {
     const fonts = extractFontsFromHTML(htmlContent);
     console.log(`📝 Fonts extracted:`, fonts);
 
-    // Step 5: Extract logo URL from HTML
-    const logoUrl = extractLogoUrl(htmlContent, url.origin);
+    // Step 5: Extract logo URL - Try Clearbit API first (most reliable)
+    const logoUrl = await extractLogoWithFallback(htmlContent, url.origin, url.hostname);
     console.log(`🖼️ Logo URL: ${logoUrl}`);
 
     // Step 6: Analyze brand voice with GPT-4 (text only - no screenshot needed!)
@@ -353,34 +353,220 @@ function extractCompanyName(html: string, hostname: string): string {
 }
 
 /**
- * Extract logo URL from HTML
+ * Extract logo with fallback strategy:
+ * 1. Try Clearbit Logo API (most reliable)
+ * 2. Fall back to HTML scraping
+ * 3. Fall back to favicon
+ */
+async function extractLogoWithFallback(html: string, origin: string, hostname: string): Promise<string> {
+  const domain = hostname.replace('www.', '');
+
+  // Strategy 1: Try Clearbit Logo API (free, no auth, very reliable)
+  const clearbitUrl = `https://logo.clearbit.com/${domain}`;
+  console.log(`🔍 Trying Clearbit Logo API: ${clearbitUrl}`);
+
+  try {
+    const response = await fetch(clearbitUrl, { method: 'HEAD' });
+    if (response.ok) {
+      console.log(`✅ Found logo via Clearbit API: ${clearbitUrl}`);
+      return clearbitUrl;
+    }
+  } catch (error) {
+    console.log('⚠️ Clearbit API failed, falling back to HTML scraping');
+  }
+
+  // Strategy 2: Fall back to HTML scraping
+  const scrapedLogo = extractLogoUrl(html, origin);
+  if (scrapedLogo) {
+    return scrapedLogo;
+  }
+
+  // Strategy 3: Fall back to Google Favicon service
+  const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=256`;
+  console.log(`⚠️ Using Google Favicon as last resort: ${faviconUrl}`);
+  return faviconUrl;
+}
+
+/**
+ * Extract logo URL from HTML with smart filtering
  */
 function extractLogoUrl(html: string, origin: string): string {
-  // Common logo selectors
-  const logoPatterns = [
-    /<link\s+rel=["']icon["']\s+href=["']([^"']+)["']/i,
-    /<link\s+rel=["']apple-touch-icon["']\s+href=["']([^"']+)["']/i,
-    /<img[^>]+class=["'][^"']*logo[^"']*["'][^>]+src=["']([^"']+)["']/i,
-    /<img[^>]+src=["']([^"']*logo[^"']+)["']/i,
-    /<img[^>]+alt=["'][^"']*logo[^"']*["'][^>]+src=["']([^"']+)["']/i,
+  const urlObj = new URL(origin);
+  const domain = urlObj.hostname.replace('www.', '');
+
+  console.log(`🔍 Searching for logo on domain: ${domain}`);
+
+  // Priority 1: Look for SVG logos FIRST (modern websites use SVG for logos)
+  // SVG logos in header/nav are almost always the company logo
+  const svgLogoPatterns = [
+    /<header[^>]*>[\s\S]*?<(?:img|svg)[^>]+(?:src|href)=["']([^"']+\.svg[^"']*)["'][^>]*>[\s\S]*?<\/header>/i,
+    /<nav[^>]*>[\s\S]*?<(?:img|svg)[^>]+(?:src|href)=["']([^"']+\.svg[^"']*)["'][^>]*>[\s\S]*?<\/nav>/i,
+    /<img[^>]+src=["']([^"']+\.svg[^"']*)["'][^>]*class=["'][^"']*(?:logo|brand)[^"']*["']/i,
+    /<svg[^>]*class=["'][^"']*(?:logo|brand)[^"']*["'][^>]*>[\s\S]*?<\/svg>/i, // For inline SVG
   ];
 
-  for (const pattern of logoPatterns) {
+  for (const pattern of svgLogoPatterns) {
+    const match = html.match(pattern);
+    if (match && match[1]) {
+      const logoUrl = makeAbsoluteUrl(match[1], origin);
+      if (isValidLogoUrl(logoUrl, domain)) {
+        console.log(`✅ Found SVG logo in header/nav: ${logoUrl}`);
+        return logoUrl;
+      }
+    }
+  }
+
+  // Priority 2: Look for any header/nav logos (PNG/JPG fallback)
+  const headerLogoPatterns = [
+    /<header[^>]*>[\s\S]*?<img[^>]+src=["']([^"']+)["'][^>]*>[\s\S]*?<\/header>/i,
+    /<nav[^>]*>[\s\S]*?<img[^>]+src=["']([^"']+)["'][^>]*>[\s\S]*?<\/nav>/i,
+    /<img[^>]+class=["'][^"']*(?:header|navbar|nav|site-logo|brand)[^"']*["'][^>]+src=["']([^"']+)["']/i,
+  ];
+
+  for (const pattern of headerLogoPatterns) {
     const match = html.match(pattern);
     if (match) {
-      let logoUrl = match[1];
-      // Make absolute URL
-      if (logoUrl.startsWith('//')) {
-        logoUrl = 'https:' + logoUrl;
-      } else if (logoUrl.startsWith('/')) {
-        logoUrl = origin + logoUrl;
-      } else if (!logoUrl.startsWith('http')) {
-        logoUrl = origin + '/' + logoUrl;
+      const logoUrl = makeAbsoluteUrl(match[1], origin);
+      if (isValidLogoUrl(logoUrl, domain) && looksLikeLogo(logoUrl)) {
+        console.log(`✅ Found logo in header/nav: ${logoUrl}`);
+        return logoUrl;
       }
+    }
+  }
+
+  // Priority 3: Look for ANY img/svg with "logo" in class/alt/src (SVG preferred)
+  // First try SVG with "logo" keyword
+  const svgWithLogoPattern = /<(?:img|svg)[^>]+src=["']([^"']*logo[^"']*\.svg[^"']*)["']/gi;
+  let svgMatch;
+
+  while ((svgMatch = svgWithLogoPattern.exec(html)) !== null) {
+    const logoUrl = makeAbsoluteUrl(svgMatch[1], origin);
+    if (isValidLogoUrl(logoUrl, domain)) {
+      console.log(`✅ Found SVG logo with "logo" keyword: ${logoUrl}`);
       return logoUrl;
     }
   }
 
-  // Return empty if not found
+  // Then try any img with "logo" in class/alt (PNG/JPG)
+  const logoImgPattern = /<img[^>]+(?:class|alt)=["'][^"']*logo[^"']*["'][^>]+src=["']([^"']+)["']/gi;
+  let match;
+  const candidates: string[] = [];
+
+  while ((match = logoImgPattern.exec(html)) !== null) {
+    const logoUrl = makeAbsoluteUrl(match[1], origin);
+    if (isValidLogoUrl(logoUrl, domain) && looksLikeLogo(logoUrl)) {
+      candidates.push(logoUrl);
+    }
+  }
+
+  // Return first valid candidate (prefer SVG over others)
+  const svgCandidates = candidates.filter(url => url.endsWith('.svg'));
+  if (svgCandidates.length > 0) {
+    console.log(`✅ Found SVG logo candidate: ${svgCandidates[0]}`);
+    return svgCandidates[0];
+  }
+
+  if (candidates.length > 0) {
+    console.log(`✅ Found logo candidate: ${candidates[0]}`);
+    return candidates[0];
+  }
+
+  // Priority 4: OpenGraph image (might be marketing image, not logo - use as fallback only)
+  const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
+  if (ogImageMatch) {
+    const logoUrl = makeAbsoluteUrl(ogImageMatch[1], origin);
+    // Only accept if it looks like a logo (small file, has "logo" in name, etc.)
+    if (isValidLogoUrl(logoUrl, domain) && looksLikeLogo(logoUrl)) {
+      console.log(`✅ Found logo via og:image: ${logoUrl}`);
+      return logoUrl;
+    } else {
+      console.log(`⚠️ Rejecting og:image (doesn't look like logo): ${logoUrl}`);
+    }
+  }
+
+  // Priority 5: Favicon as last resort fallback
+  const faviconPatterns = [
+    /<link\s+rel=["']apple-touch-icon["']\s+href=["']([^"']+)["']/i,
+    /<link\s+rel=["']icon["']\s+href=["']([^"']+)["']/i,
+  ];
+
+  for (const pattern of faviconPatterns) {
+    const faviconMatch = html.match(pattern);
+    if (faviconMatch) {
+      const logoUrl = makeAbsoluteUrl(faviconMatch[1], origin);
+      console.log(`⚠️ Using favicon as fallback: ${logoUrl}`);
+      return logoUrl;
+    }
+  }
+
+  console.log('❌ No logo found');
   return '';
+}
+
+/**
+ * Make URL absolute
+ */
+function makeAbsoluteUrl(url: string, origin: string): string {
+  if (url.startsWith('//')) {
+    return 'https:' + url;
+  } else if (url.startsWith('/')) {
+    return origin + url;
+  } else if (!url.startsWith('http')) {
+    return origin + '/' + url;
+  }
+  return url;
+}
+
+/**
+ * Check if logo URL is valid (not external partner/customer logo)
+ */
+function isValidLogoUrl(logoUrl: string, companyDomain: string): boolean {
+  try {
+    const url = new URL(logoUrl);
+    const logoDomain = url.hostname.replace('www.', '');
+
+    // Reject if it's from a completely different domain (e.g., typeform.com on stripe.com)
+    // Allow CDN domains (images., cdn., static., assets., etc.)
+    const isSameDomain = logoDomain === companyDomain;
+    const isCompanyCDN = logoDomain.includes(companyDomain.split('.')[0]); // e.g., stripeassets.com for stripe.com
+    const isCommonCDN = /^(images?|cdn|static|assets|media)\./i.test(logoDomain);
+
+    // Reject if filename contains other company names (heuristic)
+    const suspiciousNames = ['typeform', 'facebook', 'google', 'twitter', 'linkedin', 'instagram'];
+    const filename = url.pathname.toLowerCase();
+    const hasSuspiciousName = suspiciousNames.some(name => filename.includes(name));
+
+    if (hasSuspiciousName && !isCompanyCDN) {
+      console.log(`⚠️ Rejecting logo (external company): ${logoUrl}`);
+      return false;
+    }
+
+    return isSameDomain || isCompanyCDN || isCommonCDN;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Check if URL looks like a logo (not a marketing/hero/product image)
+ */
+function looksLikeLogo(logoUrl: string): boolean {
+  const url = logoUrl.toLowerCase();
+
+  // Good signs: has "logo", "brand", "icon" in filename
+  const hasLogoKeyword = /logo|brand|icon|emblem|mark|wordmark/i.test(url);
+
+  // Bad signs: marketing/hero images
+  const hasMarketingKeyword = /hero|banner|og-image|social|card|share|opengraph|meta|preview/i.test(url);
+
+  // Bad signs: product/lifestyle images
+  const hasProductKeyword = /chair|desk|office|person|people|product|lifestyle|photo|image|gallery/i.test(url);
+
+  // Reject if it has marketing or product keywords and no logo keyword
+  if ((hasMarketingKeyword || hasProductKeyword) && !hasLogoKeyword) {
+    console.log(`⚠️ Rejecting image (looks like product/marketing image): ${logoUrl}`);
+    return false;
+  }
+
+  return true;
 }

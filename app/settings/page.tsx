@@ -38,6 +38,7 @@ interface BrandKitData {
   headingFont?: string;
   bodyFont?: string;
   landingPageTemplate?: string;
+  _timestamp?: number; // Force re-render on subsequent analyses
 }
 
 export default function SettingsPage() {
@@ -111,6 +112,8 @@ export default function SettingsPage() {
   }
 
   const handleWebsiteAnalyzed = (data: any) => {
+    console.log('🌐 Settings received website analysis data:', data);
+
     // Mark that profile has been loaded so useEffect doesn't override
     setProfileLoaded(true);
 
@@ -137,7 +140,8 @@ export default function SettingsPage() {
     }));
 
     // Update brand kit data (will be passed to BrandKitManager)
-    setBrandKitData({
+    // Add timestamp to ensure useEffect detects changes on subsequent analyses
+    const brandKitUpdate = {
       logoUrl: data.logoUrl,
       primaryColor: data.primaryColor,
       secondaryColor: data.secondaryColor,
@@ -145,7 +149,11 @@ export default function SettingsPage() {
       headingFont: data.headingFont,
       bodyFont: data.bodyFont,
       landingPageTemplate: data.landingPageTemplate,
-    });
+      _timestamp: Date.now(), // Force re-render
+    };
+
+    console.log('📦 Setting brandKitData to:', brandKitUpdate);
+    setBrandKitData(brandKitUpdate);
   };
 
   const handleProfileExtracted = (profile: ExtractedProfile) => {
