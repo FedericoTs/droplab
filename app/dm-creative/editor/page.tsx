@@ -217,9 +217,35 @@ export default function CanvasEditorPage() {
             return;
           }
           console.log('✅ Background image loaded');
+
+          // COVER STRATEGY: Scale uniformly to fill canvas (no distortion, may crop)
+          // Like CSS: background-size: cover; background-position: center;
+          const imgWidth = img.width || editorData.canvasWidth;
+          const imgHeight = img.height || editorData.canvasHeight;
+
+          // Calculate uniform scale to cover entire canvas
+          const scale = Math.max(
+            editorData.canvasWidth / imgWidth,
+            editorData.canvasHeight / imgHeight
+          );
+
+          // Center the image on canvas
+          const scaledWidth = imgWidth * scale;
+          const scaledHeight = imgHeight * scale;
+          const left = (editorData.canvasWidth - scaledWidth) / 2;
+          const top = (editorData.canvasHeight - scaledHeight) / 2;
+
+          console.log('📐 Background scaling (COVER strategy):');
+          console.log(`   Image: ${imgWidth}x${imgHeight}`);
+          console.log(`   Canvas: ${editorData.canvasWidth}x${editorData.canvasHeight}`);
+          console.log(`   Uniform scale: ${scale.toFixed(4)} (no distortion)`);
+          console.log(`   Position: (${left.toFixed(0)}, ${top.toFixed(0)})`);
+
           img.set({
-            scaleX: editorData.canvasWidth / (img.width || editorData.canvasWidth),
-            scaleY: editorData.canvasHeight / (img.height || editorData.canvasHeight),
+            scaleX: scale,
+            scaleY: scale, // Same as scaleX (uniform scaling = no distortion)
+            left: left,
+            top: top,
             selectable: false,
             evented: false,
           });
@@ -227,7 +253,7 @@ export default function CanvasEditorPage() {
           // Fabric.js v6: setBackgroundImage is deprecated, set property directly
           canvas.backgroundImage = img;
           canvas.renderAll();
-          console.log('✅ Background set on canvas');
+          console.log('✅ Background set on canvas (COVER mode)');
 
           if (isActive) {
             addDMElements(canvas, editorData, fabricModule);
@@ -512,9 +538,26 @@ export default function CanvasEditorPage() {
             console.log('⏭️ Canvas disposed, skipping fallback');
             return;
           }
+
+          // COVER STRATEGY: Scale uniformly to fill canvas (no distortion, may crop)
+          const imgWidth = img.width || data.canvasWidth;
+          const imgHeight = img.height || data.canvasHeight;
+          const scale = Math.max(
+            data.canvasWidth / imgWidth,
+            data.canvasHeight / imgHeight
+          );
+          const scaledWidth = imgWidth * scale;
+          const scaledHeight = imgHeight * scale;
+          const left = (data.canvasWidth - scaledWidth) / 2;
+          const top = (data.canvasHeight - scaledHeight) / 2;
+
+          console.log('📐 Fallback background (COVER): scale=' + scale.toFixed(4));
+
           img.set({
-            scaleX: data.canvasWidth / (img.width || data.canvasWidth),
-            scaleY: data.canvasHeight / (img.height || data.canvasHeight),
+            scaleX: scale,
+            scaleY: scale,
+            left: left,
+            top: top,
             selectable: false,
             evented: false,
           });
@@ -674,18 +717,45 @@ export default function CanvasEditorPage() {
             return;
           }
 
-          // Scale new background to cover full canvas
+          // COVER STRATEGY: Scale uniformly to fill canvas (no distortion, may crop)
+          // Like CSS: background-size: cover; background-position: center;
+          const imgWidth = newBg.width || data.canvasWidth;
+          const imgHeight = newBg.height || data.canvasHeight;
+          const canvasAspect = data.canvasWidth / data.canvasHeight;
+          const imageAspect = imgWidth / imgHeight;
+
+          // Calculate uniform scale to cover entire canvas
+          const scale = Math.max(
+            data.canvasWidth / imgWidth,
+            data.canvasHeight / imgHeight
+          );
+
+          // Center the image on canvas
+          const scaledWidth = imgWidth * scale;
+          const scaledHeight = imgHeight * scale;
+          const left = (data.canvasWidth - scaledWidth) / 2;
+          const top = (data.canvasHeight - scaledHeight) / 2;
+
+          console.log('📐 Background scaling (COVER strategy):');
+          console.log(`   Image: ${imgWidth}x${imgHeight} (${imageAspect.toFixed(2)}:1)`);
+          console.log(`   Canvas: ${data.canvasWidth}x${data.canvasHeight} (${canvasAspect.toFixed(2)}:1)`);
+          console.log(`   Scale: ${scale.toFixed(4)} (uniform, no distortion)`);
+          console.log(`   Scaled dimensions: ${scaledWidth.toFixed(0)}x${scaledHeight.toFixed(0)}`);
+          console.log(`   Position: (${left.toFixed(0)}, ${top.toFixed(0)})`);
+          console.log(`   Overflow: ${scaledWidth > data.canvasWidth || scaledHeight > data.canvasHeight ? 'YES (edges cropped)' : 'NO'}`);
+
           newBg.set({
-            scaleX: data.canvasWidth / (newBg.width || data.canvasWidth),
-            scaleY: data.canvasHeight / (newBg.height || data.canvasHeight),
+            scaleX: scale,
+            scaleY: scale, // Same as scaleX (uniform scaling = no distortion)
+            left: left,
+            top: top,
             selectable: false,
             evented: false,
           });
 
           // Replace canvas background
           canvas.backgroundImage = newBg;
-          console.log('✅ Background image replaced successfully');
-          console.log(`   New background dimensions: ${newBg.width}x${newBg.height}, scaled to ${data.canvasWidth}x${data.canvasHeight}`);
+          console.log('✅ Background image replaced successfully (COVER mode)');
         })
         .catch((err: any) => {
           console.error('❌ Error replacing background image:', err);
