@@ -15,7 +15,12 @@ export async function generateDMCreativeImage(
   apiKey: string,
   sceneDescription?: string // NEW: Optional scene description from form
 ): Promise<string> {
-  const openai = new OpenAI({ apiKey });
+  // CRITICAL: High-quality image generation can take 30-60+ seconds
+  // Increase timeout to prevent connection closure during processing
+  const openai = new OpenAI({
+    apiKey,
+    timeout: 120000, // 120 seconds (2 minutes)
+  });
 
   // Build prompt based on whether scene description is provided
   let imagePrompt: string;

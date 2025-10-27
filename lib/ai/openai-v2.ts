@@ -25,6 +25,7 @@
  * - Layout: Use template-aware generation (classic/modern/minimal/premium)
  * - Prompt Style: 'professional' for business materials
  * - No Logo Strength: 10 (maximum) to prevent AI from hallucinating logos
+ * - Timeout: 120 seconds (2 minutes) - CRITICAL for high-quality generation
  *
  * SIZE MAPPING (V2 → DALL-E 3):
  * - 1024x1024 → 1024x1024 (square, no change)
@@ -141,7 +142,13 @@ export async function generateDMCreativeImageV2(
 ): Promise<ImageGenerationResult> {
   const { message, context, apiKey, quality, size, layoutTemplate, brandConfig, promptStyle, noLogoStrength, customInstructions, customSceneDescription } = options;
 
-  const openai = new OpenAI({ apiKey });
+  // CRITICAL: High-quality image generation can take 30-60+ seconds
+  // Default timeout (60s) is too short - increase to 2 minutes
+  const openai = new OpenAI({
+    apiKey,
+    timeout: 120000, // 120 seconds (2 minutes)
+    maxRetries: 0,   // We handle retries manually
+  });
 
   // Build enhanced prompt based on brand context AND layout template AND fine-tuning params AND custom scene
   const imagePrompt = await buildImagePrompt(
@@ -795,7 +802,13 @@ export async function generateDMCreativeImageV1Fallback(
 ): Promise<ImageGenerationResult> {
   const { message, context, apiKey, quality, size, layoutTemplate, brandConfig, promptStyle, noLogoStrength, customInstructions } = options;
 
-  const openai = new OpenAI({ apiKey });
+  // CRITICAL: DALL-E 3 HD quality can take 30-60+ seconds
+  // Increase timeout to 2 minutes to prevent premature connection closure
+  const openai = new OpenAI({
+    apiKey,
+    timeout: 120000, // 120 seconds (2 minutes)
+    maxRetries: 0,   // We handle retries manually
+  });
 
   // Build SHORTER prompt for dall-e-3 (max 4000 chars) WITH template awareness AND fine-tuning params
   const imagePrompt = await buildShortPromptForDalle3(
