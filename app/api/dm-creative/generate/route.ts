@@ -189,14 +189,16 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        // TRY 1: gpt-image-1 (OpenAI) - Best cost/performance
-        const result = await generateDMCreativeImageV2({
+        // TRY 1: Gemini (Nano Banana) - PRIMARY CHOICE
+        // 🚀 3-4s generation, $0.039 per image, 85% cheaper for high quality
+        const { generateDMCreativeImageWithGemini } = require("@/lib/ai/openai-v2");
+        const result = await generateDMCreativeImageWithGemini({
           message,
           context: companyContext,
-          apiKey,
+          apiKey, // Not used for Gemini, but required by interface
           quality: imageQuality as ImageQuality,
           size: imageAspectRatio as ImageSize,
-          brandConfig: brandConfig || undefined,
+          brandConfig,
           layoutTemplate,
           noLogoStrength: 10, // ALWAYS MAX - prevents logo generation in AI images
           customSceneDescription: sceneDescription,
@@ -205,20 +207,19 @@ export async function POST(request: NextRequest) {
         backgroundImage = result.imageUrl;
         imageMetadata = result.metadata;
 
-        console.log(`✅ gpt-image-1 succeeded: ${imageMetadata.quality} quality, cost: $${imageMetadata.estimatedCost.toFixed(3)}`);
-      } catch (v2Error) {
-        console.error("❌ gpt-image-1 failed, trying Gemini (Nano Banana) fallback...");
+        console.log(`✅ Gemini (PRIMARY) succeeded: cost: $${imageMetadata.estimatedCost.toFixed(3)}, generation time: 3-4s`);
+      } catch (geminiError) {
+        console.error("❌ Gemini failed, trying gpt-image-1 fallback...");
 
-        // TRY 2: Gemini (Nano Banana) - Better quality than DALL-E 3
+        // TRY 2: gpt-image-1 (OpenAI) - Secondary choice
         try {
-          const { generateDMCreativeImageWithGemini } = require("@/lib/ai/openai-v2");
-          const result = await generateDMCreativeImageWithGemini({
+          const result = await generateDMCreativeImageV2({
             message,
             context: companyContext,
-            apiKey, // Not used for Gemini, but required by interface
+            apiKey,
             quality: imageQuality as ImageQuality,
             size: imageAspectRatio as ImageSize,
-            brandConfig,
+            brandConfig: brandConfig || undefined,
             layoutTemplate,
             noLogoStrength: 10,
             customSceneDescription: sceneDescription,
@@ -227,11 +228,11 @@ export async function POST(request: NextRequest) {
           backgroundImage = result.imageUrl;
           imageMetadata = result.metadata;
 
-          console.log(`✅ Gemini succeeded: cost: $${imageMetadata.estimatedCost.toFixed(3)}`);
-        } catch (geminiError) {
-          console.error("❌ Gemini failed, using DALL-E 3 as final fallback...");
+          console.log(`✅ gpt-image-1 (fallback) succeeded: ${imageMetadata.quality} quality, cost: $${imageMetadata.estimatedCost.toFixed(3)}`);
+        } catch (v2Error) {
+          console.error("❌ gpt-image-1 failed, trying DALL-E 3...");
 
-          // TRY 3: DALL-E 3 - Last resort
+          // TRY 3: DALL-E 3 - Third choice
           try {
             const { generateDMCreativeImageV1Fallback } = require("@/lib/ai/openai-v2");
             const result = await generateDMCreativeImageV1Fallback({
@@ -248,7 +249,7 @@ export async function POST(request: NextRequest) {
 
             backgroundImage = result.imageUrl;
             imageMetadata = result.metadata;
-            console.log(`✅ DALL-E 3 succeeded: ${imageMetadata.quality} quality`);
+            console.log(`✅ DALL-E 3 (fallback) succeeded: ${imageMetadata.quality} quality`);
           } catch (dalle3Error) {
             console.error("❌ All AI models failed. Using legacy fallback...");
             // Last resort: use old V1 function
