@@ -4,6 +4,37 @@
  *
  * This is a parallel implementation to the existing system (V1).
  * Can be easily switched via environment variable for rollback.
+ *
+ * === HIGH-QUALITY IMAGE GENERATION BEST PRACTICES ===
+ *
+ * PRIMARY MODEL: gpt-image-1
+ * - Supports: 1024x1024, 1536x1024, 1024x1536
+ * - Quality levels: low, medium, high
+ * - Best for: Direct mail, marketing materials, professional layouts
+ * - Cost: $0.040-$0.096 per image (varies by quality & size)
+ *
+ * FALLBACK MODEL: dall-e-3
+ * - Supports: 1024x1024, 1024x1792, 1792x1024
+ * - Quality: standard or hd
+ * - Automatic size mapping from V2 sizes
+ * - Cost: $0.040-$0.120 per image (actual OpenAI pricing)
+ *
+ * RECOMMENDED SETTINGS FOR HIGH QUALITY:
+ * - Quality: 'high' or 'medium' (both map to 'hd' in dall-e-3)
+ * - Size: 1536x1024 (landscape) or 1024x1536 (portrait) for DM postcards
+ * - Layout: Use template-aware generation (classic/modern/minimal/premium)
+ * - Prompt Style: 'professional' for business materials
+ * - No Logo Strength: 10 (maximum) to prevent AI from hallucinating logos
+ *
+ * SIZE MAPPING (V2 → DALL-E 3):
+ * - 1024x1024 → 1024x1024 (square, no change)
+ * - 1536x1024 → 1792x1024 (landscape, closest match)
+ * - 1024x1536 → 1024x1792 (portrait, closest match)
+ *
+ * QUALITY MAPPING (V2 → DALL-E 3):
+ * - high → hd
+ * - medium → hd (optimized for best results)
+ * - low → standard
  */
 
 import OpenAI from "openai";
@@ -74,6 +105,31 @@ export function calculateImageCost(quality: ImageQuality, size: ImageSize): numb
   const sizeMultiplier = sizeMultipliers[size];
 
   return Number((baseCost * sizeMultiplier).toFixed(3));
+}
+
+/**
+ * Calculate DALL-E 3 cost based on actual OpenAI pricing
+ * https://openai.com/api/pricing/
+ */
+function calculateDalle3Cost(
+  quality: 'standard' | 'hd',
+  size: '1024x1024' | '1024x1792' | '1792x1024'
+): number {
+  // DALL-E 3 actual pricing (as of October 2024)
+  const pricing = {
+    'standard': {
+      '1024x1024': 0.040,
+      '1024x1792': 0.080,
+      '1792x1024': 0.080,
+    },
+    'hd': {
+      '1024x1024': 0.080,
+      '1024x1792': 0.120,
+      '1792x1024': 0.120,
+    },
+  };
+
+  return pricing[quality][size];
 }
 
 /**
@@ -757,14 +813,29 @@ export async function generateDMCreativeImageV1Fallback(
 
   // Map V2 quality levels to dall-e-3 quality parameter
   // dall-e-3 supports: 'standard' or 'hd'
-  const dalle3Quality = quality === 'high' ? 'hd' : 'standard';
+  // For best results, use 'hd' for medium and high quality
+  const dalle3Quality = (quality === 'high' || quality === 'medium') ? 'hd' : 'standard';
+
+  console.log(`🎨 Quality mapping: ${quality} (V2) → ${dalle3Quality} (dall-e-3)`);
+
+  // Map V2 sizes to valid dall-e-3 sizes
+  // dall-e-3 supports: '1024x1024', '1024x1792', '1792x1024'
+  // V2 supports: '1024x1024', '1536x1024', '1024x1536'
+  const dalle3SizeMap: Record<ImageSize, '1024x1024' | '1024x1792' | '1792x1024'> = {
+    '1024x1024': '1024x1024', // Square → Square
+    '1536x1024': '1792x1024', // Landscape → Landscape (closest match)
+    '1024x1536': '1024x1792', // Portrait → Portrait (closest match)
+  };
+  const dalle3Size = dalle3SizeMap[size];
+
+  console.log(`📐 Size mapping: ${size} (V2) → ${dalle3Size} (dall-e-3)`);
 
   try {
     const response = await openai.images.generate({
       model: "dall-e-3",
       prompt: imagePrompt,
       n: 1,
-      size: size,
+      size: dalle3Size,
       quality: dalle3Quality,
     });
 
@@ -794,10 +865,10 @@ export async function generateDMCreativeImageV1Fallback(
       throw new Error("Unexpected response format from dall-e-3");
     }
 
-    // Calculate cost (same as V2)
-    const estimatedCost = calculateImageCost(quality, size);
+    // Calculate accurate dall-e-3 cost
+    const estimatedCost = calculateDalle3Cost(dalle3Quality, dalle3Size);
 
-    console.log(`💰 Estimated cost: $${estimatedCost.toFixed(3)} (dall-e-3 fallback)`);
+    console.log(`💰 Estimated cost: $${estimatedCost.toFixed(3)} (dall-e-3 ${dalle3Quality})`);
 
     return {
       imageUrl,
