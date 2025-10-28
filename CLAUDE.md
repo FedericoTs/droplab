@@ -8,6 +8,35 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Success Criteria**: Enterprise-ready platform with scalable batch processing, comprehensive analytics, and seamless AI integration.
 
+## Master Transformation Plan
+
+**⚠️ CRITICAL: Single Source of Truth for All Development**
+
+All current and future development MUST follow the master transformation plan located at:
+
+**📋 `DROPLAB_TRANSFORMATION_PLAN.md`**
+
+This master plan contains:
+- Complete SaaS transformation roadmap (6-8 weeks, 10 phases)
+- Database migration strategy (SQLite → Supabase PostgreSQL)
+- Multi-tenancy architecture with Row-Level Security
+- Data Axle integration (audience targeting with free count preview)
+- PostGrid fulfillment integration (automated direct mail printing)
+- Stripe billing implementation (subscription + usage metering)
+- Authentication system (Supabase Auth)
+- Progress tracking with checkboxes (keep updated!)
+
+**Planning Guidelines:**
+- ✅ DO: Reference and update the master plan for all development work
+- ✅ DO: Mark tasks as completed with checkboxes in the plan
+- ✅ DO: Add new tasks discovered during implementation to the plan
+- ❌ DO NOT: Create separate planning documents
+- ❌ DO NOT: Deviate from the plan without updating it first
+
+**Additional Technical Documentation:**
+- **Data Axle API Integration**: See `docs/DATA_AXLE_INTEGRATION_GUIDE.md` for complete API documentation, rate limiting, Filter DSL, and production-ready TypeScript code
+- **Database Patterns**: See `DATABASE_PATTERNS.md` for SQLite/Supabase query patterns
+
 ## Project Overview
 
 **DropLab Platform** - Next.js 15.5.4 marketing automation application with:
@@ -1141,15 +1170,27 @@ npm run lint
 
 ---
 
-## Future Enhancements (Post-Demo)
+## SaaS Transformation (In Progress)
 
-- Database integration (PostgreSQL/Vercel Postgres) for persistent storage
-- User authentication and multi-user support
-- Analytics dashboard with tracking metrics
+**⚠️ See `DROPLAB_TRANSFORMATION_PLAN.md` for complete roadmap**
+
+The platform is undergoing a transformation from retail-focused demo to universal SaaS platform. Key features being added:
+
+### Implemented in Transformation Plan:
+- ✅ Supabase PostgreSQL database with multi-tenancy (Phase 1-2)
+- ✅ User authentication with Supabase Auth (Phase 3)
+- ✅ Data Axle integration - 250M+ contacts with smart filtering (Phase 4)
+- ✅ PostGrid fulfillment - automated direct mail printing (Phase 5)
+- ✅ Stripe billing - subscription + usage metering (Phase 6)
+- ✅ Row-Level Security (RLS) for data isolation
+- ✅ Database abstraction layer for safe migration
+
+### Future Enhancements (Post-Launch):
 - Email campaign integration
 - SMS integration alongside phone calls
-- Template library for DM designs
 - A/B testing for copywriting variations
-- Campaign management and scheduling
-- Integration with CRM systems
-- Advanced reporting and ROI tracking
+- Advanced campaign scheduling
+- Integration with CRM systems (Salesforce, HubSpot)
+- White-label capabilities for agencies
+- Advanced reporting and ROI analytics
+- Webhook integrations for automation
