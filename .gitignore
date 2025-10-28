@@ -39,4 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# databases (development)
 dm-tracking.db
+marketing.db
+
+# generated campaign assets
+/public/campaign-assets/
