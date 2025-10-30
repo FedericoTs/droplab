@@ -1,622 +1,200 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   ArrowRight,
-  Settings,
-  FileText,
   Mail,
-  BarChart3,
-  Phone,
   Sparkles,
-  Users,
-  Eye,
-  TrendingUp,
-  Activity as ActivityIcon,
+  BarChart3,
   Target,
-  Store as StoreIcon,
-  Award
-} from "lucide-react";
-import { useSettings } from "@/lib/contexts/settings-context";
-import { Badge } from "@/components/ui/badge";
+  Users,
+  CheckCircle2,
+  Zap
+} from 'lucide-react';
 
-interface DashboardStats {
-  totalCampaigns: number;
-  totalRecipients: number;
-  totalPageViews: number;
-  totalConversions: number;
-  overallConversionRate: number;
-}
-
-interface CampaignWithStats {
-  id: string;
-  name: string;
-  created_at: string;
-  status: string;
-  totalRecipients: number;
-  uniqueVisitors: number;
-  conversionRate: number;
-}
-
-interface RecentActivity {
-  id: string;
-  type: string;
-  recipientName: string;
-  eventType?: string;
-  conversionType?: string;
-  campaignName: string;
-  createdAt: string;
-}
-
-interface RetailStats {
-  totalStores: number;
-  storesWithDeployments: number;
-  totalDeployments: number;
-  totalConversions: number;
-  avgConversionRate: number;
-}
-
-interface TopStore {
-  id: string;
-  store_number: string;
-  store_name: string;
-  city: string;
-  state: string;
-  conversion_rate: number;
-  conversions_count: number;
-}
-
-interface RecentCampaignWithStores {
-  id: string;
-  name: string;
-  status: string;
-  created_at: string;
-  storeCount?: number;
-  recipientCount?: number;
-}
-
-export default function HomePage() {
-  const { settings, isLoaded } = useSettings();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [recentCampaigns, setRecentCampaigns] = useState<CampaignWithStats[]>([]);
-  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
-  const [retailStats, setRetailStats] = useState<RetailStats | null>(null);
-  const [topStores, setTopStores] = useState<TopStore[]>([]);
-  const [recentRetailCampaigns, setRecentRetailCampaigns] = useState<RecentCampaignWithStores[]>([]);
-  const [loadingData, setLoadingData] = useState(true);
-
-  const isSetupComplete = isLoaded && settings.companyName && settings.openaiApiKey;
-
-  // Load dashboard data
-  useEffect(() => {
-    if (isSetupComplete) {
-      loadDashboardData();
-    } else {
-      setLoadingData(false);
-    }
-  }, [isSetupComplete]);
-
-  const loadDashboardData = async () => {
-    try {
-      // Load stats
-      const statsRes = await fetch("/api/analytics/overview");
-      if (statsRes.ok) {
-        const statsData = await statsRes.json();
-        if (statsData.success) {
-          setStats(statsData.data);
-        }
-      }
-
-      // Load recent campaigns (top 3)
-      const campaignsRes = await fetch("/api/analytics/campaigns");
-      if (campaignsRes.ok) {
-        const campaignsData = await campaignsRes.json();
-        if (campaignsData.success) {
-          setRecentCampaigns(campaignsData.data.slice(0, 3));
-        }
-      }
-
-      // Load recent activity (top 5)
-      const activityRes = await fetch("/api/analytics/recent-activity?limit=5");
-      if (activityRes.ok) {
-        const activityData = await activityRes.json();
-        if (activityData.success) {
-          setRecentActivity(activityData.data);
-        }
-      }
-
-      // Try to load retail stats (optional module)
-      try {
-        const retailStatsRes = await fetch("/api/retail/performance/stats");
-        if (retailStatsRes.ok) {
-          const retailStatsData = await retailStatsRes.json();
-          if (retailStatsData.success && retailStatsData.data.totalStores > 0) {
-            setRetailStats(retailStatsData.data);
-
-            // Load top 3 stores
-            const topStoresRes = await fetch("/api/retail/performance/top-stores?limit=3");
-            if (topStoresRes.ok) {
-              const topStoresData = await topStoresRes.json();
-              if (topStoresData.success) {
-                setTopStores(topStoresData.data);
-              }
-            }
-
-            // Load recent campaigns with deployments
-            const deploymentsRes = await fetch("/api/retail/deployments");
-            if (deploymentsRes.ok) {
-              const deploymentsData = await deploymentsRes.json();
-              // API returns { deployments: [], count: number }
-              if (deploymentsData.success && deploymentsData.data?.deployments?.length > 0) {
-                // Group by campaign and get unique campaigns
-                const campaignMap = new Map<string, RecentCampaignWithStores>();
-                deploymentsData.data.deployments.forEach((deployment: any) => {
-                  if (!campaignMap.has(deployment.campaign_id)) {
-                    campaignMap.set(deployment.campaign_id, {
-                      id: deployment.campaign_id,
-                      name: deployment.campaign_name,
-                      status: deployment.campaign_status,
-                      created_at: deployment.campaign_created_at,
-                      storeCount: 1,
-                      recipientCount: deployment.recipients_count,
-                    });
-                  } else {
-                    const existing = campaignMap.get(deployment.campaign_id)!;
-                    existing.storeCount! += 1;
-                    existing.recipientCount! += deployment.recipients_count;
-                  }
-                });
-
-                // Get most recent 3 campaigns
-                const recentCampaigns = Array.from(campaignMap.values())
-                  .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                  .slice(0, 3);
-
-                setRecentRetailCampaigns(recentCampaigns);
-              }
-            }
-          }
-        }
-      } catch (error) {
-        // Retail module not available or not enabled - silently ignore
-      }
-    } catch (error) {
-      console.error("Failed to load dashboard data:", error);
-    } finally {
-      setLoadingData(false);
-    }
-  };
-
-  const getActivityLabel = (activity: RecentActivity) => {
-    if (activity.type === "event") {
-      switch (activity.eventType) {
-        case "page_view": return "Viewed landing page";
-        case "qr_scan": return "Scanned QR code";
-        case "button_click": return "Clicked button";
-        case "form_view": return "Viewed form";
-        default: return "Activity";
-      }
-    } else {
-      switch (activity.conversionType) {
-        case "form_submission": return "Submitted form";
-        case "appointment_booked": return "Booked appointment";
-        default: return "Converted";
-      }
-    }
-  };
-
-  const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    return date.toLocaleDateString();
-  };
-
+export default function LandingPage() {
   return (
-    <div className="p-8 max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
       {/* Hero Section */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-4">
+      <div className="container mx-auto px-4 py-16">
+        <div className="flex flex-col items-center text-center mb-16">
           <img
             src="/images/logo_icon_tbg.png"
             alt="DropLab"
-            className="h-10 w-auto object-contain"
+            className="h-16 w-auto object-contain mb-6"
           />
-          <h1 className="text-4xl font-bold text-slate-900">
-            {isSetupComplete && settings.companyName
-              ? `Welcome back, ${settings.companyName}!`
-              : "DropLab"}
+          <h1 className="text-5xl font-bold text-slate-900 mb-4">
+            AI-Powered Marketing Automation
           </h1>
-        </div>
-        <p className="text-xl text-slate-600">
-          {isSetupComplete
-            ? "Your AI-powered marketing automation platform"
-            : "Automate your marketing with AI-powered copywriting, direct mail campaigns, and intelligent tracking"}
-        </p>
-      </div>
-
-      {/* Setup Status Alert */}
-      {!isSetupComplete && isLoaded && (
-        <Card className="mb-8 border-blue-200 bg-blue-50">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-4">
-              <Settings className="h-6 w-6 text-blue-600 mt-0.5" />
-              <div className="flex-1">
-                <h3 className="font-semibold text-blue-900 mb-1">
-                  Complete Your Setup
-                </h3>
-                <p className="text-sm text-blue-700 mb-3">
-                  Configure your company information and API keys to unlock all features
-                </p>
-                <Button asChild variant="default" size="sm">
-                  <Link href="/settings">
-                    Go to Settings
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Platform Overview Stats */}
-      {isSetupComplete && stats && stats.totalCampaigns > 0 && (
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-slate-900">Platform Overview</h2>
-            <div className="flex gap-2">
-              <Link href="/dm-creative">
-                <Button variant="default" size="sm" className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                  <Mail className="h-4 w-4" />
-                  Create Campaign
-                </Button>
+          <p className="text-xl text-slate-600 mb-8 max-w-2xl">
+            Create personalized direct mail campaigns with AI copywriting,
+            automated fulfillment, and intelligent tracking—all in one platform.
+          </p>
+          <div className="flex gap-4">
+            <Button asChild size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+              <Link href="/auth/signup">
+                Get Started Free
+                <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
-              <Link href="/analytics">
-                <Button variant="outline" size="sm" className="gap-2">
-                  View Full Analytics
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
+            </Button>
+            <Button asChild size="lg" variant="outline">
+              <Link href="/auth/login">
+                Sign In
               </Link>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-slate-600">Campaigns</p>
-                    <p className="text-2xl font-bold text-slate-900 mt-1">{stats.totalCampaigns}</p>
-                  </div>
-                  <Target className="h-8 w-8 text-blue-600" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-slate-600">Recipients</p>
-                    <p className="text-2xl font-bold text-slate-900 mt-1">{stats.totalRecipients}</p>
-                  </div>
-                  <Users className="h-8 w-8 text-purple-600" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-slate-600">Page Views</p>
-                    <p className="text-2xl font-bold text-slate-900 mt-1">{stats.totalPageViews}</p>
-                  </div>
-                  <Eye className="h-8 w-8 text-green-600" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-orange-200 bg-orange-50">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-orange-900">Conversions</p>
-                    <p className="text-2xl font-bold text-orange-900 mt-1">{stats.totalConversions}</p>
-                    <p className="text-xs text-orange-700 mt-0.5 font-semibold">
-                      {stats.overallConversionRate}% rate
-                    </p>
-                  </div>
-                  <TrendingUp className="h-8 w-8 text-orange-600" />
-                </div>
-              </CardContent>
-            </Card>
+            </Button>
           </div>
         </div>
-      )}
 
-      {/* Retail Module Widget */}
-      {isSetupComplete && retailStats && retailStats.totalStores > 0 && (
-        <Card className="mb-8 border-blue-200 bg-gradient-to-br from-blue-50 to-white">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+        {/* Features Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+          <Card className="border-2 hover:border-blue-300 transition-colors">
+            <CardHeader>
+              <div className="flex items-center gap-3 mb-2">
                 <div className="p-2 bg-blue-100 rounded-lg">
-                  <StoreIcon className="h-6 w-6 text-blue-600" />
+                  <Sparkles className="h-6 w-6 text-blue-600" />
                 </div>
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    Retail Module
-                    <Badge className="bg-blue-600 text-white px-2 py-0.5 text-xs">Active</Badge>
-                  </CardTitle>
-                  <CardDescription className="mt-1">
-                    {retailStats.totalStores} stores • {retailStats.totalDeployments} deployments
-                  </CardDescription>
-                </div>
+                <CardTitle>AI Copywriting</CardTitle>
               </div>
-              <Link href="/retail">
-                <Button variant="outline" size="sm" className="gap-2">
-                  View Retail Dashboard
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
+              <CardDescription>
+                Generate multiple campaign variations with different tones and
+                target audiences using advanced AI.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="border-2 hover:border-purple-300 transition-colors">
+            <CardHeader>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <Mail className="h-6 w-6 text-purple-600" />
+                </div>
+                <CardTitle>Direct Mail Creative</CardTitle>
+              </div>
+              <CardDescription>
+                Design beautiful, personalized direct mail with AI-generated
+                backgrounds and dynamic QR codes.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="border-2 hover:border-green-300 transition-colors">
+            <CardHeader>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <Target className="h-6 w-6 text-green-600" />
+                </div>
+                <CardTitle>Smart Targeting</CardTitle>
+              </div>
+              <CardDescription>
+                Access 250M+ contacts with Data Axle integration and
+                intelligent audience filtering.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="border-2 hover:border-orange-300 transition-colors">
+            <CardHeader>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-orange-100 rounded-lg">
+                  <Zap className="h-6 w-6 text-orange-600" />
+                </div>
+                <CardTitle>Automated Fulfillment</CardTitle>
+              </div>
+              <CardDescription>
+                Send campaigns at scale with PostGrid integration—no printing
+                or mailing required.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="border-2 hover:border-pink-300 transition-colors">
+            <CardHeader>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-pink-100 rounded-lg">
+                  <BarChart3 className="h-6 w-6 text-pink-600" />
+                </div>
+                <CardTitle>Real-Time Analytics</CardTitle>
+              </div>
+              <CardDescription>
+                Track QR scans, page views, and conversions with comprehensive
+                campaign analytics.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="border-2 hover:border-indigo-300 transition-colors">
+            <CardHeader>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-indigo-100 rounded-lg">
+                  <Users className="h-6 w-6 text-indigo-600" />
+                </div>
+                <CardTitle>Multi-Tenant SaaS</CardTitle>
+              </div>
+              <CardDescription>
+                Secure, scalable infrastructure with team collaboration and
+                role-based access control.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+
+        {/* Benefits Section */}
+        <div className="bg-white rounded-xl p-8 shadow-lg mb-16">
+          <h2 className="text-3xl font-bold text-slate-900 mb-6 text-center">
+            Why Choose DropLab?
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
+              <div>
+                <h3 className="font-semibold text-slate-900 mb-1">Save Time</h3>
+                <p className="text-slate-600">Generate campaign copy and creative in minutes, not hours</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
+              <div>
+                <h3 className="font-semibold text-slate-900 mb-1">Increase Engagement</h3>
+                <p className="text-slate-600">Personalized messages drive 6x higher response rates</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
+              <div>
+                <h3 className="font-semibold text-slate-900 mb-1">Scale Effortlessly</h3>
+                <p className="text-slate-600">From 100 to 100,000 recipients with automated fulfillment</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
+              <div>
+                <h3 className="font-semibold text-slate-900 mb-1">Track Everything</h3>
+                <p className="text-slate-600">Know exactly who engaged and converted from your campaigns</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* CTA Section */}
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-12 text-center text-white">
+          <h2 className="text-3xl font-bold mb-4">
+            Ready to Transform Your Marketing?
+          </h2>
+          <p className="text-xl mb-8 opacity-90">
+            Join hundreds of marketers using AI to create better campaigns faster.
+          </p>
+          <div className="flex justify-center gap-4">
+            <Button asChild size="lg" variant="secondary" className="bg-white text-blue-600 hover:bg-slate-100">
+              <Link href="/auth/signup">
+                Start Free Trial
+                <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {/* Recent Campaigns with Deployments */}
-            {recentRetailCampaigns.length > 0 && (
-              <div className="mb-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <Target className="h-5 w-5 text-blue-600" />
-                  <h4 className="font-semibold text-slate-900">Recent Campaigns</h4>
-                </div>
-                <div>
-                  {recentRetailCampaigns.map((campaign, index) => (
-                    <Link href={`/campaigns/${campaign.id}`} key={campaign.id} className={index > 0 ? "mt-4 block" : "block"}>
-                      <div className="p-3 bg-white rounded-lg border border-slate-200 hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <p className="font-medium text-slate-900 text-sm">{campaign.name}</p>
-                            <div className="flex items-center gap-3 mt-1">
-                              <span className="text-xs text-slate-600">
-                                <StoreIcon className="h-3 w-3 inline mr-1" />
-                                {campaign.storeCount} stores
-                              </span>
-                              <span className="text-xs text-slate-400">•</span>
-                              <span className="text-xs text-slate-600">
-                                {campaign.recipientCount} recipients
-                              </span>
-                            </div>
-                          </div>
-                          <Badge variant="secondary" className="text-xs">
-                            {campaign.status}
-                          </Badge>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Top Performing Stores */}
-            {topStores.length > 0 ? (
-              <>
-                <div className="flex items-center gap-2 mb-4">
-                  <Award className="h-5 w-5 text-yellow-600" />
-                  <h4 className="font-semibold text-slate-900">Top Performing Stores</h4>
-                </div>
-                <div className="space-y-3">
-                  {topStores.map((store, index) => (
-                    <div
-                      key={store.id}
-                      className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="text-xl font-bold text-slate-400">
-                          {index === 0 ? "🥇" : index === 1 ? "🥈" : "🥉"}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-slate-900">
-                            Store #{store.store_number}
-                          </p>
-                          <p className="text-sm text-slate-600">
-                            {store.store_name} • {store.city}, {store.state}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold text-green-600">
-                          {store.conversion_rate.toFixed(1)}%
-                        </p>
-                        <p className="text-xs text-slate-500">{store.conversions_count} conversions</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4 flex gap-3">
-                  <Link href="/retail/performance" className="flex-1">
-                    <Button variant="outline" size="sm" className="w-full gap-2">
-                      <TrendingUp className="h-4 w-4" />
-                      View Performance
-                    </Button>
-                  </Link>
-                  <Link href="/retail/stores" className="flex-1">
-                    <Button variant="outline" size="sm" className="w-full gap-2">
-                      <StoreIcon className="h-4 w-4" />
-                      Manage Stores
-                    </Button>
-                  </Link>
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-4">
-                <p className="text-sm text-slate-600 mb-3">
-                  No performance data yet. Deploy campaigns to your stores to see insights!
-                </p>
-                <Link href="/dm-creative">
-                  <Button size="sm" className="gap-2">
-                    <Mail className="h-4 w-4" />
-                    Create Campaign
-                  </Button>
-                </Link>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Recent Campaigns & Activity */}
-      {isSetupComplete && (recentCampaigns.length > 0 || recentActivity.length > 0) && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Recent Campaigns */}
-          {recentCampaigns.length > 0 && (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Recent Campaigns</CardTitle>
-                  <Link href="/analytics?tab=campaigns">
-                    <Button variant="ghost" size="sm">
-                      View All
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </Link>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {recentCampaigns.map((campaign) => (
-                    <div key={campaign.id} className="flex items-start justify-between p-3 bg-slate-50 rounded-lg">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-slate-900 truncate">{campaign.name}</p>
-                        <div className="flex items-center gap-3 mt-1">
-                          <span className="text-xs text-slate-600">
-                            {campaign.totalRecipients} recipients
-                          </span>
-                          <span className="text-xs text-slate-400">•</span>
-                          <span className="text-xs text-slate-600">
-                            {campaign.uniqueVisitors} visitors
-                          </span>
-                        </div>
-                      </div>
-                      <div className="text-right ml-2">
-                        <p className="text-sm font-bold text-green-600">{campaign.conversionRate}%</p>
-                        <p className="text-xs text-slate-500">conversion</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Recent Activity */}
-          {recentActivity.length > 0 && (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <ActivityIcon className="h-5 w-5" />
-                    Recent Activity
-                  </CardTitle>
-                  <Link href="/analytics?tab=activity">
-                    <Button variant="ghost" size="sm">
-                      View All
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </Link>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {recentActivity.map((activity) => (
-                    <div key={activity.id} className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-900">{activity.recipientName}</p>
-                        <p className="text-xs text-slate-600 mt-0.5">{getActivityLabel(activity)}</p>
-                        <p className="text-xs text-slate-500 mt-1">{activity.campaignName}</p>
-                      </div>
-                      <span className="text-xs text-slate-500 whitespace-nowrap">
-                        {formatTimeAgo(activity.createdAt)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      )}
-
-      {/* Platform Ready Status */}
-      {isSetupComplete && stats && stats.totalCampaigns === 0 && !loadingData && (
-        <div className="mt-8 p-8 bg-gradient-to-br from-blue-50 via-purple-50 to-slate-50 rounded-xl border-2 border-blue-200">
-          <div className="text-center max-w-2xl mx-auto">
-            <div className="flex justify-center mb-4">
-              <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full">
-                <Mail className="h-8 w-8 text-white" />
-              </div>
-            </div>
-            <h3 className="text-2xl font-bold text-slate-900 mb-2">
-              Platform Ready!
-            </h3>
-            <p className="text-base text-slate-600 mb-6">
-              Your DropLab platform is configured and ready. Create your first campaign to start engaging customers with personalized direct mail.
-            </p>
-            <div className="flex justify-center gap-3">
-              <Button asChild size="lg" className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                <Link href="/dm-creative">
-                  <Mail className="h-4 w-4" />
-                  Create Your First Campaign
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-              <Button asChild variant="outline" size="lg">
-                <Link href="/copywriting">
-                  <FileText className="mr-2 h-4 w-4" />
-                  Generate Copy First
-                </Link>
-              </Button>
-            </div>
+            </Button>
           </div>
         </div>
-      )}
-
-      {/* Legacy Start Creating Button */}
-      {isSetupComplete && stats && stats.totalCampaigns === 0 && !loadingData && false && (
-        <div className="mt-8 p-6 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border" style={{display: 'none'}}>
-          <div className="text-center">
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">
-              Platform Ready
-            </h3>
-            <p className="text-sm text-slate-600 mb-4">
-              All systems configured. Start creating your first campaign!
-            </p>
-            <div className="flex justify-center gap-3">
-              <Button asChild>
-                <Link href="/copywriting">
-                  Start Creating
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href="/settings">
-                  Manage Settings
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
