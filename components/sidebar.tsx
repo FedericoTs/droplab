@@ -11,39 +11,39 @@ import {
   ShoppingCart, Users, Plus, ChevronDown, ChevronRight, LayoutDashboard
 } from "lucide-react";
 
-// Option A: Workflow-Based Navigation Structure
+// DropLab Direct Mail Platform Navigation
 const navigation = [
   // Dashboard
   { name: "Dashboard", href: "/", icon: Home, section: "dashboard" },
 
-  // Content & Campaigns
-  { name: "Templates", href: "/templates", icon: Library, section: "content" },
-  { name: "Copywriting", href: "/copywriting", icon: FileText, section: "content" },
-  { name: "DM Creative", href: "/dm-creative", icon: Mail, section: "content" },
+  // 🎨 Design & Content Creation
+  { name: "Design Templates", href: "/templates", icon: Library, section: "design", badge: "NEW" },
+  { name: "AI Copywriting", href: "/copywriting", icon: FileText, section: "design" },
+  { name: "DM Creative", href: "/dm-creative", icon: Mail, section: "design" },
 
-  // Orders & Fulfillment
-  { name: "Planning", href: "/campaigns/planning", icon: LayoutDashboard, section: "orders" },
-  { name: "New Order", href: "/campaigns/orders/new", icon: Plus, section: "orders", primary: true },
-  { name: "Orders", href: "/campaigns/orders", icon: ShoppingCart, section: "orders" },
-  { name: "Store Groups", href: "/store-groups", icon: Users, section: "orders" },
-  { name: "Background Jobs", href: "/batch-jobs", icon: Layers, section: "orders" },
+  // 📬 Campaign Management
+  { name: "New Campaign", href: "/campaigns/orders/new", icon: Plus, section: "campaigns", primary: true },
+  { name: "My Campaigns", href: "/campaigns/orders", icon: ShoppingCart, section: "campaigns" },
+  { name: "Campaign Planning", href: "/campaigns/planning", icon: LayoutDashboard, section: "campaigns" },
+  { name: "Batch Jobs", href: "/batch-jobs", icon: Layers, section: "campaigns" },
 
-  // Insights & Analytics
+  // 📊 Analytics & Insights
   { name: "Analytics", href: "/analytics", icon: BarChart3, section: "analytics" },
   { name: "Campaign Matrix", href: "/campaigns/matrix", icon: Sparkles, section: "analytics" },
   { name: "Notifications", href: "/notifications", icon: Bell, section: "analytics" },
 
-  // Settings & Tools
+  // ⚙️ Settings & Tools
   { name: "Settings", href: "/settings", icon: Settings, section: "settings" },
   { name: "AI Call Center", href: "/cc-operations", icon: Phone, section: "settings" },
+  { name: "Store Groups", href: "/store-groups", icon: Users, section: "settings" },
 ];
 
 const sections = [
   { id: "dashboard", label: "Dashboard", collapsible: false },
-  { id: "content", label: "Content & Campaigns", collapsible: true },
-  { id: "orders", label: "Orders & Fulfillment", collapsible: true },
-  { id: "analytics", label: "Insights & Analytics", collapsible: true },
-  { id: "settings", label: "Settings & Tools", collapsible: true },
+  { id: "design", label: "🎨 Design & Create", collapsible: true },
+  { id: "campaigns", label: "📬 Campaign Management", collapsible: true },
+  { id: "analytics", label: "📊 Analytics & Insights", collapsible: true },
+  { id: "settings", label: "⚙️ Settings & Tools", collapsible: true },
 ];
 
 // Retail module navigation items (conditionally shown)
@@ -206,7 +206,12 @@ export function Sidebar() {
                         )}
                       >
                         <Icon className="h-5 w-5" />
-                        {item.name}
+                        <span className="flex-1">{item.name}</span>
+                        {(item as any).badge && (
+                          <span className="px-2 py-0.5 text-xs font-semibold bg-orange-500 text-white rounded-full">
+                            {(item as any).badge}
+                          </span>
+                        )}
                       </Link>
                     );
                   })}
