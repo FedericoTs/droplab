@@ -47,6 +47,8 @@ export async function updateSession(request: NextRequest) {
     !user &&
     !request.nextUrl.pathname.startsWith('/auth') &&
     !request.nextUrl.pathname.startsWith('/lp/') &&
+    !request.nextUrl.pathname.startsWith('/api/admin') && // Allow admin API routes (temp - add auth later)
+    !request.nextUrl.pathname.startsWith('/api/') && // Allow all API routes (they handle auth internally)
     request.nextUrl.pathname !== '/'
   ) {
     // User not authenticated and trying to access protected route

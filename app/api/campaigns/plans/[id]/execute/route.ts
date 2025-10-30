@@ -4,8 +4,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getPlanById, getPlanItems, executePlan } from '@/lib/database/planning-queries';
-import { createOrder } from '@/lib/database/campaign-management';
+// TODO: Re-implement with Supabase
+// import { getPlanById, getPlanItems, executePlan } from '@/lib/database/planning-queries';
+// import { createOrder } from '@/lib/database/campaign-management';
 
 /**
  * POST /api/campaigns/plans/[id]/execute
@@ -16,6 +17,17 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  // TODO: Re-implement with Supabase database
+  return NextResponse.json(
+    {
+      success: false,
+      error: 'This endpoint is not yet implemented in the Supabase version',
+      message: 'Plan execution will be available after Phase 1 completion'
+    },
+    { status: 501 }
+  );
+
+  /* SQLite version (to be re-implemented)
   try {
     // Check if plan exists
     const plan = getPlanById(params.id);
@@ -113,4 +125,5 @@ export async function POST(
       { status: 500 }
     );
   }
+  */
 }

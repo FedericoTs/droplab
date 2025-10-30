@@ -1,0 +1,381 @@
+/**
+ * Database TypeScript Types
+ * Auto-generated types for Supabase PostgreSQL schema
+ * Ensures type safety across all database operations
+ */
+
+// ============================================================================
+// ORGANIZATIONS TABLE
+// ============================================================================
+
+export interface Organization {
+  id: string; // UUID
+  name: string;
+  slug: string; // URL-safe identifier
+
+  // Subscription & Billing
+  plan_tier: 'free' | 'starter' | 'professional' | 'enterprise';
+  billing_status: 'active' | 'past_due' | 'cancelled' | 'trialing';
+  trial_ends_at: string | null; // TIMESTAMPTZ
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+
+  // Brand Kit
+  brand_logo_url: string | null;
+  brand_primary_color: string; // Default: '#3B82F6'
+  brand_secondary_color: string; // Default: '#8B5CF6'
+  brand_accent_color: string; // Default: '#F59E0B'
+  brand_font_headline: string; // Default: 'Inter'
+  brand_font_body: string; // Default: 'Inter'
+  brand_voice_guidelines: Record<string, any>; // JSONB
+
+  // Usage Limits
+  monthly_design_limit: number; // Default: 100
+  monthly_sends_limit: number; // Default: 1000
+  storage_limit_mb: number; // Default: 1000
+
+  // Credits (Data Axle)
+  credits: number; // NUMERIC(12,2) Default: 0.00
+
+  // Timestamps
+  created_at: string; // TIMESTAMPTZ
+  updated_at: string; // TIMESTAMPTZ
+}
+
+export interface OrganizationInsert {
+  name: string;
+  slug: string;
+  plan_tier?: 'free' | 'starter' | 'professional' | 'enterprise';
+  billing_status?: 'active' | 'past_due' | 'cancelled' | 'trialing';
+  trial_ends_at?: string | null;
+  brand_primary_color?: string;
+  brand_secondary_color?: string;
+  brand_accent_color?: string;
+  brand_font_headline?: string;
+  brand_font_body?: string;
+  brand_voice_guidelines?: Record<string, any>;
+  monthly_design_limit?: number;
+  monthly_sends_limit?: number;
+  storage_limit_mb?: number;
+  credits?: number;
+}
+
+export interface OrganizationUpdate {
+  name?: string;
+  slug?: string;
+  plan_tier?: 'free' | 'starter' | 'professional' | 'enterprise';
+  billing_status?: 'active' | 'past_due' | 'cancelled' | 'trialing';
+  trial_ends_at?: string | null;
+  stripe_customer_id?: string | null;
+  stripe_subscription_id?: string | null;
+  brand_logo_url?: string | null;
+  brand_primary_color?: string;
+  brand_secondary_color?: string;
+  brand_accent_color?: string;
+  brand_font_headline?: string;
+  brand_font_body?: string;
+  brand_voice_guidelines?: Record<string, any>;
+  monthly_design_limit?: number;
+  monthly_sends_limit?: number;
+  storage_limit_mb?: number;
+  credits?: number;
+}
+
+// ============================================================================
+// USER_PROFILES TABLE
+// ============================================================================
+
+export interface UserProfile {
+  id: string; // UUID - References auth.users(id)
+  organization_id: string; // UUID - References organizations(id)
+
+  // User Information
+  full_name: string;
+  avatar_url: string | null;
+  job_title: string | null;
+  department: string | null;
+
+  // Role-Based Access Control
+  role: 'owner' | 'admin' | 'designer' | 'viewer';
+
+  // Granular Permissions
+  can_create_designs: boolean; // Default: true
+  can_send_campaigns: boolean; // Default: false
+  can_manage_billing: boolean; // Default: false
+  can_invite_users: boolean; // Default: false
+  can_approve_designs: boolean; // Default: false
+  can_manage_templates: boolean; // Default: true
+  can_access_analytics: boolean; // Default: true
+
+  // Preferences
+  ui_preferences: Record<string, any>; // JSONB
+  notification_preferences: {
+    email_campaign_complete?: boolean;
+    email_campaign_failed?: boolean;
+    email_low_credits?: boolean;
+    in_app_notifications?: boolean;
+  };
+
+  // Activity
+  last_active_at: string; // TIMESTAMPTZ
+  created_at: string; // TIMESTAMPTZ
+  updated_at: string; // TIMESTAMPTZ
+}
+
+export interface UserProfileInsert {
+  id: string; // Must match auth.users.id
+  organization_id: string;
+  full_name: string;
+  avatar_url?: string | null;
+  job_title?: string | null;
+  department?: string | null;
+  role?: 'owner' | 'admin' | 'designer' | 'viewer';
+  can_create_designs?: boolean;
+  can_send_campaigns?: boolean;
+  can_manage_billing?: boolean;
+  can_invite_users?: boolean;
+  can_approve_designs?: boolean;
+  can_manage_templates?: boolean;
+  can_access_analytics?: boolean;
+  ui_preferences?: Record<string, any>;
+  notification_preferences?: Record<string, any>;
+}
+
+export interface UserProfileUpdate {
+  full_name?: string;
+  avatar_url?: string | null;
+  job_title?: string | null;
+  department?: string | null;
+  role?: 'owner' | 'admin' | 'designer' | 'viewer';
+  can_create_designs?: boolean;
+  can_send_campaigns?: boolean;
+  can_manage_billing?: boolean;
+  can_invite_users?: boolean;
+  can_approve_designs?: boolean;
+  can_manage_templates?: boolean;
+  can_access_analytics?: boolean;
+  ui_preferences?: Record<string, any>;
+  notification_preferences?: Record<string, any>;
+  last_active_at?: string;
+}
+
+// ============================================================================
+// DESIGN_TEMPLATES TABLE
+// ============================================================================
+
+export interface DesignTemplate {
+  id: string; // UUID
+  organization_id: string; // UUID
+  created_by: string; // UUID - auth.users.id
+
+  // Metadata
+  name: string;
+  description: string | null;
+  thumbnail_url: string | null;
+  tags: string[]; // TEXT[]
+
+  // Fabric.js Canvas
+  canvas_json: Record<string, any>; // JSONB - Fabric.js toJSON() output
+  canvas_width: number; // Pixels at 300 DPI
+  canvas_height: number; // Pixels at 300 DPI
+
+  // Variable Mappings (CRITICAL - stored separately)
+  variable_mappings: Record<string, {
+    variableType: string;
+    isReusable: boolean;
+  }>; // JSONB
+
+  // Format & Dimensions
+  format_type: 'postcard_4x6' | 'postcard_6x9' | 'postcard_6x11' | 'letter_8.5x11' | 'selfmailer_11x17' | 'doorhanger_4x11';
+  format_width_inches: number; // NUMERIC(5,3)
+  format_height_inches: number; // NUMERIC(5,3)
+  postal_country: string; // Default: 'US'
+
+  // Compliance
+  compliance_validated: boolean;
+  compliance_issues: any[]; // JSONB
+  last_compliance_check_at: string | null;
+
+  // AI Background
+  background_image_url: string | null;
+  background_generation_prompt: string | null;
+  background_cost: number; // NUMERIC(10,4)
+
+  // Marketplace
+  is_public: boolean;
+  marketplace_category: string | null;
+  marketplace_subcategory: string | null;
+  marketplace_price: number; // NUMERIC(10,2)
+  marketplace_license_type: 'single_use' | 'unlimited' | 'commercial';
+  marketplace_rating: number | null; // NUMERIC(3,2)
+  marketplace_total_ratings: number;
+  marketplace_featured: boolean;
+
+  // Performance (Network Effects)
+  usage_count: number;
+  total_campaigns_using: number;
+  avg_response_rate: number | null; // NUMERIC(5,2)
+  avg_conversion_rate: number | null; // NUMERIC(5,2)
+  total_recipients_reached: number;
+
+  // Version Control
+  parent_template_id: string | null; // UUID
+  version_number: number;
+  is_latest_version: boolean;
+
+  // Status
+  status: 'draft' | 'active' | 'archived' | 'deleted';
+  published_at: string | null;
+  archived_at: string | null;
+
+  // Timestamps
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface DesignTemplateInsert {
+  organization_id: string;
+  created_by: string;
+  name: string;
+  description?: string | null;
+  thumbnail_url?: string | null;
+  tags?: string[];
+  canvas_json: Record<string, any>;
+  canvas_width: number;
+  canvas_height: number;
+  variable_mappings?: Record<string, any>;
+  format_type: string;
+  format_width_inches: number;
+  format_height_inches: number;
+  postal_country?: string;
+  background_image_url?: string | null;
+  background_generation_prompt?: string | null;
+  background_cost?: number;
+  is_public?: boolean;
+  marketplace_category?: string | null;
+  marketplace_price?: number;
+  marketplace_license_type?: string;
+  status?: 'draft' | 'active' | 'archived';
+}
+
+// ============================================================================
+// DESIGN_ASSETS TABLE
+// ============================================================================
+
+export interface DesignAsset {
+  id: string; // UUID
+  organization_id: string; // UUID
+  uploaded_by: string; // UUID
+
+  // Metadata
+  name: string;
+  asset_type: 'logo' | 'image' | 'font' | 'icon' | 'svg' | 'background';
+  mime_type: string;
+  file_size_bytes: number;
+  storage_url: string; // Supabase Storage path
+
+  // Image Dimensions
+  width_px: number | null;
+  height_px: number | null;
+  dpi: number | null;
+  aspect_ratio: number | null;
+
+  // Categorization
+  tags: string[];
+  folder: string; // Default: 'uncategorized'
+  is_brand_asset: boolean;
+
+  // AI Analysis
+  ai_description: string | null;
+  ai_suggested_tags: string[] | null;
+  dominant_colors: string[] | null; // Hex codes
+  ai_category: string | null;
+
+  // Usage
+  usage_count: number;
+  last_used_at: string | null;
+
+  // Source
+  source_type: 'upload' | 'ai_generated' | 'stock' | 'url_import';
+  source_url: string | null;
+  ai_generation_prompt: string | null;
+  ai_generation_cost: number | null;
+
+  // License
+  license_type: 'owned' | 'stock' | 'creative_commons' | 'royalty_free';
+  license_details: Record<string, any> | null;
+  copyright_holder: string | null;
+
+  // Status
+  status: 'active' | 'archived' | 'deleted';
+  archived_at: string | null;
+
+  // Timestamps
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface DesignAssetInsert {
+  organization_id: string;
+  uploaded_by: string;
+  name: string;
+  asset_type: 'logo' | 'image' | 'font' | 'icon' | 'svg' | 'background';
+  mime_type: string;
+  file_size_bytes: number;
+  storage_url: string;
+  width_px?: number | null;
+  height_px?: number | null;
+  dpi?: number | null;
+  tags?: string[];
+  folder?: string;
+  is_brand_asset?: boolean;
+  source_type?: 'upload' | 'ai_generated' | 'stock' | 'url_import';
+  source_url?: string | null;
+  ai_generation_prompt?: string | null;
+  license_type?: 'owned' | 'stock' | 'creative_commons' | 'royalty_free';
+}
+
+// ============================================================================
+// HELPER TYPES
+// ============================================================================
+
+export type Database = {
+  public: {
+    Tables: {
+      organizations: {
+        Row: Organization;
+        Insert: OrganizationInsert;
+        Update: OrganizationUpdate;
+      };
+      user_profiles: {
+        Row: UserProfile;
+        Insert: UserProfileInsert;
+        Update: UserProfileUpdate;
+      };
+      design_templates: {
+        Row: DesignTemplate;
+        Insert: DesignTemplateInsert;
+        Update: Partial<DesignTemplateInsert>;
+      };
+      design_assets: {
+        Row: DesignAsset;
+        Insert: DesignAssetInsert;
+        Update: Partial<DesignAssetInsert>;
+      };
+    };
+  };
+};
+
+// Generic query result types
+export type QueryResult<T> = {
+  data: T | null;
+  error: Error | null;
+};
+
+export type QueryArrayResult<T> = {
+  data: T[] | null;
+  error: Error | null;
+  count?: number | null;
+};
