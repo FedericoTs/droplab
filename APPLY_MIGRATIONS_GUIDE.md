@@ -19,6 +19,10 @@ Diagnostic check confirmed:
 
 ### Step 2: Copy Migration SQL (10 seconds)
 
+**✅ IMPORTANT: Use the FIXED migration file!**
+
+The correct file is: `supabase/all_migrations_combined.sql` (760 lines)
+
 **Option A: From File**
 1. Open `supabase/all_migrations_combined.sql` in your code editor
 2. Select ALL content (Ctrl+A / Cmd+A)
@@ -29,6 +33,9 @@ Diagnostic check confirmed:
 cat supabase/all_migrations_combined.sql | pbcopy  # Mac
 cat supabase/all_migrations_combined.sql | clip.exe  # Windows/WSL
 ```
+
+**⚠️ DO NOT use the OLD file:**
+- ❌ `all_migrations_combined_OLD_BROKEN.sql` (2352 lines) - WRONG SCHEMA!
 
 ### Step 3: Paste and Run (20 seconds)
 
