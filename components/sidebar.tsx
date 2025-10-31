@@ -19,10 +19,20 @@ const sections = [
   { id: "main", label: "", collapsible: false },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+  hideButton?: boolean;
+}
+
+export function Sidebar({ isOpen, onClose, hideButton = false }: SidebarProps = {}) {
   const pathname = usePathname();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [internalMenuOpen, setInternalMenuOpen] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+
+  // Use external control if provided, otherwise use internal state
+  const isMobileMenuOpen = isOpen !== undefined ? isOpen : internalMenuOpen;
+  const setIsMobileMenuOpen = onClose ? () => onClose() : setInternalMenuOpen;
 
   // Load collapsed sections from localStorage
   useEffect(() => {
@@ -69,18 +79,26 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Mobile Menu Button */}
-      <button
-        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-slate-900 text-white rounded-lg shadow-lg hover:bg-slate-800 transition-colors"
-        aria-label="Toggle menu"
-      >
-        {isMobileMenuOpen ? (
-          <X className="h-6 w-6" />
-        ) : (
-          <Menu className="h-6 w-6" />
-        )}
-      </button>
+      {/* Mobile Menu Button - Hidden when externally controlled */}
+      {!hideButton && (
+        <button
+          onClick={() => {
+            if (isOpen === undefined) {
+              setInternalMenuOpen(!internalMenuOpen);
+            } else if (onClose) {
+              onClose();
+            }
+          }}
+          className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-slate-900 text-white rounded-lg shadow-lg hover:bg-slate-800 transition-colors"
+          aria-label="Toggle menu"
+        >
+          {isMobileMenuOpen ? (
+            <X className="h-6 w-6" />
+          ) : (
+            <Menu className="h-6 w-6" />
+          )}
+        </button>
+      )}
 
       {/* Mobile Overlay */}
       {isMobileMenuOpen && (

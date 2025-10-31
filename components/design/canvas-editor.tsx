@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import Link from 'next/link';
 import { Canvas, IText, Rect, Circle as FabricCircle, FabricImage, FabricObject } from 'fabric';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -24,15 +23,13 @@ import {
   PanelRight,
   Maximize2,
   Menu,
-  X,
-  Home,
-  Settings,
-  Library
+  X
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PropertyPanel } from './property-panel';
 import { LayersPanel } from './layers-panel';
 import { AIDesignAssistant } from './ai-design-assistant';
+import { Sidebar } from '@/components/sidebar';
 
 // Canvas dimensions for 6x4 postcard at 300 DPI
 const CANVAS_WIDTH_INCHES = 6;
@@ -586,49 +583,12 @@ export function CanvasEditor({
         </div>
       </div>
 
-      {/* Navigation Overlay */}
-      {isNavMenuOpen && (
-        <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black/20 z-40 backdrop-blur-sm"
-            onClick={() => setIsNavMenuOpen(false)}
-          />
-
-          {/* Navigation Menu - Compact Spline Style */}
-          <div className="fixed top-16 left-4 z-50 w-56 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
-            <div className="p-2">
-              <Link
-                href="/dashboard"
-                onClick={() => setIsNavMenuOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors"
-              >
-                <Home className="h-4 w-4" />
-                Dashboard
-              </Link>
-              <Link
-                href="/templates"
-                onClick={() => setIsNavMenuOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-slate-100 text-slate-900 transition-colors"
-              >
-                <Library className="h-4 w-4" />
-                Design Templates
-                <span className="ml-auto px-1.5 py-0.5 text-xs font-semibold bg-orange-500 text-white rounded">
-                  ACTIVE
-                </span>
-              </Link>
-              <Link
-                href="/settings"
-                onClick={() => setIsNavMenuOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors"
-              >
-                <Settings className="h-4 w-4" />
-                Settings
-              </Link>
-            </div>
-          </div>
-        </>
-      )}
+      {/* Sliding Sidebar Navigation */}
+      <Sidebar
+        isOpen={isNavMenuOpen}
+        onClose={() => setIsNavMenuOpen(false)}
+        hideButton={true}
+      />
 
       {/* Main Layout: 3 Columns */}
       <div className="flex flex-1 overflow-hidden relative">
