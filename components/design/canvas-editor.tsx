@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import Link from 'next/link';
 import { Canvas, IText, Rect, Circle as FabricCircle, FabricImage, FabricObject } from 'fabric';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -21,7 +22,12 @@ import {
   ChevronRight,
   PanelLeft,
   PanelRight,
-  Maximize2
+  Maximize2,
+  Menu,
+  X,
+  Home,
+  Settings,
+  Library
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PropertyPanel } from './property-panel';
@@ -73,6 +79,7 @@ export function CanvasEditor({
   const [forceUpdate, setForceUpdate] = useState(0);
   const [showLayersPanel, setShowLayersPanel] = useState(true);
   const [showPropertiesPanel, setShowPropertiesPanel] = useState(true);
+  const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
 
   // Initialize Fabric.js canvas
   useEffect(() => {
@@ -427,8 +434,19 @@ export function CanvasEditor({
     <div className="flex flex-col h-screen bg-slate-50">
       {/* Top Toolbar - Minimal Spline Style */}
       <div className="flex items-center justify-between px-4 py-2.5 bg-white border-b border-slate-200">
-        {/* Left: Title */}
+        {/* Left: Hamburger + Title */}
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsNavMenuOpen(!isNavMenuOpen)}
+            className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors"
+            title="Menu"
+          >
+            {isNavMenuOpen ? (
+              <X className="h-4 w-4 text-slate-700" />
+            ) : (
+              <Menu className="h-4 w-4 text-slate-700" />
+            )}
+          </button>
           <h3 className="text-sm font-medium text-slate-700">Template Editor</h3>
           <span className="text-xs text-slate-400">|</span>
           <div className="text-xs text-slate-500">
@@ -567,6 +585,50 @@ export function CanvasEditor({
           </Button>
         </div>
       </div>
+
+      {/* Navigation Overlay */}
+      {isNavMenuOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/20 z-40 backdrop-blur-sm"
+            onClick={() => setIsNavMenuOpen(false)}
+          />
+
+          {/* Navigation Menu - Compact Spline Style */}
+          <div className="fixed top-16 left-4 z-50 w-56 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
+            <div className="p-2">
+              <Link
+                href="/dashboard"
+                onClick={() => setIsNavMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors"
+              >
+                <Home className="h-4 w-4" />
+                Dashboard
+              </Link>
+              <Link
+                href="/templates"
+                onClick={() => setIsNavMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-slate-100 text-slate-900 transition-colors"
+              >
+                <Library className="h-4 w-4" />
+                Design Templates
+                <span className="ml-auto px-1.5 py-0.5 text-xs font-semibold bg-orange-500 text-white rounded">
+                  ACTIVE
+                </span>
+              </Link>
+              <Link
+                href="/settings"
+                onClick={() => setIsNavMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors"
+              >
+                <Settings className="h-4 w-4" />
+                Settings
+              </Link>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Main Layout: 3 Columns */}
       <div className="flex flex-1 overflow-hidden relative">

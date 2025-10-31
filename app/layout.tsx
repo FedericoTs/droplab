@@ -27,7 +27,7 @@ export default function RootLayout({
 
   // CRITICAL: Public and editor routes should be FULL-SCREEN (no sidebar)
   const isPublicRoute = pathname === "/" || pathname === "/auth/login" || pathname === "/auth/signup";
-  const isEditorRoute = pathname?.startsWith("/dm-creative/editor");
+  const isEditorRoute = pathname?.startsWith("/dm-creative/editor") || pathname === "/templates";
   const isLandingPage = pathname?.startsWith("/lp/");
   const isFullScreen = isPublicRoute || isEditorRoute || isLandingPage;
 
