@@ -434,9 +434,9 @@ export function CanvasEditor({
         {/* Left: Hamburger + Title */}
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setIsNavMenuOpen(!isNavMenuOpen)}
+            onClick={() => isNavMenuOpen ? setIsNavMenuOpen(false) : setIsNavMenuOpen(true)}
             className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors"
-            title="Menu"
+            title={isNavMenuOpen ? "Close menu" : "Open menu"}
           >
             {isNavMenuOpen ? (
               <X className="h-4 w-4 text-slate-700" />
