@@ -4,11 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useIndustryModule } from "@/lib/contexts/industry-module-context";
 import {
-  FileText, Mail, Phone, Settings, BarChart3, Home, Sparkles, Bell,
-  Store, Target, TrendingUp, Brain, Menu, X, Library, Layers,
-  ShoppingCart, Users, Plus, ChevronDown, ChevronRight, LayoutDashboard
+  Settings, Home, Menu, X, Library
 } from "lucide-react";
 
 // DropLab Direct Mail Platform - Simplified Navigation (Phase 1-2)
@@ -22,39 +19,10 @@ const sections = [
   { id: "main", label: "", collapsible: false },
 ];
 
-// Retail module navigation items (conditionally shown)
-const retailNavigation = [
-  { name: "Stores", href: "/retail/stores", icon: Store, section: "retail", requiresFeature: "enableMultiStore" },
-  { name: "Deployments", href: "/retail/deployments", icon: Target, section: "retail", requiresFeature: "enableMultiStore" },
-  { name: "Performance", href: "/retail/performance", icon: TrendingUp, section: "retail", requiresFeature: "enableMultiStore" },
-  { name: "AI Insights", href: "/retail/insights", icon: Brain, section: "retail", requiresFeature: "enableAIRecommendations" },
-];
-
 export function Sidebar() {
   const pathname = usePathname();
-  const industryModule = useIndustryModule();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
-
-  // Build navigation items based on active modules
-  const allNavigation = [...navigation];
-
-  // Add retail navigation if module is enabled
-  if (industryModule.isModuleEnabled() && industryModule.getModuleType() === 'retail') {
-    const enabledRetailItems = retailNavigation.filter(item => {
-      if (item.requiresFeature) {
-        return industryModule.isFeatureEnabled(item.requiresFeature);
-      }
-      return true;
-    });
-    allNavigation.push(...enabledRetailItems);
-  }
-
-  // Build sections array (add retail section if module is active)
-  const activeSections = [...sections];
-  if (industryModule.isModuleEnabled() && industryModule.getModuleType() === 'retail') {
-    activeSections.push({ id: "retail", label: "Retail Module", collapsible: true });
-  }
 
   // Load collapsed sections from localStorage
   useEffect(() => {
@@ -75,7 +43,7 @@ export function Sidebar() {
 
   // Auto-expand section containing current page
   useEffect(() => {
-    const currentItem = allNavigation.find(item => item.href === pathname);
+    const currentItem = navigation.find(item => item.href === pathname);
     if (currentItem && collapsedSections.has(currentItem.section)) {
       setCollapsedSections(prev => {
         const next = new Set(prev);
@@ -138,8 +106,8 @@ export function Sidebar() {
         </div>
       </div>
       <nav className="flex-1 px-3 py-4 overflow-y-auto">
-        {activeSections.map((section) => {
-          const sectionItems = allNavigation.filter((item) => item.section === section.id);
+        {sections.map((section) => {
+          const sectionItems = navigation.filter((item) => item.section === section.id);
           if (sectionItems.length === 0) return null;
 
           const isCollapsed = collapsedSections.has(section.id);

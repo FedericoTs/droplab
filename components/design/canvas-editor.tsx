@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { fabric } from 'fabric';
+import { Canvas, IText, Rect, Circle, FabricImage } from 'fabric';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -45,7 +45,7 @@ export interface CanvasEditorProps {
 
 export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [canvas, setCanvas] = useState<fabric.Canvas | null>(null);
+  const [canvas, setCanvas] = useState<Canvas | null>(null);
   const [selectedTool, setSelectedTool] = useState<string>('select');
   const [history, setHistory] = useState<string[]>([]);
   const [historyStep, setHistoryStep] = useState<number>(-1);
@@ -55,7 +55,7 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
     if (!canvasRef.current) return;
 
     // Create canvas with 300 DPI dimensions
-    const fabricCanvas = new fabric.Canvas(canvasRef.current, {
+    const fabricCanvas = new Canvas(canvasRef.current, {
       width: CANVAS_WIDTH,
       height: CANVAS_HEIGHT,
       backgroundColor: '#ffffff',
@@ -99,7 +99,7 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
   }, []);
 
   // Save canvas state to history
-  const saveToHistory = useCallback((canvas: fabric.Canvas) => {
+  const saveToHistory = useCallback((canvas: Canvas) => {
     const json = JSON.stringify(canvas.toJSON());
     setHistory(prev => {
       const newHistory = prev.slice(0, historyStep + 1);
@@ -135,7 +135,7 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
   const addText = useCallback(() => {
     if (!canvas) return;
 
-    const text = new fabric.IText('Double-click to edit', {
+    const text = new IText('Double-click to edit', {
       left: CANVAS_WIDTH / 2,
       top: CANVAS_HEIGHT / 2,
       fontSize: 60, // Scaled for 300 DPI
@@ -152,7 +152,7 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
   const addRectangle = useCallback(() => {
     if (!canvas) return;
 
-    const rect = new fabric.Rect({
+    const rect = new Rect({
       left: CANVAS_WIDTH / 2 - 150,
       top: CANVAS_HEIGHT / 2 - 100,
       width: 300,
@@ -171,7 +171,7 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
   const addCircle = useCallback(() => {
     if (!canvas) return;
 
-    const circle = new fabric.Circle({
+    const circle = new Circle({
       left: CANVAS_WIDTH / 2 - 100,
       top: CANVAS_HEIGHT / 2 - 100,
       radius: 100,
@@ -201,7 +201,7 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
       reader.onload = (event) => {
         const imgUrl = event.target?.result as string;
 
-        fabric.Image.fromURL(imgUrl, (img) => {
+        FabricImage.fromURL(imgUrl, (img) => {
           // Scale image to fit canvas (max 50% width)
           const maxWidth = CANVAS_WIDTH * 0.5;
           const scale = maxWidth / (img.width || 1);

@@ -4,7 +4,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/sidebar";
 import { SettingsProvider } from "@/lib/contexts/settings-context";
-import { IndustryModuleProvider } from "@/lib/contexts/industry-module-context";
 import { Toaster } from "@/components/ui/sonner";
 import { QuickActionsFAB } from "@/components/dashboard/quick-actions-fab";
 import { usePathname } from "next/navigation";
@@ -43,25 +42,23 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <SettingsProvider>
-          <IndustryModuleProvider>
-            {isFullScreen ? (
-              // PUBLIC & STANDALONE PAGES - No sidebar, full screen
-              <>
+          {isFullScreen ? (
+            // PUBLIC & STANDALONE PAGES - No sidebar, full screen
+            <>
+              {children}
+              <Toaster />
+            </>
+          ) : (
+            // APP PAGES - With sidebar
+            <div className="flex h-screen">
+              <Sidebar />
+              <main className="flex-1 overflow-auto bg-white pt-16 lg:pt-0">
                 {children}
-                <Toaster />
-              </>
-            ) : (
-              // APP PAGES - With sidebar
-              <div className="flex h-screen">
-                <Sidebar />
-                <main className="flex-1 overflow-auto bg-white pt-16 lg:pt-0">
-                  {children}
-                </main>
-                <Toaster />
-                <QuickActionsFAB />
-              </div>
-            )}
-          </IndustryModuleProvider>
+              </main>
+              <Toaster />
+              <QuickActionsFAB />
+            </div>
+          )}
         </SettingsProvider>
       </body>
     </html>
