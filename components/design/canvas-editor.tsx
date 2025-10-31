@@ -130,12 +130,13 @@ export function CanvasEditor({
     setCanvas(fabricCanvas);
 
     // Auto-fit canvas to screen after initialization
+    // Delay to ensure Fabric.js DOM managers are fully initialized
     setTimeout(() => {
       // Get the actual flex container (the one with "flex-1 flex items-center justify-center")
       const canvasWrapper = canvasRef.current?.parentElement?.parentElement;
       const container = canvasWrapper?.parentElement;
 
-      if (container) {
+      if (container && fabricCanvas.lowerCanvasEl) { // Check that canvas DOM is ready
         // Get the actual available space (generous padding for UI elements)
         const containerWidth = container.clientWidth - 100; // Account for padding, borders, and spacing
         const containerHeight = container.clientHeight - 100;
@@ -151,10 +152,14 @@ export function CanvasEditor({
         // CRITICAL: Set CSS dimensions to match zoomed size
         // Internal canvas stays 1800x1200 (for 300 DPI export)
         // CSS dimensions scale down for display
-        fabricCanvas.setDimensions({
-          width: CANVAS_WIDTH * scale,
-          height: CANVAS_HEIGHT * scale
-        }, { cssOnly: true });
+        try {
+          fabricCanvas.setDimensions({
+            width: CANVAS_WIDTH * scale,
+            height: CANVAS_HEIGHT * scale
+          }, { cssOnly: true });
+        } catch (err) {
+          console.error('Failed to set canvas dimensions:', err);
+        }
 
         fabricCanvas.renderAll();
 
@@ -170,7 +175,7 @@ export function CanvasEditor({
           displayHeight: Math.round(CANVAS_HEIGHT * scale)
         });
       }
-    }, 150);
+    }, 250);
 
     return () => {
       fabricCanvas.dispose();
@@ -698,13 +703,7 @@ export function CanvasEditor({
 
           {/* Canvas wrapper with proper spacing */}
           <div className="flex items-center justify-center w-full h-full">
-            <div
-              className="border-2 border-slate-300 shadow-2xl bg-white rounded-sm relative"
-              style={{
-                width: `${CANVAS_WIDTH * (canvas?.getZoom() || DISPLAY_SCALE)}px`,
-                height: `${CANVAS_HEIGHT * (canvas?.getZoom() || DISPLAY_SCALE)}px`,
-              }}
-            >
+            <div className="border-2 border-slate-300 shadow-2xl bg-white rounded-sm relative inline-block">
               <canvas ref={canvasRef} />
 
               {/* Corner markers for visibility */}
