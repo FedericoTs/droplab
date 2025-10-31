@@ -20,7 +20,8 @@ import {
   ChevronLeft,
   ChevronRight,
   PanelLeft,
-  PanelRight
+  PanelRight,
+  Maximize2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PropertyPanel } from './property-panel';
@@ -110,6 +111,20 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
     fabricCanvas.on('selection:cleared', () => setSelectedObject(null));
 
     setCanvas(fabricCanvas);
+
+    // Auto-fit canvas to screen after initialization
+    setTimeout(() => {
+      const container = canvasRef.current?.parentElement;
+      if (container) {
+        const containerWidth = container.offsetWidth - 100; // Padding
+        const containerHeight = container.offsetHeight - 100;
+        const scaleX = containerWidth / CANVAS_WIDTH;
+        const scaleY = containerHeight / CANVAS_HEIGHT;
+        const scale = Math.min(scaleX, scaleY);
+        fabricCanvas.setZoom(scale);
+        fabricCanvas.renderAll();
+      }
+    }, 100);
 
     return () => {
       fabricCanvas.dispose();
@@ -268,15 +283,42 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
   // Zoom in
   const zoomIn = useCallback(() => {
     if (!canvas) return;
-    const zoom = canvas.getZoom();
-    canvas.setZoom(Math.min(zoom * 1.2, 2));
+    const currentZoom = canvas.getZoom();
+    const newZoom = Math.min(currentZoom * 1.2, 3); // Max 3x zoom
+    canvas.setZoom(newZoom);
+    canvas.renderAll();
+    setForceUpdate(prev => prev + 1); // Trigger re-render for container resize
   }, [canvas]);
 
   // Zoom out
   const zoomOut = useCallback(() => {
     if (!canvas) return;
-    const zoom = canvas.getZoom();
-    canvas.setZoom(Math.max(zoom / 1.2, 0.1));
+    const currentZoom = canvas.getZoom();
+    const newZoom = Math.max(currentZoom / 1.2, 0.1); // Min 0.1x zoom
+    canvas.setZoom(newZoom);
+    canvas.renderAll();
+    setForceUpdate(prev => prev + 1); // Trigger re-render for container resize
+  }, [canvas]);
+
+  // Fit to screen
+  const fitToScreen = useCallback(() => {
+    if (!canvas || !canvasRef.current) return;
+
+    // Get container dimensions (canvas parent)
+    const container = canvasRef.current.parentElement;
+    if (!container) return;
+
+    const containerWidth = container.offsetWidth - 100; // Padding
+    const containerHeight = container.offsetHeight - 100;
+
+    // Calculate scale to fit
+    const scaleX = containerWidth / CANVAS_WIDTH;
+    const scaleY = containerHeight / CANVAS_HEIGHT;
+    const scale = Math.min(scaleX, scaleY);
+
+    canvas.setZoom(scale);
+    canvas.renderAll();
+    setForceUpdate(prev => prev + 1); // Trigger re-render for container resize
   }, [canvas]);
 
   // Save template
@@ -355,11 +397,9 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
     <div className="flex flex-col h-screen bg-slate-50">
       {/* Top Toolbar - Minimal Spline Style */}
       <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-slate-200">
-        {/* Left: Project Info */}
+        {/* Left: Logo/Title */}
         <div className="flex items-center gap-3">
-          <h3 className="text-sm font-medium text-slate-700">Design Template Editor</h3>
-          <span className="text-xs text-slate-400">|</span>
-          <span className="text-xs text-slate-500">{CANVAS_WIDTH} × {CANVAS_HEIGHT}px</span>
+          <h3 className="text-sm font-medium text-slate-700">Template Editor</h3>
         </div>
 
         {/* Center: Main Tools */}
@@ -461,6 +501,15 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
           >
             <ZoomIn className="h-4 w-4" />
           </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 hover:bg-slate-100"
+            onClick={fitToScreen}
+            title="Fit to Screen"
+          >
+            <Maximize2 className="h-4 w-4" />
+          </Button>
         </div>
 
         {/* Right: Actions */}
@@ -535,8 +584,8 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
           <div
             className="border border-slate-300 shadow-xl bg-white rounded-sm"
             style={{
-              width: `${DISPLAY_WIDTH}px`,
-              height: `${DISPLAY_HEIGHT}px`,
+              width: `${CANVAS_WIDTH * (canvas?.getZoom() || DISPLAY_SCALE)}px`,
+              height: `${CANVAS_HEIGHT * (canvas?.getZoom() || DISPLAY_SCALE)}px`,
             }}
           >
             <canvas ref={canvasRef} />
