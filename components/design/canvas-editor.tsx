@@ -22,8 +22,7 @@ import {
   PanelLeft,
   PanelRight,
   Maximize2,
-  Menu,
-  X
+  Menu
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PropertyPanel } from './property-panel';
@@ -434,15 +433,11 @@ export function CanvasEditor({
         {/* Left: Hamburger + Title */}
         <div className="flex items-center gap-3">
           <button
-            onClick={() => isNavMenuOpen ? setIsNavMenuOpen(false) : setIsNavMenuOpen(true)}
+            onClick={() => setIsNavMenuOpen(true)}
             className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors"
-            title={isNavMenuOpen ? "Close menu" : "Open menu"}
+            title="Open menu"
           >
-            {isNavMenuOpen ? (
-              <X className="h-4 w-4 text-slate-700" />
-            ) : (
-              <Menu className="h-4 w-4 text-slate-700" />
-            )}
+            <Menu className="h-4 w-4 text-slate-700" />
           </button>
           <h3 className="text-sm font-medium text-slate-700">Template Editor</h3>
           <span className="text-xs text-slate-400">|</span>
@@ -589,6 +584,7 @@ export function CanvasEditor({
         onClose={() => setIsNavMenuOpen(false)}
         hideButton={true}
         alwaysCollapsible={true}
+        showCloseButton={true}
       />
 
       {/* Main Layout: 3 Columns */}

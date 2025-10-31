@@ -24,9 +24,10 @@ interface SidebarProps {
   onClose?: () => void;
   hideButton?: boolean;
   alwaysCollapsible?: boolean; // If true, sidebar is hidden on all screen sizes unless opened
+  showCloseButton?: boolean; // If true, show X button inside sidebar
 }
 
-export function Sidebar({ isOpen, onClose, hideButton = false, alwaysCollapsible = false }: SidebarProps = {}) {
+export function Sidebar({ isOpen, onClose, hideButton = false, alwaysCollapsible = false, showCloseButton = false }: SidebarProps = {}) {
   const pathname = usePathname();
   const [internalMenuOpen, setInternalMenuOpen] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
@@ -121,7 +122,7 @@ export function Sidebar({ isOpen, onClose, hideButton = false, alwaysCollapsible
         !alwaysCollapsible && "lg:static",
         isMobileMenuOpen ? "translate-x-0" : alwaysCollapsible ? "-translate-x-full" : "-translate-x-full lg:translate-x-0"
       )}>
-      <div className="flex h-16 items-center border-b px-6">
+      <div className="flex h-16 items-center justify-between border-b px-6">
         <div className="flex items-center gap-2">
           <img
             src="/images/logo_icon_tbg.png"
@@ -130,6 +131,16 @@ export function Sidebar({ isOpen, onClose, hideButton = false, alwaysCollapsible
           />
           <h1 className="text-xl font-bold text-slate-900">DropLab</h1>
         </div>
+        {/* Close button - only shown when showCloseButton is true */}
+        {showCloseButton && (
+          <button
+            onClick={closeMobileMenu}
+            className="h-8 w-8 rounded-lg hover:bg-slate-200 flex items-center justify-center transition-colors"
+            title="Close menu"
+          >
+            <X className="h-5 w-5 text-slate-700" />
+          </button>
+        )}
       </div>
       <nav className="flex-1 px-3 py-4 overflow-y-auto">
         {sections.map((section) => {
