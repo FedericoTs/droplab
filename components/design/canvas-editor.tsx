@@ -63,6 +63,8 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
   const [forceUpdate, setForceUpdate] = useState(0);
   const [showLayersPanel, setShowLayersPanel] = useState(true);
   const [showPropertiesPanel, setShowPropertiesPanel] = useState(true);
+  const [templateName, setTemplateName] = useState<string>('');
+  const [templateDescription, setTemplateDescription] = useState<string>('');
 
   // Initialize Fabric.js canvas
   useEffect(() => {
@@ -114,17 +116,31 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
 
     // Auto-fit canvas to screen after initialization
     setTimeout(() => {
-      const container = canvasRef.current?.parentElement;
+      const container = canvasRef.current?.parentElement?.parentElement;
       if (container) {
-        const containerWidth = container.offsetWidth - 100; // Padding
-        const containerHeight = container.offsetHeight - 100;
+        // Get the actual available space (account for padding and borders)
+        const containerWidth = container.clientWidth - 80; // Reduced padding for better fit
+        const containerHeight = container.clientHeight - 80;
+
+        // Calculate scale to fit while maintaining aspect ratio
         const scaleX = containerWidth / CANVAS_WIDTH;
         const scaleY = containerHeight / CANVAS_HEIGHT;
-        const scale = Math.min(scaleX, scaleY);
+        const scale = Math.min(scaleX, scaleY, 0.5); // Max 50% zoom initially
+
         fabricCanvas.setZoom(scale);
         fabricCanvas.renderAll();
+
+        console.log('📐 Canvas auto-fit:', {
+          containerWidth,
+          containerHeight,
+          scaleX,
+          scaleY,
+          finalScale: scale,
+          displayWidth: CANVAS_WIDTH * scale,
+          displayHeight: CANVAS_HEIGHT * scale
+        });
       }
-    }, 100);
+    }, 150);
 
     return () => {
       fabricCanvas.dispose();
@@ -304,21 +320,27 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
   const fitToScreen = useCallback(() => {
     if (!canvas || !canvasRef.current) return;
 
-    // Get container dimensions (canvas parent)
-    const container = canvasRef.current.parentElement;
+    // Get container dimensions (go up two levels to get the flex container)
+    const container = canvasRef.current.parentElement?.parentElement;
     if (!container) return;
 
-    const containerWidth = container.offsetWidth - 100; // Padding
-    const containerHeight = container.offsetHeight - 100;
+    const containerWidth = container.clientWidth - 80; // Account for padding
+    const containerHeight = container.clientHeight - 80;
 
-    // Calculate scale to fit
+    // Calculate scale to fit while maintaining aspect ratio
     const scaleX = containerWidth / CANVAS_WIDTH;
     const scaleY = containerHeight / CANVAS_HEIGHT;
-    const scale = Math.min(scaleX, scaleY);
+    const scale = Math.min(scaleX, scaleY, 3); // Max 3x zoom
 
     canvas.setZoom(scale);
     canvas.renderAll();
     setForceUpdate(prev => prev + 1); // Trigger re-render for container resize
+
+    console.log('📐 Fit to screen:', {
+      containerWidth,
+      containerHeight,
+      scale: `${Math.round(scale * 100)}%`
+    });
   }, [canvas]);
 
   // Save template
@@ -544,7 +566,14 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
         {/* Left Panel - Layers */}
         {showLayersPanel && (
           <div className="w-60 flex-shrink-0 bg-white border-r border-slate-200">
-            <LayersPanel canvas={canvas} onUpdate={handleCanvasUpdate} />
+            <LayersPanel
+              canvas={canvas}
+              onUpdate={handleCanvasUpdate}
+              templateName={templateName}
+              templateDescription={templateDescription}
+              onTemplateNameChange={setTemplateName}
+              onTemplateDescriptionChange={setTemplateDescription}
+            />
           </div>
         )}
 
@@ -560,7 +589,7 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
         )}
 
         {/* Center - Canvas */}
-        <div className="flex-1 flex flex-col items-center justify-center p-6 overflow-auto relative">
+        <div className="flex-1 flex items-center justify-center p-4 overflow-auto relative bg-slate-50">
           {/* Panel Toggle Buttons */}
           {showLayersPanel && (
             <button
@@ -581,14 +610,23 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
             </button>
           )}
 
-          <div
-            className="border border-slate-300 shadow-xl bg-white rounded-sm"
-            style={{
-              width: `${CANVAS_WIDTH * (canvas?.getZoom() || DISPLAY_SCALE)}px`,
-              height: `${CANVAS_HEIGHT * (canvas?.getZoom() || DISPLAY_SCALE)}px`,
-            }}
-          >
-            <canvas ref={canvasRef} />
+          {/* Canvas wrapper with proper spacing */}
+          <div className="flex items-center justify-center">
+            <div
+              className="border-2 border-slate-300 shadow-2xl bg-white rounded-sm relative"
+              style={{
+                width: `${CANVAS_WIDTH * (canvas?.getZoom() || DISPLAY_SCALE)}px`,
+                height: `${CANVAS_HEIGHT * (canvas?.getZoom() || DISPLAY_SCALE)}px`,
+              }}
+            >
+              <canvas ref={canvasRef} />
+
+              {/* Corner markers for visibility */}
+              <div className="absolute -top-1 -left-1 w-2 h-2 bg-blue-500 rounded-full opacity-30"></div>
+              <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full opacity-30"></div>
+              <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-blue-500 rounded-full opacity-30"></div>
+              <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-blue-500 rounded-full opacity-30"></div>
+            </div>
           </div>
         </div>
 

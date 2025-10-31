@@ -35,11 +35,19 @@ import {
   ChevronDown,
   ChevronRight,
   FileText,
+  Settings2,
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 
 interface LayersPanelProps {
   canvas: Canvas | null;
   onUpdate: () => void;
+  templateName?: string;
+  templateDescription?: string;
+  onTemplateNameChange?: (name: string) => void;
+  onTemplateDescriptionChange?: (description: string) => void;
 }
 
 interface LayerItem {
@@ -175,10 +183,18 @@ function SortableLayerItem({
   );
 }
 
-export function LayersPanel({ canvas, onUpdate }: LayersPanelProps) {
+export function LayersPanel({
+  canvas,
+  onUpdate,
+  templateName,
+  templateDescription,
+  onTemplateNameChange,
+  onTemplateDescriptionChange
+}: LayersPanelProps) {
   const [layers, setLayers] = useState<LayerItem[]>([]);
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null);
   const [isTemplateInfoCollapsed, setIsTemplateInfoCollapsed] = useState(false);
+  const [isTemplateFormCollapsed, setIsTemplateFormCollapsed] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -334,6 +350,48 @@ export function LayersPanel({ canvas, onUpdate }: LayersPanelProps) {
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-slate-500 uppercase tracking-wide">Type</span>
               <span className="text-xs text-slate-700 font-medium">Postcard</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Template Form Section */}
+      <div className="border-b border-slate-200">
+        <button
+          onClick={() => setIsTemplateFormCollapsed(!isTemplateFormCollapsed)}
+          className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-slate-50 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Settings2 className="h-3.5 w-3.5 text-slate-600" />
+            <span className="text-xs font-semibold text-slate-700">Template Settings</span>
+          </div>
+          {isTemplateFormCollapsed ? (
+            <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+          )}
+        </button>
+
+        {!isTemplateFormCollapsed && (
+          <div className="px-3 pb-3 pt-1 space-y-3">
+            <div className="space-y-1">
+              <Label className="text-xs text-slate-600">Template Name</Label>
+              <Input
+                value={templateName || ''}
+                onChange={(e) => onTemplateNameChange?.(e.target.value)}
+                placeholder="e.g., Summer Sale Postcard"
+                className="h-7 text-xs bg-slate-50 border-slate-200 focus:bg-white transition-colors"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-slate-600">Description</Label>
+              <Textarea
+                value={templateDescription || ''}
+                onChange={(e) => onTemplateDescriptionChange?.(e.target.value)}
+                placeholder="Describe this template..."
+                className="text-xs resize-none bg-slate-50 border-slate-200 focus:bg-white transition-colors"
+                rows={3}
+              />
             </div>
           </div>
         )}

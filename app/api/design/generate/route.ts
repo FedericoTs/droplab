@@ -234,16 +234,60 @@ const SYSTEM_PROMPT = `You are an expert graphic designer creating professional 
 
 **OUTPUT ONLY VALID JSON. NO MARKDOWN. NO EXPLANATIONS.**`;
 
+// Fallback templates for when AI fails
+const FALLBACK_TEMPLATES = {
+  'summer-sale': {
+    clearCanvas: true,
+    backgroundColor: '#FFFFFF',
+    objects: [
+      { type: 'rect', left: 0, top: 0, width: 1100, height: 1200, fill: '#2563EB', strokeWidth: 0 },
+      { type: 'circle', left: 1500, top: -150, radius: 450, fill: '#F97316', opacity: 0.85 },
+      { type: 'circle', left: 100, top: 900, radius: 200, fill: '#FCD34D', opacity: 0.8 },
+      { type: 'i-text', left: 400, top: 350, text: 'SUMMER', fontSize: 160, fontFamily: 'Arial', fontWeight: 900, fill: '#FFFFFF', originX: 'left' },
+      { type: 'i-text', left: 400, top: 540, text: 'SALE', fontSize: 160, fontFamily: 'Arial', fontWeight: 900, fill: '#FCD34D', originX: 'left' },
+      { type: 'i-text', left: 400, top: 750, text: 'Up to 50% off everything', fontSize: 50, fontFamily: 'Arial', fontWeight: 400, fill: '#FFFFFF', originX: 'left' },
+      { type: 'i-text', left: 400, top: 950, text: 'Shop Now →', fontSize: 55, fontFamily: 'Arial', fontWeight: 700, fill: '#1E293B', originX: 'left' },
+      { type: 'rect', left: 1200, top: 950, width: 400, height: 150, fill: '#FCD34D', strokeWidth: 0, rx: 10, ry: 10 }
+    ]
+  },
+  'business': {
+    clearCanvas: true,
+    backgroundColor: '#F9FAFB',
+    objects: [
+      { type: 'rect', left: 0, top: 0, width: 1800, height: 400, fill: '#1E293B', strokeWidth: 0 },
+      { type: 'circle', left: 1600, top: -100, radius: 300, fill: '#6366F1', opacity: 0.6 },
+      { type: 'i-text', left: 150, top: 150, text: 'PROFESSIONAL', fontSize: 120, fontFamily: 'Arial', fontWeight: 700, fill: '#FFFFFF', originX: 'left' },
+      { type: 'i-text', left: 150, top: 500, text: 'Elevate Your Business', fontSize: 80, fontFamily: 'Georgia', fontWeight: 400, fill: '#1E293B', originX: 'left' },
+      { type: 'i-text', left: 150, top: 650, text: 'Modern solutions for forward-thinking companies', fontSize: 50, fontFamily: 'Arial', fontWeight: 400, fill: '#64748B', originX: 'left' },
+      { type: 'rect', left: 150, top: 900, width: 450, height: 90, fill: '#6366F1', strokeWidth: 0, rx: 8, ry: 8 },
+      { type: 'i-text', left: 375, top: 945, text: 'Learn More', fontSize: 45, fontFamily: 'Arial', fontWeight: 700, fill: '#FFFFFF', originX: 'center', originY: 'center' }
+    ]
+  }
+};
+
+function getFallbackTemplate(prompt: string) {
+  const lower = prompt.toLowerCase();
+  if (lower.includes('summer') || lower.includes('sale')) return FALLBACK_TEMPLATES['summer-sale'];
+  return FALLBACK_TEMPLATES['business'];
+}
+
 export async function POST(request: Request) {
+  const startTime = Date.now();
+  console.log('🎨 [AI Design] Starting generation...');
+
   try {
     const { prompt } = await request.json();
+    console.log('📝 [AI Design] User prompt:', prompt);
 
     if (!prompt) {
+      console.error('❌ [AI Design] No prompt provided');
       return NextResponse.json(
         { error: 'Prompt is required' },
         { status: 400 }
       );
     }
+
+    console.log('🤖 [AI Design] Calling OpenAI API...');
 
     // Call OpenAI to generate design
     const completion = await openai.chat.completions.create({
@@ -254,47 +298,114 @@ export async function POST(request: Request) {
           role: 'user',
           content: `Create a PROFESSIONAL, MULTI-LAYERED postcard design: "${prompt}"
 
-REQUIREMENTS:
-- 10-20 objects minimum (shapes + text)
-- Use modern color palettes (blue/orange, red/yellow, purple/pink, or green/blue)
-- Create visual hierarchy with layered elements
-- Include decorative circles, rectangles, and geometric accents
-- Add 3-4 text layers (headline, subheading, body, CTA)
-- Use strategic overlapping and negative space
-- Make it look like a premium Canva template
+CRITICAL REQUIREMENTS:
+- MINIMUM 8 objects (MUST include at least 2 shapes + 3 text layers)
+- Background MUST be colored (NOT white) - use vibrant colors
+- Text MUST have contrasting colors (white text on dark bg, dark text on light bg)
+- Include decorative shapes (circles, rectangles)
+- EXAMPLE COLOR COMBOS: blue bg + white text, dark bg + yellow text, light bg + dark text
 
-OUTPUT ONLY JSON. NO MARKDOWN.`
+STRICT OUTPUT FORMAT - FOLLOW THIS EXACTLY:
+{
+  "clearCanvas": true,
+  "backgroundColor": "#FFFFFF",
+  "objects": [
+    {
+      "type": "rect",
+      "left": 0,
+      "top": 0,
+      "width": 1100,
+      "height": 1200,
+      "fill": "#2563EB",
+      "strokeWidth": 0
+    },
+    {
+      "type": "i-text",
+      "left": 400,
+      "top": 400,
+      "text": "HEADLINE HERE",
+      "fontSize": 140,
+      "fontFamily": "Arial",
+      "fontWeight": 900,
+      "fill": "#FFFFFF",
+      "originX": "left"
+    }
+  ]
+}
+
+OUTPUT ONLY JSON. NO MARKDOWN. NO EXPLANATIONS.`
         },
       ],
-      temperature: 0.9,
+      temperature: 0.8,
       max_tokens: 4000,
       response_format: { type: 'json_object' },
     });
 
+    console.log('✅ [AI Design] OpenAI response received');
+    console.log('📊 [AI Design] Usage:', completion.usage);
+
     const designJSON = completion.choices[0].message.content;
 
     if (!designJSON) {
+      console.error('❌ [AI Design] No content in OpenAI response');
       throw new Error('No design generated');
     }
 
+    console.log('📄 [AI Design] Raw JSON length:', designJSON.length);
+    console.log('🔍 [AI Design] First 200 chars:', designJSON.substring(0, 200));
+
     // Parse and validate the JSON
     const design = JSON.parse(designJSON);
+    console.log('✅ [AI Design] JSON parsed successfully');
+    console.log('📦 [AI Design] Objects count:', design.objects?.length || 0);
 
     // Validate required fields
     if (!design.objects || !Array.isArray(design.objects)) {
-      throw new Error('Invalid design structure: missing objects array');
+      console.error('❌ [AI Design] Invalid structure - missing objects array');
+      console.log('🔄 [AI Design] Using fallback template');
+      const fallback = getFallbackTemplate(prompt);
+      return NextResponse.json({ design: fallback, usedFallback: true });
     }
 
-    return NextResponse.json({ design });
-  } catch (error) {
-    console.error('Design generation error:', error);
+    if (design.objects.length < 3) {
+      console.warn('⚠️ [AI Design] Too few objects:', design.objects.length);
+      console.log('🔄 [AI Design] Using fallback template');
+      const fallback = getFallbackTemplate(prompt);
+      return NextResponse.json({ design: fallback, usedFallback: true });
+    }
 
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : 'Failed to generate design',
-        details: error instanceof Error ? error.stack : undefined
-      },
-      { status: 500 }
-    );
+    // Log each object type
+    design.objects.forEach((obj: any, i: number) => {
+      console.log(`  Object ${i + 1}:`, obj.type, obj.fill || obj.stroke || 'no-color');
+    });
+
+    // Validate color contrast
+    const textObjects = design.objects.filter((obj: any) => obj.type === 'i-text');
+    const bgColor = design.backgroundColor || '#FFFFFF';
+
+    textObjects.forEach((text: any, i: number) => {
+      if (text.fill === bgColor || text.fill === '#FFFFFF' && bgColor === '#FFFFFF') {
+        console.warn(`⚠️ [AI Design] Text ${i + 1} has same color as background!`);
+        text.fill = '#1E293B'; // Fix to dark color
+      }
+    });
+
+    const duration = Date.now() - startTime;
+    console.log(`✨ [AI Design] Generation complete in ${duration}ms`);
+
+    return NextResponse.json({ design, usedFallback: false });
+  } catch (error) {
+    console.error('❌ [AI Design] ERROR:', error);
+    console.error('📋 [AI Design] Error details:', error instanceof Error ? error.stack : error);
+
+    // Return fallback on error
+    console.log('🔄 [AI Design] Returning fallback template due to error');
+    const fallback = FALLBACK_TEMPLATES['business'];
+
+    return NextResponse.json({
+      design: fallback,
+      usedFallback: true,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 }
