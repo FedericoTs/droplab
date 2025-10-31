@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Canvas, IText, Rect, Circle as FabricCircle, FabricImage } from 'fabric';
+import { Canvas, IText, Rect, Circle as FabricCircle, FabricImage, FabricObject } from 'fabric';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import {
   Type,
   Square,
@@ -18,6 +19,9 @@ import {
   Redo
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { PropertyPanel } from './property-panel';
+import { LayersPanel } from './layers-panel';
+import { AlignmentTools } from './alignment-tools';
 
 // Canvas dimensions for 6x4 postcard at 300 DPI
 const CANVAS_WIDTH_INCHES = 6;
@@ -47,8 +51,10 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [canvas, setCanvas] = useState<Canvas | null>(null);
   const [selectedTool, setSelectedTool] = useState<string>('select');
+  const [selectedObject, setSelectedObject] = useState<FabricObject | null>(null);
   const [history, setHistory] = useState<string[]>([]);
   const [historyStep, setHistoryStep] = useState<number>(-1);
+  const [forceUpdate, setForceUpdate] = useState(0);
 
   // Initialize Fabric.js canvas
   useEffect(() => {
@@ -90,6 +96,11 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
     fabricCanvas.on('object:modified', () => saveToHistory(fabricCanvas));
     fabricCanvas.on('object:added', () => saveToHistory(fabricCanvas));
     fabricCanvas.on('object:removed', () => saveToHistory(fabricCanvas));
+
+    // Listen for selection changes
+    fabricCanvas.on('selection:created', (e: any) => setSelectedObject(e.selected?.[0] || null));
+    fabricCanvas.on('selection:updated', (e: any) => setSelectedObject(e.selected?.[0] || null));
+    fabricCanvas.on('selection:cleared', () => setSelectedObject(null));
 
     setCanvas(fabricCanvas);
 
@@ -321,116 +332,144 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
     toast.success('Downloaded as PNG!');
   }, [canvas]);
 
+  // Trigger re-render when panels update canvas
+  const handleCanvasUpdate = useCallback(() => {
+    setForceUpdate(prev => prev + 1);
+  }, []);
+
   return (
-    <div className="flex flex-col gap-4 p-4">
-      {/* Toolbar */}
-      <Card className="p-4">
-        <div className="flex flex-wrap gap-2">
+    <div className="flex flex-col h-screen">
+      {/* Top Toolbar */}
+      <Card className="p-3 rounded-none border-x-0 border-t-0">
+        <div className="flex flex-wrap gap-2 items-center">
           {/* Tool Buttons */}
-          <Button
-            variant={selectedTool === 'text' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => { setSelectedTool('text'); addText(); }}
-          >
-            <Type className="h-4 w-4 mr-2" />
-            Text
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant={selectedTool === 'text' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => { setSelectedTool('text'); addText(); }}
+            >
+              <Type className="h-4 w-4 mr-2" />
+              Text
+            </Button>
 
-          <Button
-            variant={selectedTool === 'rectangle' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => { setSelectedTool('rectangle'); addRectangle(); }}
-          >
-            <Square className="h-4 w-4 mr-2" />
-            Rectangle
-          </Button>
+            <Button
+              variant={selectedTool === 'rectangle' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => { setSelectedTool('rectangle'); addRectangle(); }}
+            >
+              <Square className="h-4 w-4 mr-2" />
+              Rectangle
+            </Button>
 
-          <Button
-            variant={selectedTool === 'circle' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => { setSelectedTool('circle'); addCircle(); }}
-          >
-            <CircleIcon className="h-4 w-4 mr-2" />
-            Circle
-          </Button>
+            <Button
+              variant={selectedTool === 'circle' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => { setSelectedTool('circle'); addCircle(); }}
+            >
+              <CircleIcon className="h-4 w-4 mr-2" />
+              Circle
+            </Button>
 
-          <Button
-            variant={selectedTool === 'image' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => { setSelectedTool('image'); addImage(); }}
-          >
-            <ImageIcon className="h-4 w-4 mr-2" />
-            Image
-          </Button>
+            <Button
+              variant={selectedTool === 'image' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => { setSelectedTool('image'); addImage(); }}
+            >
+              <ImageIcon className="h-4 w-4 mr-2" />
+              Image
+            </Button>
+          </div>
 
-          <div className="w-px h-8 bg-border mx-2" />
+          <Separator orientation="vertical" className="h-8" />
+
+          {/* Alignment Tools */}
+          <AlignmentTools canvas={canvas} onUpdate={handleCanvasUpdate} />
+
+          <Separator orientation="vertical" className="h-8" />
 
           {/* Edit Actions */}
-          <Button variant="outline" size="sm" onClick={handleUndo} disabled={historyStep <= 0}>
-            <Undo className="h-4 w-4 mr-2" />
-            Undo
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="sm" onClick={handleUndo} disabled={historyStep <= 0}>
+              <Undo className="h-4 w-4 mr-2" />
+              Undo
+            </Button>
 
-          <Button variant="outline" size="sm" onClick={handleRedo} disabled={historyStep >= history.length - 1}>
-            <Redo className="h-4 w-4 mr-2" />
-            Redo
-          </Button>
+            <Button variant="outline" size="sm" onClick={handleRedo} disabled={historyStep >= history.length - 1}>
+              <Redo className="h-4 w-4 mr-2" />
+              Redo
+            </Button>
 
-          <Button variant="outline" size="sm" onClick={deleteSelected}>
-            <Trash2 className="h-4 w-4 mr-2" />
-            Delete
-          </Button>
+            <Button variant="outline" size="sm" onClick={deleteSelected}>
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          </div>
 
-          <div className="w-px h-8 bg-border mx-2" />
+          <Separator orientation="vertical" className="h-8" />
 
           {/* View Controls */}
-          <Button variant="outline" size="sm" onClick={zoomIn}>
-            <ZoomIn className="h-4 w-4 mr-2" />
-            Zoom In
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="sm" onClick={zoomIn}>
+              <ZoomIn className="h-4 w-4 mr-2" />
+              Zoom In
+            </Button>
 
-          <Button variant="outline" size="sm" onClick={zoomOut}>
-            <ZoomOut className="h-4 w-4 mr-2" />
-            Zoom Out
-          </Button>
+            <Button variant="outline" size="sm" onClick={zoomOut}>
+              <ZoomOut className="h-4 w-4 mr-2" />
+              Zoom Out
+            </Button>
+          </div>
 
-          <div className="w-px h-8 bg-border mx-2" />
+          <Separator orientation="vertical" className="h-8" />
 
           {/* Save/Export */}
-          <Button variant="default" size="sm" onClick={handleSave}>
-            <Save className="h-4 w-4 mr-2" />
-            Save Template
-          </Button>
+          <div className="flex items-center gap-1 ml-auto">
+            <Button variant="outline" size="sm" onClick={downloadPNG}>
+              <Download className="h-4 w-4 mr-2" />
+              Download PNG
+            </Button>
 
-          <Button variant="outline" size="sm" onClick={downloadPNG}>
-            <Download className="h-4 w-4 mr-2" />
-            Download PNG
-          </Button>
+            <Button variant="default" size="sm" onClick={handleSave}>
+              <Save className="h-4 w-4 mr-2" />
+              Save Template
+            </Button>
+          </div>
         </div>
       </Card>
 
-      {/* Canvas Container */}
-      <Card className="p-4">
-        <div
-          className="border border-gray-300 overflow-auto"
-          style={{
-            width: `${DISPLAY_WIDTH}px`,
-            height: `${DISPLAY_HEIGHT}px`,
-            maxWidth: '100%',
-          }}
-        >
-          <canvas ref={canvasRef} />
+      {/* Main Layout: 3 Columns */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left Panel - Layers */}
+        <div className="border-r">
+          <LayersPanel canvas={canvas} onUpdate={handleCanvasUpdate} />
         </div>
-      </Card>
 
-      {/* Info */}
-      <Card className="p-4 bg-blue-50 border-blue-200">
-        <p className="text-sm text-blue-900">
-          <strong>Canvas Size:</strong> {CANVAS_WIDTH} x {CANVAS_HEIGHT}px ({CANVAS_WIDTH_INCHES}" x {CANVAS_HEIGHT_INCHES}" at {DPI} DPI)
-          <br />
-          <strong>Display Scale:</strong> {DISPLAY_SCALE * 100}% (editing view)
-        </p>
-      </Card>
+        {/* Center - Canvas */}
+        <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 p-4 overflow-auto">
+          <div
+            className="border-2 border-gray-300 shadow-lg bg-white"
+            style={{
+              width: `${DISPLAY_WIDTH}px`,
+              height: `${DISPLAY_HEIGHT}px`,
+            }}
+          >
+            <canvas ref={canvasRef} />
+          </div>
+
+          {/* Canvas Info */}
+          <div className="mt-4 text-xs text-slate-600">
+            <strong>Canvas:</strong> {CANVAS_WIDTH} x {CANVAS_HEIGHT}px ({CANVAS_WIDTH_INCHES}" x {CANVAS_HEIGHT_INCHES}" @ {DPI} DPI)
+            {' • '}
+            <strong>Display:</strong> {DISPLAY_SCALE * 100}% scale
+          </div>
+        </div>
+
+        {/* Right Panel - Properties */}
+        <div className="border-l">
+          <PropertyPanel selectedObject={selectedObject} onUpdate={handleCanvasUpdate} />
+        </div>
+      </div>
     </div>
   );
 }
