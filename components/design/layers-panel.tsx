@@ -79,6 +79,7 @@ function SortableLayerItem({
   onToggleLock: () => void;
   onDelete: () => void;
 }) {
+  const [isHovered, setIsHovered] = useState(false);
   const {
     attributes,
     listeners,
@@ -99,70 +100,73 @@ function SortableLayerItem({
       ref={setNodeRef}
       style={style}
       className={`
-        flex items-center gap-2 p-2 rounded-md cursor-pointer
-        ${isSelected ? 'bg-primary/10 border border-primary' : 'bg-muted/50 hover:bg-muted'}
+        group flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer transition-all
+        ${isSelected ? 'bg-blue-50 text-blue-900' : 'hover:bg-slate-100'}
         ${!layer.visible ? 'opacity-50' : ''}
       `}
       onClick={onSelect}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Drag Handle */}
-      <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
-        <GripVertical className="h-4 w-4 text-muted-foreground" />
+      {/* Drag Handle - visible on hover */}
+      <div
+        {...attributes}
+        {...listeners}
+        className={`cursor-grab active:cursor-grabbing transition-opacity ${isHovered || isDragging ? 'opacity-100' : 'opacity-0'}`}
+      >
+        <GripVertical className="h-3.5 w-3.5 text-slate-400" />
       </div>
 
       {/* Layer Icon */}
-      <div className="text-muted-foreground">
+      <div className="text-slate-500">
         <LayerIcon type={layer.type} />
       </div>
 
       {/* Layer Name */}
-      <span className="flex-1 text-sm truncate">{layer.name}</span>
+      <span className="flex-1 text-xs truncate">{layer.name}</span>
 
-      {/* Actions */}
-      <div className="flex items-center gap-1">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6"
+      {/* Actions - visible on hover */}
+      <div className={`flex items-center gap-0.5 transition-opacity ${isHovered || isSelected ? 'opacity-100' : 'opacity-0'}`}>
+        <button
+          className="h-5 w-5 rounded hover:bg-slate-200 flex items-center justify-center"
           onClick={(e) => {
             e.stopPropagation();
             onToggleVisibility();
           }}
+          title={layer.visible ? 'Hide' : 'Show'}
         >
           {layer.visible ? (
-            <Eye className="h-3 w-3" />
+            <Eye className="h-3 w-3 text-slate-600" />
           ) : (
-            <EyeOff className="h-3 w-3" />
+            <EyeOff className="h-3 w-3 text-slate-400" />
           )}
-        </Button>
+        </button>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6"
+        <button
+          className="h-5 w-5 rounded hover:bg-slate-200 flex items-center justify-center"
           onClick={(e) => {
             e.stopPropagation();
             onToggleLock();
           }}
+          title={layer.locked ? 'Unlock' : 'Lock'}
         >
           {layer.locked ? (
-            <Lock className="h-3 w-3" />
+            <Lock className="h-3 w-3 text-slate-600" />
           ) : (
-            <Unlock className="h-3 w-3" />
+            <Unlock className="h-3 w-3 text-slate-400" />
           )}
-        </Button>
+        </button>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 text-destructive hover:text-destructive"
+        <button
+          className="h-5 w-5 rounded hover:bg-red-100 flex items-center justify-center"
           onClick={(e) => {
             e.stopPropagation();
             onDelete();
           }}
+          title="Delete"
         >
-          <Trash2 className="h-3 w-3" />
-        </Button>
+          <Trash2 className="h-3 w-3 text-slate-600 hover:text-red-600" />
+        </button>
       </div>
     </div>
   );

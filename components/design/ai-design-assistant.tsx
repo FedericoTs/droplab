@@ -3,9 +3,8 @@
 import { useState } from 'react';
 import { Canvas } from 'fabric';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Card } from '@/components/ui/card';
-import { Sparkles, Send, X, Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Sparkles, Send, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface AIDesignAssistantProps {
@@ -14,14 +13,14 @@ interface AIDesignAssistantProps {
 }
 
 const EXAMPLE_PROMPTS = [
-  "Create a summer sale postcard with bright colors",
-  "Design a professional business card template",
-  "Make a holiday greeting card with festive elements",
-  "Create a minimalist product announcement",
+  "Summer sale postcard",
+  "Professional business card",
+  "Holiday greeting",
+  "Minimalist announcement",
 ];
 
 export function AIDesignAssistant({ canvas, onUpdate }: AIDesignAssistantProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -51,7 +50,7 @@ export function AIDesignAssistant({ canvas, onUpdate }: AIDesignAssistantProps) 
 
       toast.success('Design generated successfully!');
       setPrompt('');
-      setIsOpen(false);
+      setIsExpanded(false);
     } catch (error) {
       console.error('AI generation error:', error);
       toast.error('Failed to generate design. Please try again.');
@@ -87,94 +86,90 @@ export function AIDesignAssistant({ canvas, onUpdate }: AIDesignAssistantProps) 
     }
   };
 
-  if (!isOpen) {
-    return (
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50">
-        <Button
-          onClick={() => setIsOpen(true)}
-          className="shadow-lg hover:shadow-xl transition-shadow gap-2 h-12 px-6"
-          size="lg"
-        >
-          <Sparkles className="h-5 w-5" />
-          AI Design Assistant
-        </Button>
-      </div>
-    );
-  }
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleGenerate();
+    }
+  };
 
   return (
-    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 w-full max-w-2xl px-4">
-      <Card className="shadow-2xl border-2 p-4">
-        <div className="flex items-start gap-3">
-          <div className="flex-1 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
-                <h3 className="font-semibold">AI Design Assistant</h3>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsOpen(false)}
-                className="h-8 w-8"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+    <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 shadow-lg transition-all duration-200">
+      {/* Expanded Section */}
+      {isExpanded && (
+        <div className="px-4 py-3 border-b border-slate-100 bg-slate-50">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[10px] font-medium text-slate-600 uppercase tracking-wide">Quick Templates</span>
             </div>
-
-            <Textarea
-              placeholder="Describe your design... (e.g., 'Create a summer sale postcard with bright colors and palm tree graphics')"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              className="min-h-[100px] resize-none"
-              disabled={isGenerating}
-            />
-
-            <div className="flex flex-wrap gap-2">
-              <span className="text-xs text-muted-foreground">Examples:</span>
+            <div className="flex flex-wrap gap-1.5">
               {EXAMPLE_PROMPTS.map((example, index) => (
-                <Button
+                <button
                   key={index}
-                  variant="outline"
-                  size="sm"
                   onClick={() => setPrompt(example)}
                   disabled={isGenerating}
-                  className="text-xs h-7"
+                  className="text-xs px-2.5 py-1 rounded bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-colors disabled:opacity-50 text-slate-700"
                 >
                   {example}
-                </Button>
+                </button>
               ))}
-            </div>
-
-            <div className="flex items-center gap-2 justify-end">
-              <Button
-                variant="outline"
-                onClick={() => setIsOpen(false)}
-                disabled={isGenerating}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleGenerate}
-                disabled={isGenerating || !prompt.trim()}
-                className="gap-2"
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-4 w-4" />
-                    Generate Design
-                  </>
-                )}
-              </Button>
             </div>
           </div>
         </div>
-      </Card>
+      )}
+
+      {/* Main Input Bar */}
+      <div className="px-4 py-2.5">
+        <div className="max-w-4xl mx-auto flex items-center gap-2">
+          {/* AI Icon */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="h-8 w-8 rounded hover:bg-slate-100 flex items-center justify-center transition-colors"
+              title={isExpanded ? 'Hide templates' : 'Show templates'}
+            >
+              {isExpanded ? (
+                <ChevronDown className="h-4 w-4 text-slate-600" />
+              ) : (
+                <ChevronUp className="h-4 w-4 text-slate-600" />
+              )}
+            </button>
+            <Sparkles className="h-4 w-4 text-blue-600" />
+          </div>
+
+          {/* Input Field */}
+          <div className="flex-1">
+            <Input
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Describe your design... (e.g., 'Summer sale postcard with bright colors')"
+              disabled={isGenerating}
+              className="h-8 text-sm bg-slate-50 border-slate-200 focus:bg-white transition-colors placeholder:text-slate-400"
+            />
+          </div>
+
+          {/* Generate Button */}
+          <Button
+            onClick={handleGenerate}
+            disabled={isGenerating || !prompt.trim()}
+            size="sm"
+            className="h-8 px-3 gap-1.5 bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <span className="text-xs">Generating...</span>
+              </>
+            ) : (
+              <>
+                <Send className="h-3.5 w-3.5" />
+                <span className="text-xs">Generate</span>
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

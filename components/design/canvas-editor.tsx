@@ -352,153 +352,188 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
   }, []);
 
   return (
-    <div className="flex flex-col h-screen">
-      {/* Top Toolbar */}
-      <Card className="p-3 rounded-none border-x-0 border-t-0">
-        <div className="flex flex-wrap gap-2 items-center">
-          {/* Tool Buttons */}
-          <div className="flex items-center gap-1">
-            <Button
-              variant={selectedTool === 'text' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => { setSelectedTool('text'); addText(); }}
-            >
-              <Type className="h-4 w-4 mr-2" />
-              Text
-            </Button>
-
-            <Button
-              variant={selectedTool === 'rectangle' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => { setSelectedTool('rectangle'); addRectangle(); }}
-            >
-              <Square className="h-4 w-4 mr-2" />
-              Rectangle
-            </Button>
-
-            <Button
-              variant={selectedTool === 'circle' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => { setSelectedTool('circle'); addCircle(); }}
-            >
-              <CircleIcon className="h-4 w-4 mr-2" />
-              Circle
-            </Button>
-
-            <Button
-              variant={selectedTool === 'image' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => { setSelectedTool('image'); addImage(); }}
-            >
-              <ImageIcon className="h-4 w-4 mr-2" />
-              Image
-            </Button>
-          </div>
-
-          <Separator orientation="vertical" className="h-8" />
-
-          {/* Alignment Tools */}
-          <AlignmentTools canvas={canvas} onUpdate={handleCanvasUpdate} />
-
-          <Separator orientation="vertical" className="h-8" />
-
-          {/* Edit Actions */}
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="sm" onClick={handleUndo} disabled={historyStep <= 0}>
-              <Undo className="h-4 w-4 mr-2" />
-              Undo
-            </Button>
-
-            <Button variant="outline" size="sm" onClick={handleRedo} disabled={historyStep >= history.length - 1}>
-              <Redo className="h-4 w-4 mr-2" />
-              Redo
-            </Button>
-
-            <Button variant="outline" size="sm" onClick={deleteSelected}>
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete
-            </Button>
-          </div>
-
-          <Separator orientation="vertical" className="h-8" />
-
-          {/* View Controls */}
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="sm" onClick={zoomIn}>
-              <ZoomIn className="h-4 w-4 mr-2" />
-              Zoom In
-            </Button>
-
-            <Button variant="outline" size="sm" onClick={zoomOut}>
-              <ZoomOut className="h-4 w-4 mr-2" />
-              Zoom Out
-            </Button>
-          </div>
-
-          <Separator orientation="vertical" className="h-8" />
-
-          {/* Save/Export */}
-          <div className="flex items-center gap-1 ml-auto">
-            <Button variant="outline" size="sm" onClick={downloadPNG}>
-              <Download className="h-4 w-4 mr-2" />
-              Download PNG
-            </Button>
-
-            <Button variant="default" size="sm" onClick={handleSave}>
-              <Save className="h-4 w-4 mr-2" />
-              Save Template
-            </Button>
-          </div>
+    <div className="flex flex-col h-screen bg-slate-50">
+      {/* Top Toolbar - Minimal Spline Style */}
+      <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-slate-200">
+        {/* Left: Project Info */}
+        <div className="flex items-center gap-3">
+          <h3 className="text-sm font-medium text-slate-700">Design Template Editor</h3>
+          <span className="text-xs text-slate-400">|</span>
+          <span className="text-xs text-slate-500">{CANVAS_WIDTH} × {CANVAS_HEIGHT}px</span>
         </div>
-      </Card>
+
+        {/* Center: Main Tools */}
+        <div className="flex items-center gap-1">
+          {/* Undo/Redo */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 hover:bg-slate-100"
+            onClick={handleUndo}
+            disabled={historyStep <= 0}
+            title="Undo"
+          >
+            <Undo className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 hover:bg-slate-100"
+            onClick={handleRedo}
+            disabled={historyStep >= history.length - 1}
+            title="Redo"
+          >
+            <Redo className="h-4 w-4" />
+          </Button>
+
+          <div className="w-px h-5 bg-slate-200 mx-1" />
+
+          {/* Add Tools */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 hover:bg-slate-100"
+            onClick={() => { setSelectedTool('text'); addText(); }}
+            title="Add Text"
+          >
+            <Type className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 hover:bg-slate-100"
+            onClick={() => { setSelectedTool('rectangle'); addRectangle(); }}
+            title="Add Rectangle"
+          >
+            <Square className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 hover:bg-slate-100"
+            onClick={() => { setSelectedTool('circle'); addCircle(); }}
+            title="Add Circle"
+          >
+            <CircleIcon className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 hover:bg-slate-100"
+            onClick={() => { setSelectedTool('image'); addImage(); }}
+            title="Add Image"
+          >
+            <ImageIcon className="h-4 w-4" />
+          </Button>
+
+          <div className="w-px h-5 bg-slate-200 mx-1" />
+
+          {/* Delete */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 hover:bg-slate-100 hover:text-red-600"
+            onClick={deleteSelected}
+            title="Delete Selected"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+
+          <div className="w-px h-5 bg-slate-200 mx-1" />
+
+          {/* Zoom Controls */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 hover:bg-slate-100"
+            onClick={zoomOut}
+            title="Zoom Out"
+          >
+            <ZoomOut className="h-4 w-4" />
+          </Button>
+          <span className="text-xs text-slate-600 w-12 text-center">{Math.round((canvas?.getZoom() || DISPLAY_SCALE) * 100)}%</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 hover:bg-slate-100"
+            onClick={zoomIn}
+            title="Zoom In"
+          >
+            <ZoomIn className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Right: Actions */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 text-xs hover:bg-slate-100"
+            onClick={downloadPNG}
+          >
+            <Download className="h-3.5 w-3.5 mr-1.5" />
+            Export
+          </Button>
+          <Button
+            size="sm"
+            className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+            onClick={handleSave}
+          >
+            <Save className="h-3.5 w-3.5 mr-1.5" />
+            Save
+          </Button>
+        </div>
+      </div>
+
+      {/* Alignment Tools - Secondary Toolbar */}
+      <div className="px-4 py-1.5 bg-white border-b border-slate-100">
+        <AlignmentTools canvas={canvas} onUpdate={handleCanvasUpdate} />
+      </div>
 
       {/* Main Layout: 3 Columns */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative pb-16">
         {/* Left Panel - Layers */}
         {showLayersPanel && (
-          <div className="border-r w-60 flex-shrink-0">
+          <div className="w-60 flex-shrink-0 bg-white border-r border-slate-200">
             <LayersPanel canvas={canvas} onUpdate={handleCanvasUpdate} />
           </div>
         )}
 
         {/* Left Panel Toggle */}
         {!showLayersPanel && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 rounded-r-md rounded-l-none h-12 w-6"
+          <button
             onClick={() => setShowLayersPanel(true)}
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white hover:bg-slate-50 border border-slate-200 rounded-r-md h-16 w-5 flex items-center justify-center shadow-sm transition-all"
+            title="Show Layers"
           >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+            <ChevronRight className="h-3.5 w-3.5 text-slate-500" />
+          </button>
         )}
 
         {/* Center - Canvas */}
-        <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 p-4 overflow-auto relative">
+        <div className="flex-1 flex flex-col items-center justify-center p-6 overflow-auto relative">
           {/* Panel Toggle Buttons */}
           {showLayersPanel && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute left-2 top-2 z-10 h-8 w-8"
+            <button
               onClick={() => setShowLayersPanel(false)}
+              className="absolute left-3 top-3 z-10 h-7 w-7 rounded-md hover:bg-white/80 bg-white/60 backdrop-blur-sm border border-slate-200 flex items-center justify-center transition-all"
+              title="Hide Layers"
             >
-              <PanelLeft className="h-4 w-4" />
-            </Button>
+              <PanelLeft className="h-3.5 w-3.5 text-slate-600" />
+            </button>
           )}
           {showPropertiesPanel && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-2 top-2 z-10 h-8 w-8"
+            <button
               onClick={() => setShowPropertiesPanel(false)}
+              className="absolute right-3 top-3 z-10 h-7 w-7 rounded-md hover:bg-white/80 bg-white/60 backdrop-blur-sm border border-slate-200 flex items-center justify-center transition-all"
+              title="Hide Properties"
             >
-              <PanelRight className="h-4 w-4" />
-            </Button>
+              <PanelRight className="h-3.5 w-3.5 text-slate-600" />
+            </button>
           )}
 
           <div
-            className="border-2 border-gray-300 shadow-lg bg-white"
+            className="border border-slate-300 shadow-xl bg-white rounded-sm"
             style={{
               width: `${DISPLAY_WIDTH}px`,
               height: `${DISPLAY_HEIGHT}px`,
@@ -506,30 +541,22 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
           >
             <canvas ref={canvasRef} />
           </div>
-
-          {/* Canvas Info */}
-          <div className="mt-4 text-xs text-slate-600">
-            <strong>Canvas:</strong> {CANVAS_WIDTH} x {CANVAS_HEIGHT}px ({CANVAS_WIDTH_INCHES}" x {CANVAS_HEIGHT_INCHES}" @ {DPI} DPI)
-            {' • '}
-            <strong>Display:</strong> {DISPLAY_SCALE * 100}% scale
-          </div>
         </div>
 
         {/* Right Panel Toggle */}
         {!showPropertiesPanel && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 rounded-l-md rounded-r-none h-12 w-6"
+          <button
             onClick={() => setShowPropertiesPanel(true)}
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white hover:bg-slate-50 border border-slate-200 rounded-l-md h-16 w-5 flex items-center justify-center shadow-sm transition-all"
+            title="Show Properties"
           >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
+            <ChevronLeft className="h-3.5 w-3.5 text-slate-500" />
+          </button>
         )}
 
         {/* Right Panel - Properties */}
         {showPropertiesPanel && (
-          <div className="border-l w-60 flex-shrink-0">
+          <div className="w-60 flex-shrink-0 bg-white border-l border-slate-200">
             <PropertyPanel selectedObject={selectedObject} onUpdate={handleCanvasUpdate} />
           </div>
         )}

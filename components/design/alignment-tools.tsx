@@ -227,66 +227,58 @@ export function AlignmentTools({ canvas, onUpdate }: AlignmentToolsProps) {
   };
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex items-center gap-1">
       {/* Alignment */}
-      <div className="flex items-center gap-1">
-        <Button variant="outline" size="icon" onClick={alignLeft} title="Align Left">
-          <AlignLeft className="h-4 w-4" />
-        </Button>
-        <Button variant="outline" size="icon" onClick={alignCenter} title="Align Center">
-          <AlignCenter className="h-4 w-4" />
-        </Button>
-        <Button variant="outline" size="icon" onClick={alignRight} title="Align Right">
-          <AlignRight className="h-4 w-4" />
-        </Button>
-      </div>
+      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-slate-100" onClick={alignLeft} title="Align Left">
+        <AlignLeft className="h-3.5 w-3.5" />
+      </Button>
+      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-slate-100" onClick={alignCenter} title="Align Center">
+        <AlignCenter className="h-3.5 w-3.5" />
+      </Button>
+      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-slate-100" onClick={alignRight} title="Align Right">
+        <AlignRight className="h-3.5 w-3.5" />
+      </Button>
 
-      <Separator orientation="vertical" className="h-8" />
+      <div className="w-px h-4 bg-slate-200 mx-1" />
 
-      <div className="flex items-center gap-1">
-        <Button variant="outline" size="icon" onClick={alignTop} title="Align Top">
-          <AlignVerticalJustifyStart className="h-4 w-4" />
-        </Button>
-        <Button variant="outline" size="icon" onClick={alignMiddle} title="Align Middle">
-          <AlignVerticalJustifyCenter className="h-4 w-4" />
-        </Button>
-        <Button variant="outline" size="icon" onClick={alignBottom} title="Align Bottom">
-          <AlignVerticalJustifyEnd className="h-4 w-4" />
-        </Button>
-      </div>
+      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-slate-100" onClick={alignTop} title="Align Top">
+        <AlignVerticalJustifyStart className="h-3.5 w-3.5" />
+      </Button>
+      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-slate-100" onClick={alignMiddle} title="Align Middle">
+        <AlignVerticalJustifyCenter className="h-3.5 w-3.5" />
+      </Button>
+      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-slate-100" onClick={alignBottom} title="Align Bottom">
+        <AlignVerticalJustifyEnd className="h-3.5 w-3.5" />
+      </Button>
 
-      <Separator orientation="vertical" className="h-8" />
+      <div className="w-px h-4 bg-slate-200 mx-1" />
 
       {/* Arrange */}
-      <div className="flex items-center gap-1">
-        <Button variant="outline" size="icon" onClick={bringToFront} title="Bring to Front">
-          <BringToFront className="h-4 w-4" />
-        </Button>
-        <Button variant="outline" size="icon" onClick={bringForward} title="Bring Forward">
-          <ChevronUp className="h-4 w-4" />
-        </Button>
-        <Button variant="outline" size="icon" onClick={sendBackward} title="Send Backward">
-          <ChevronDown className="h-4 w-4" />
-        </Button>
-        <Button variant="outline" size="icon" onClick={sendToBack} title="Send to Back">
-          <SendToBack className="h-4 w-4" />
-        </Button>
-      </div>
+      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-slate-100" onClick={bringToFront} title="Bring to Front">
+        <BringToFront className="h-3.5 w-3.5" />
+      </Button>
+      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-slate-100" onClick={bringForward} title="Bring Forward">
+        <ChevronUp className="h-3.5 w-3.5" />
+      </Button>
+      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-slate-100" onClick={sendBackward} title="Send Backward">
+        <ChevronDown className="h-3.5 w-3.5" />
+      </Button>
+      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-slate-100" onClick={sendToBack} title="Send to Back">
+        <SendToBack className="h-3.5 w-3.5" />
+      </Button>
 
-      <Separator orientation="vertical" className="h-8" />
+      <div className="w-px h-4 bg-slate-200 mx-1" />
 
       {/* Group/Duplicate */}
-      <div className="flex items-center gap-1">
-        <Button variant="outline" size="icon" onClick={groupObjects} title="Group Objects">
-          <Group className="h-4 w-4" />
-        </Button>
-        <Button variant="outline" size="icon" onClick={ungroupObjects} title="Ungroup Objects">
-          <Ungroup className="h-4 w-4" />
-        </Button>
-        <Button variant="outline" size="icon" onClick={duplicateObject} title="Duplicate">
-          <Copy className="h-4 w-4" />
-        </Button>
-      </div>
+      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-slate-100" onClick={groupObjects} title="Group Objects">
+        <Group className="h-3.5 w-3.5" />
+      </Button>
+      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-slate-100" onClick={ungroupObjects} title="Ungroup Objects">
+        <Ungroup className="h-3.5 w-3.5" />
+      </Button>
+      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-slate-100" onClick={duplicateObject} title="Duplicate">
+        <Copy className="h-3.5 w-3.5" />
+      </Button>
     </div>
   );
 }
