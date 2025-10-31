@@ -127,7 +127,10 @@ export function CanvasEditor({
 
     // Auto-fit canvas to screen after initialization
     setTimeout(() => {
-      const container = canvasRef.current?.parentElement?.parentElement;
+      // Get the actual flex container (the one with "flex-1 flex items-center justify-center")
+      const canvasWrapper = canvasRef.current?.parentElement?.parentElement;
+      const container = canvasWrapper?.parentElement;
+
       if (container) {
         // Get the actual available space (generous padding for UI elements)
         const containerWidth = container.clientWidth - 100; // Account for padding, borders, and spacing
@@ -345,8 +348,9 @@ export function CanvasEditor({
   const fitToScreen = useCallback(() => {
     if (!canvas || !canvasRef.current) return;
 
-    // Get container dimensions (go up two levels to get the flex container)
-    const container = canvasRef.current.parentElement?.parentElement;
+    // Get the actual flex container (go up 3 levels: canvas -> border div -> wrapper div -> flex container)
+    const canvasWrapper = canvasRef.current.parentElement?.parentElement;
+    const container = canvasWrapper?.parentElement;
     if (!container) return;
 
     const containerWidth = container.clientWidth - 100; // Account for padding, borders, and spacing
