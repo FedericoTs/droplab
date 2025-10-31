@@ -129,14 +129,14 @@ export function CanvasEditor({
     setTimeout(() => {
       const container = canvasRef.current?.parentElement?.parentElement;
       if (container) {
-        // Get the actual available space (account for padding and borders)
-        const containerWidth = container.clientWidth - 80; // Reduced padding for better fit
-        const containerHeight = container.clientHeight - 80;
+        // Get the actual available space (generous padding for UI elements)
+        const containerWidth = container.clientWidth - 100; // Account for padding, borders, and spacing
+        const containerHeight = container.clientHeight - 100;
 
         // Calculate scale to fit while maintaining aspect ratio
         const scaleX = containerWidth / CANVAS_WIDTH;
         const scaleY = containerHeight / CANVAS_HEIGHT;
-        const scale = Math.min(scaleX, scaleY, 0.5); // Max 50% zoom initially
+        const scale = Math.min(scaleX, scaleY); // Fit to screen, no arbitrary max limit
 
         fabricCanvas.setZoom(scale);
         fabricCanvas.renderAll();
@@ -144,11 +144,13 @@ export function CanvasEditor({
         console.log('📐 Canvas auto-fit:', {
           containerWidth,
           containerHeight,
-          scaleX,
-          scaleY,
-          finalScale: scale,
-          displayWidth: CANVAS_WIDTH * scale,
-          displayHeight: CANVAS_HEIGHT * scale
+          canvasWidth: CANVAS_WIDTH,
+          canvasHeight: CANVAS_HEIGHT,
+          scaleX: scaleX.toFixed(3),
+          scaleY: scaleY.toFixed(3),
+          finalScale: scale.toFixed(3),
+          displayWidth: Math.round(CANVAS_WIDTH * scale),
+          displayHeight: Math.round(CANVAS_HEIGHT * scale)
         });
       }
     }, 150);
@@ -347,13 +349,13 @@ export function CanvasEditor({
     const container = canvasRef.current.parentElement?.parentElement;
     if (!container) return;
 
-    const containerWidth = container.clientWidth - 80; // Account for padding
-    const containerHeight = container.clientHeight - 80;
+    const containerWidth = container.clientWidth - 100; // Account for padding, borders, and spacing
+    const containerHeight = container.clientHeight - 100;
 
     // Calculate scale to fit while maintaining aspect ratio
     const scaleX = containerWidth / CANVAS_WIDTH;
     const scaleY = containerHeight / CANVAS_HEIGHT;
-    const scale = Math.min(scaleX, scaleY, 3); // Max 3x zoom
+    const scale = Math.min(scaleX, scaleY); // Fit to available space
 
     canvas.setZoom(scale);
     canvas.renderAll();
@@ -362,7 +364,9 @@ export function CanvasEditor({
     console.log('📐 Fit to screen:', {
       containerWidth,
       containerHeight,
-      scale: `${Math.round(scale * 100)}%`
+      scale: `${Math.round(scale * 100)}%`,
+      displayWidth: Math.round(CANVAS_WIDTH * scale),
+      displayHeight: Math.round(CANVAS_HEIGHT * scale)
     });
   }, [canvas]);
 
@@ -652,7 +656,7 @@ export function CanvasEditor({
           )}
 
           {/* Canvas wrapper with proper spacing */}
-          <div className="flex items-center justify-center">
+          <div className="flex items-center justify-center w-full h-full">
             <div
               className="border-2 border-slate-300 shadow-2xl bg-white rounded-sm relative"
               style={{
