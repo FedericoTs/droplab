@@ -201,6 +201,9 @@ export function CanvasEditor({
       fontSize: 60, // Scaled for 300 DPI
       fontFamily: 'Arial',
       fill: '#000000',
+      originX: 'center',
+      originY: 'center',
+      centeredRotation: true,
     });
 
     canvas.add(text);
@@ -213,13 +216,16 @@ export function CanvasEditor({
     if (!canvas) return;
 
     const rect = new Rect({
-      left: CANVAS_WIDTH / 2 - 150,
-      top: CANVAS_HEIGHT / 2 - 100,
+      left: CANVAS_WIDTH / 2,
+      top: CANVAS_HEIGHT / 2,
       width: 300,
       height: 200,
       fill: '#FF6B35',
       stroke: '#000000',
       strokeWidth: 2,
+      originX: 'center',
+      originY: 'center',
+      centeredRotation: true,
     });
 
     canvas.add(rect);
@@ -232,12 +238,15 @@ export function CanvasEditor({
     if (!canvas) return;
 
     const circle = new FabricCircle({
-      left: CANVAS_WIDTH / 2 - 100,
-      top: CANVAS_HEIGHT / 2 - 100,
+      left: CANVAS_WIDTH / 2,
+      top: CANVAS_HEIGHT / 2,
       radius: 100,
       fill: '#4ECDC4',
       stroke: '#000000',
       strokeWidth: 2,
+      originX: 'center',
+      originY: 'center',
+      centeredRotation: true,
     });
 
     canvas.add(circle);
@@ -274,6 +283,9 @@ export function CanvasEditor({
             top: CANVAS_HEIGHT / 2,
             scaleX: scale,
             scaleY: scale,
+            originX: 'center',
+            originY: 'center',
+            centeredRotation: true,
           });
 
           canvas.add(img);
