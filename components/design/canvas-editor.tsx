@@ -88,8 +88,12 @@ export function CanvasEditor({
       backgroundColor: '#ffffff',
     });
 
-    // Scale down for display
+    // Initial scale (will be overridden by auto-fit, but set for immediate display)
     fabricCanvas.setZoom(DISPLAY_SCALE);
+    fabricCanvas.setDimensions({
+      width: CANVAS_WIDTH * DISPLAY_SCALE,
+      height: CANVAS_HEIGHT * DISPLAY_SCALE
+    }, { cssOnly: true });
 
     // Load initial data if provided
     if (initialData?.canvasJSON) {
@@ -141,7 +145,17 @@ export function CanvasEditor({
         const scaleY = containerHeight / CANVAS_HEIGHT;
         const scale = Math.min(scaleX, scaleY); // Fit to screen, no arbitrary max limit
 
+        // Set zoom for internal rendering
         fabricCanvas.setZoom(scale);
+
+        // CRITICAL: Set CSS dimensions to match zoomed size
+        // Internal canvas stays 1800x1200 (for 300 DPI export)
+        // CSS dimensions scale down for display
+        fabricCanvas.setDimensions({
+          width: CANVAS_WIDTH * scale,
+          height: CANVAS_HEIGHT * scale
+        }, { cssOnly: true });
+
         fabricCanvas.renderAll();
 
         console.log('📐 Canvas auto-fit:', {
@@ -330,6 +344,13 @@ export function CanvasEditor({
     const currentZoom = canvas.getZoom();
     const newZoom = Math.min(currentZoom * 1.2, 3); // Max 3x zoom
     canvas.setZoom(newZoom);
+
+    // Update CSS dimensions to match zoom
+    canvas.setDimensions({
+      width: CANVAS_WIDTH * newZoom,
+      height: CANVAS_HEIGHT * newZoom
+    }, { cssOnly: true });
+
     canvas.renderAll();
     setForceUpdate(prev => prev + 1); // Trigger re-render for container resize
   }, [canvas]);
@@ -340,6 +361,13 @@ export function CanvasEditor({
     const currentZoom = canvas.getZoom();
     const newZoom = Math.max(currentZoom / 1.2, 0.1); // Min 0.1x zoom
     canvas.setZoom(newZoom);
+
+    // Update CSS dimensions to match zoom
+    canvas.setDimensions({
+      width: CANVAS_WIDTH * newZoom,
+      height: CANVAS_HEIGHT * newZoom
+    }, { cssOnly: true });
+
     canvas.renderAll();
     setForceUpdate(prev => prev + 1); // Trigger re-render for container resize
   }, [canvas]);
@@ -362,6 +390,13 @@ export function CanvasEditor({
     const scale = Math.min(scaleX, scaleY); // Fit to available space
 
     canvas.setZoom(scale);
+
+    // Update CSS dimensions to match zoom
+    canvas.setDimensions({
+      width: CANVAS_WIDTH * scale,
+      height: CANVAS_HEIGHT * scale
+    }, { cssOnly: true });
+
     canvas.renderAll();
     setForceUpdate(prev => prev + 1); // Trigger re-render for container resize
 
@@ -422,6 +457,7 @@ export function CanvasEditor({
     // Temporarily set zoom to 1:1 for export
     const currentZoom = canvas.getZoom();
     canvas.setZoom(1);
+    // Note: Don't update CSS dimensions here - export is instant and we restore immediately
 
     const dataURL = canvas.toDataURL({
       format: 'png',
@@ -431,6 +467,7 @@ export function CanvasEditor({
 
     // Restore zoom
     canvas.setZoom(currentZoom);
+    // CSS dimensions remain unchanged since we only temporarily changed zoom
 
     // Download
     const link = document.createElement('a');
