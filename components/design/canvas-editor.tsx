@@ -29,28 +29,21 @@ import { PropertyPanel } from './property-panel';
 import { LayersPanel } from './layers-panel';
 import { AIDesignAssistant } from './ai-design-assistant';
 import { Sidebar } from '@/components/sidebar';
-
-// Canvas dimensions for 6x4 postcard at 300 DPI
-const CANVAS_WIDTH_INCHES = 6;
-const CANVAS_HEIGHT_INCHES = 4;
-const DPI = 300;
-const CANVAS_WIDTH = CANVAS_WIDTH_INCHES * DPI; // 1800px
-const CANVAS_HEIGHT = CANVAS_HEIGHT_INCHES * DPI; // 1200px
-
-// Display scale (show canvas at 25% size for editing)
-const DISPLAY_SCALE = 0.25;
-const DISPLAY_WIDTH = CANVAS_WIDTH * DISPLAY_SCALE; // 450px
-const DISPLAY_HEIGHT = CANVAS_HEIGHT * DISPLAY_SCALE; // 300px
+import { DEFAULT_FORMAT, type PrintFormat } from '@/lib/design/print-formats';
 
 export interface CanvasEditorProps {
+  format?: PrintFormat; // Print format (defaults to 4x6 postcard)
+  onFormatChange?: (format: PrintFormat) => void;
   onSave?: (data: {
     canvasJSON: string;
     variableMappings: Record<string, any>;
     preview: string;
+    format: PrintFormat;
   }) => void;
   initialData?: {
     canvasJSON?: string;
     variableMappings?: Record<string, any>;
+    format?: PrintFormat;
   };
   templateName?: string;
   templateDescription?: string;
@@ -59,6 +52,8 @@ export interface CanvasEditorProps {
 }
 
 export function CanvasEditor({
+  format = DEFAULT_FORMAT,
+  onFormatChange,
   onSave,
   initialData,
   templateName,
@@ -68,6 +63,9 @@ export function CanvasEditor({
 }: CanvasEditorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [canvas, setCanvas] = useState<Canvas | null>(null);
+  const [currentFormat, setCurrentFormat] = useState<PrintFormat>(
+    initialData?.format || format
+  );
   const [selectedTool, setSelectedTool] = useState<string>('select');
   const [selectedObject, setSelectedObject] = useState<FabricObject | null>(null);
   const [history, setHistory] = useState<string[]>([]);
@@ -81,19 +79,15 @@ export function CanvasEditor({
   useEffect(() => {
     if (!canvasRef.current) return;
 
-    // Create canvas with 300 DPI dimensions
+    console.log(`🎨 Initializing canvas with format: ${currentFormat.name}`);
+    console.log(`   Dimensions: ${currentFormat.widthPixels}px × ${currentFormat.heightPixels}px (${currentFormat.widthInches}" × ${currentFormat.heightInches}" at ${currentFormat.dpi} DPI)`);
+
+    // Create canvas with format dimensions
     const fabricCanvas = new Canvas(canvasRef.current, {
-      width: CANVAS_WIDTH,
-      height: CANVAS_HEIGHT,
+      width: currentFormat.widthPixels,
+      height: currentFormat.heightPixels,
       backgroundColor: '#ffffff',
     });
-
-    // Initial scale (will be overridden by auto-fit, but set for immediate display)
-    fabricCanvas.setZoom(DISPLAY_SCALE);
-    fabricCanvas.setDimensions({
-      width: CANVAS_WIDTH * DISPLAY_SCALE,
-      height: CANVAS_HEIGHT * DISPLAY_SCALE
-    }, { cssOnly: true });
 
     // Load initial data if provided
     if (initialData?.canvasJSON) {
@@ -189,20 +183,20 @@ export function CanvasEditor({
         const containerHeight = container.clientHeight - 100;
 
         // Calculate scale to fit while maintaining aspect ratio
-        const scaleX = containerWidth / CANVAS_WIDTH;
-        const scaleY = containerHeight / CANVAS_HEIGHT;
+        const scaleX = containerWidth / currentFormat.widthPixels;
+        const scaleY = containerHeight / currentFormat.heightPixels;
         const scale = Math.min(scaleX, scaleY); // Fit to screen, no arbitrary max limit
 
         // Set zoom for internal rendering
         fabricCanvas.setZoom(scale);
 
         // CRITICAL: Set CSS dimensions to match zoomed size
-        // Internal canvas stays 1800x1200 (for 300 DPI export)
+        // Internal canvas stays at 300 DPI dimensions (for print-ready export)
         // CSS dimensions scale down for display
         try {
           fabricCanvas.setDimensions({
-            width: CANVAS_WIDTH * scale,
-            height: CANVAS_HEIGHT * scale
+            width: currentFormat.widthPixels * scale,
+            height: currentFormat.heightPixels * scale
           }, { cssOnly: true });
         } catch (err) {
           console.error('Failed to set canvas dimensions:', err);
@@ -213,13 +207,14 @@ export function CanvasEditor({
         console.log('📐 Canvas auto-fit:', {
           containerWidth,
           containerHeight,
-          canvasWidth: CANVAS_WIDTH,
-          canvasHeight: CANVAS_HEIGHT,
+          canvasWidth: currentFormat.widthPixels,
+          canvasHeight: currentFormat.heightPixels,
+          format: currentFormat.name,
           scaleX: scaleX.toFixed(3),
           scaleY: scaleY.toFixed(3),
           finalScale: scale.toFixed(3),
-          displayWidth: Math.round(CANVAS_WIDTH * scale),
-          displayHeight: Math.round(CANVAS_HEIGHT * scale)
+          displayWidth: Math.round(currentFormat.widthPixels * scale),
+          displayHeight: Math.round(currentFormat.heightPixels * scale)
         });
       }
     }, 250);
@@ -230,7 +225,7 @@ export function CanvasEditor({
       // Dispose canvas
       fabricCanvas.dispose();
     };
-  }, []);
+  }, [currentFormat, initialData?.canvasJSON, initialData?.variableMappings]);
 
   // Save canvas state to history
   const saveToHistory = useCallback((canvas: Canvas) => {
@@ -440,16 +435,16 @@ export function CanvasEditor({
     const containerHeight = container.clientHeight - 100;
 
     // Calculate scale to fit while maintaining aspect ratio
-    const scaleX = containerWidth / CANVAS_WIDTH;
-    const scaleY = containerHeight / CANVAS_HEIGHT;
+    const scaleX = containerWidth / currentFormat.widthPixels;
+    const scaleY = containerHeight / currentFormat.heightPixels;
     const scale = Math.min(scaleX, scaleY); // Fit to available space
 
     canvas.setZoom(scale);
 
     // Update CSS dimensions to match zoom
     canvas.setDimensions({
-      width: CANVAS_WIDTH * scale,
-      height: CANVAS_HEIGHT * scale
+      width: currentFormat.widthPixels * scale,
+      height: currentFormat.heightPixels * scale
     }, { cssOnly: true });
 
     canvas.renderAll();
@@ -458,11 +453,12 @@ export function CanvasEditor({
     console.log('📐 Fit to screen:', {
       containerWidth,
       containerHeight,
+      format: currentFormat.name,
       scale: `${Math.round(scale * 100)}%`,
-      displayWidth: Math.round(CANVAS_WIDTH * scale),
-      displayHeight: Math.round(CANVAS_HEIGHT * scale)
+      displayWidth: Math.round(currentFormat.widthPixels * scale),
+      displayHeight: Math.round(currentFormat.heightPixels * scale)
     });
-  }, [canvas]);
+  }, [canvas, currentFormat]);
 
   // Save template
   const handleSave = useCallback(() => {
@@ -496,14 +492,15 @@ export function CanvasEditor({
         canvasJSON,
         variableMappings,
         preview,
+        format: currentFormat,
       });
 
-      toast.success('Template saved successfully!');
+      toast.success(`Template saved successfully! (${currentFormat.name})`);
     } catch (error) {
       console.error('Save error:', error);
       toast.error('Failed to save template');
     }
-  }, [canvas, onSave]);
+  }, [canvas, onSave, currentFormat]);
 
   // Download as PNG (full 300 DPI)
   const downloadPNG = useCallback(() => {
