@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { Search, Calendar, Maximize2, FileText, Loader2, RefreshCw } from 'lucide-react'
+import { Search, Calendar, Maximize2, FileText, Loader2, RefreshCw, Zap, Trash2 } from 'lucide-react'
 import { DesignTemplate } from '@/lib/database/types'
 import { toast } from 'sonner'
+import { CreateCampaignModal } from '@/components/campaigns/create-campaign-modal'
 
 interface TemplateLibraryProps {
   organizationId: string
@@ -21,6 +22,8 @@ export function TemplateLibrary({ organizationId, onLoadTemplate, onClose }: Tem
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedFormat, setSelectedFormat] = useState<string>('all')
+  const [campaignModalOpen, setCampaignModalOpen] = useState(false)
+  const [selectedTemplate, setSelectedTemplate] = useState<DesignTemplate | null>(null)
 
   // Fetch templates on mount
   useEffect(() => {
@@ -77,6 +80,59 @@ export function TemplateLibrary({ organizationId, onLoadTemplate, onClose }: Tem
   const handleLoadTemplate = (template: DesignTemplate) => {
     onLoadTemplate(template)
     onClose?.()
+  }
+
+  const handleCreateCampaign = (template: DesignTemplate) => {
+    // 🔍 ULTRA-DEBUG: Log template structure before passing to modal
+    console.log('🔍 [TEMPLATE LIBRARY] Opening Create Campaign for template:', template.name);
+    console.log('🔍 [TEMPLATE LIBRARY] Template canvas_json type:', typeof template.canvas_json);
+    console.log('🔍 [TEMPLATE LIBRARY] Template canvas_json:', template.canvas_json);
+
+    if (typeof template.canvas_json === 'object') {
+      console.log('🔍 [TEMPLATE LIBRARY] Canvas objects count:', template.canvas_json.objects?.length || 0);
+      template.canvas_json.objects?.forEach((obj: any, idx: number) => {
+        console.log(`🔍 [TEMPLATE LIBRARY] Object ${idx}:`, {
+          type: obj.type,
+          hasText: !!obj.text,
+          textContent: obj.text,
+          textLength: obj.text?.length || 0,
+        });
+      });
+    }
+
+    setSelectedTemplate(template)
+    setCampaignModalOpen(true)
+  }
+
+  const handleDeleteTemplate = async (template: DesignTemplate, e: React.MouseEvent) => {
+    e.stopPropagation()
+
+    // Confirmation dialog
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${template.name}"?\n\nThis action cannot be undone.`
+    )
+
+    if (!confirmed) return
+
+    try {
+      const response = await fetch(`/api/design-templates?id=${template.id}`, {
+        method: 'DELETE',
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete template')
+      }
+
+      toast.success(`Template "${template.name}" deleted successfully`)
+
+      // Refresh templates list
+      fetchTemplates()
+    } catch (error) {
+      console.error('❌ Failed to delete template:', error)
+      toast.error('Failed to delete template')
+    }
   }
 
   const formatTypes = [
@@ -193,14 +249,35 @@ export function TemplateLibrary({ organizationId, onLoadTemplate, onClose }: Tem
                   </Badge>
                 </div>
 
-                {/* Hover overlay with load button */}
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                {/* Delete button overlay - z-20 to be above hover overlay */}
+                <button
+                  onClick={(e) => handleDeleteTemplate(template, e)}
+                  className="absolute top-2 left-2 z-20 p-1.5 rounded-md bg-white/90 text-red-600 hover:bg-red-50 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                  aria-label="Delete template"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+
+                {/* Hover overlay with action buttons */}
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                   <Button
                     onClick={() => handleLoadTemplate(template)}
                     size="sm"
                     className="shadow-lg"
                   >
                     Load Template
+                  </Button>
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleCreateCampaign(template)
+                    }}
+                    size="sm"
+                    variant="outline"
+                    className="shadow-lg bg-white"
+                  >
+                    <Zap className="w-4 h-4 mr-2" />
+                    Create Campaign
                   </Button>
                 </div>
               </div>
@@ -227,6 +304,16 @@ export function TemplateLibrary({ organizationId, onLoadTemplate, onClose }: Tem
           ))}
         </div>
       )}
+
+      {/* Campaign Creation Modal */}
+      <CreateCampaignModal
+        template={selectedTemplate}
+        open={campaignModalOpen}
+        onClose={() => {
+          setCampaignModalOpen(false)
+          setSelectedTemplate(null)
+        }}
+      />
     </div>
   )
 }

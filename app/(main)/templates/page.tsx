@@ -142,6 +142,22 @@ export default function TemplatesPage() {
         organization: profile.organization_id,
       });
 
+      // 🔍 ULTRA-DEBUG: Log canvas JSON structure before saving
+      const parsedCanvas = JSON.parse(data.canvasJSON);
+      console.log('🔍 [SAVE DEBUG] Canvas JSON structure:', {
+        objectCount: parsedCanvas.objects?.length || 0,
+        version: parsedCanvas.version,
+      });
+
+      parsedCanvas.objects?.forEach((obj: any, idx: number) => {
+        console.log(`🔍 [SAVE DEBUG] Object ${idx}:`, {
+          type: obj.type,
+          hasText: !!obj.text,
+          textContent: obj.text,
+          textLength: obj.text?.length || 0,
+        });
+      });
+
       // Try database first, fallback to localStorage
       let savedToDatabase = false;
       let templateId = '';
