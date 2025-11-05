@@ -53,16 +53,27 @@ export function personalizeCanvas(
   if (personalizedCanvas.objects) {
     personalizedCanvas.objects = personalizedCanvas.objects.map((obj: any) => {
       // Only process text-based objects
-      if (obj.type === 'textbox' || obj.type === 'i-text' || obj.type === 'text') {
+      // CRITICAL: Fabric.js v6 uses capital letters: 'Textbox', 'IText', 'Text'
+      const objType = (obj.type || '').toLowerCase()
+      if (objType === 'textbox' || objType === 'itext' || objType === 'i-text' || objType === 'text') {
         const originalText = obj.text || ''
 
         // Replace variables with actual data from CSV row
         const personalizedText = replaceVariables(originalText, rowData)
 
-        return {
+        // CRITICAL FIX: Remove Fabric.js character-level styles when text is replaced
+        // These styles (purple chip styling) have indices that no longer match after replacement
+        // Clean slate ensures text renders correctly without style artifacts
+        const cleanedObj = {
           ...obj,
           text: personalizedText,
         }
+
+        // Remove all character-level styling properties
+        delete cleanedObj.styles
+        delete cleanedObj.styleHas
+
+        return cleanedObj
       }
 
       return obj

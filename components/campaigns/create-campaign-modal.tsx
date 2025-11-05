@@ -14,6 +14,7 @@ import {
   ArrowRight,
   ArrowLeft,
   Loader2,
+  FileArchive,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -30,6 +31,14 @@ import {
   PersonalizedVariant,
   PersonalizationProgress,
 } from '@/lib/campaigns/personalization-engine'
+import {
+  exportCanvasJSONToPDF,
+  downloadPDF,
+  bundlePDFsToZip,
+  downloadZIP,
+  type PDFBundleItem
+} from '@/lib/pdf/export-to-pdf'
+import { getFormat } from '@/lib/design/print-formats'
 
 interface CreateCampaignModalProps {
   template: DesignTemplate | null
@@ -54,6 +63,8 @@ export function CreateCampaignModal({
   const [variants, setVariants] = useState<PersonalizedVariant[]>([])
   const [progress, setProgress] = useState<PersonalizationProgress | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [isExportingPDF, setIsExportingPDF] = useState(false)
+  const [exportingIndex, setExportingIndex] = useState<number | null>(null)
 
   // Detect variables when template changes
   useEffect(() => {
@@ -149,6 +160,203 @@ export function CreateCampaignModal({
 
   const handleBack = () => {
     setStep('variables')
+  }
+
+  // PDF Export Handlers
+  const handleDownloadSinglePDF = async (variant: PersonalizedVariant, index: number) => {
+    if (!template) return
+
+    try {
+      setExportingIndex(index)
+      const format = getFormat(template.format_type)
+
+      // Generate unique filename from recipient data
+      const firstValues = Object.values(variant.data).slice(0, 2).join('_').replace(/[^a-z0-9_-]/gi, '_')
+      const fileName = `${template.name}_${firstValues}_variant${index + 1}`.toLowerCase()
+
+      toast.info('Generating PDF...', {
+        description: 'This may take a few seconds for high-quality export',
+      })
+
+      // Debug: Log variant structure before PDF export
+      console.log('🔍 [MODAL] Variant object:', {
+        rowIndex: variant.rowIndex,
+        data: variant.data,
+        canvasJSONType: typeof variant.canvasJSON,
+        canvasJSONExists: !!variant.canvasJSON,
+        canvasJSONObjectsCount: variant.canvasJSON?.objects?.length || 0
+      })
+
+      // Fix: Use camelCase 'canvasJSON' instead of snake_case 'canvas_json'
+      const pdfResult = await exportCanvasJSONToPDF(variant.canvasJSON, format, fileName)
+      downloadPDF(pdfResult)
+
+      toast.success('PDF downloaded!', {
+        description: `${pdfResult.fileName} (${(pdfResult.fileSizeBytes / 1024).toFixed(2)} KB)`,
+      })
+    } catch (error) {
+      console.error('❌ Error exporting PDF:', error)
+      toast.error('Failed to export PDF', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      })
+    } finally {
+      setExportingIndex(null)
+    }
+  }
+
+  const handleDownloadAllPDFs = async () => {
+    if (!template || variants.length === 0) return
+
+    try {
+      setIsExportingPDF(true)
+
+      const format = getFormat(template.format_type)
+
+      // PERFORMANCE OPTIMIZATION: Batch processing for scalability
+      // Process in chunks to prevent memory overflow and UI blocking
+      const BATCH_SIZE = 50 // Process 50 variants at a time
+      const totalVariants = variants.length
+
+      console.log(`📦 [BULK EXPORT] Starting batch export: ${totalVariants} variants in batches of ${BATCH_SIZE}`)
+
+      // Create ZIP instance for streaming
+      const JSZip = (await import('jszip')).default
+      const zip = new JSZip()
+      const pdfsFolder = zip.folder('pdfs')
+      if (!pdfsFolder) {
+        throw new Error('Failed to create pdfs folder')
+      }
+
+      let successCount = 0
+      let failedCount = 0
+      const manifestRows: string[] = [
+        'variant_number,filename,row_index,file_size_kb,recipient_data'
+      ]
+
+      // Show initial toast (will be updated, not replaced)
+      const progressToastId = 'bulk-export-progress'
+
+      // Process in batches
+      for (let batchStart = 0; batchStart < totalVariants; batchStart += BATCH_SIZE) {
+        const batchEnd = Math.min(batchStart + BATCH_SIZE, totalVariants)
+        const batch = variants.slice(batchStart, batchEnd)
+        const batchNum = Math.floor(batchStart / BATCH_SIZE) + 1
+        const totalBatches = Math.ceil(totalVariants / BATCH_SIZE)
+
+        console.log(`📦 [BATCH ${batchNum}/${totalBatches}] Processing variants ${batchStart + 1}-${batchEnd}`)
+
+        // Update progress - SMART: Only update toast, don't create new ones
+        const percentage = Math.round((batchStart / totalVariants) * 100)
+        toast.info(`Generating PDFs: ${batchStart}/${totalVariants} (${percentage}%)`, {
+          id: progressToastId, // Reuse same toast
+          description: `Batch ${batchNum}/${totalBatches} • Memory-efficient streaming`,
+        })
+
+        // Process batch in parallel (up to batch size)
+        for (let i = 0; i < batch.length; i++) {
+          const globalIndex = batchStart + i
+          const variant = batch[i]
+          const firstValues = Object.values(variant.data).slice(0, 2).join('_').replace(/[^a-z0-9_-]/gi, '_')
+          const fileName = `${template.name}_${firstValues}_variant${globalIndex + 1}`.toLowerCase()
+
+          try {
+            // Generate PDF
+            const pdfResult = await exportCanvasJSONToPDF(variant.canvasJSON, format, fileName)
+
+            // Add to ZIP immediately (streaming approach)
+            const paddedNumber = (globalIndex + 1).toString().padStart(3, '0')
+            const zipFileName = `variant-${paddedNumber}-${pdfResult.fileName}`
+            pdfsFolder.file(zipFileName, pdfResult.blob)
+
+            // Add to manifest
+            const fileSizeKB = (pdfResult.fileSizeBytes / 1024).toFixed(2)
+            const recipientDataStr = Object.entries(variant.data)
+              .map(([key, value]) => `${key}:${value}`)
+              .join('; ')
+            const escapedData = `"${recipientDataStr.replace(/"/g, '""')}"`
+            manifestRows.push(
+              `${globalIndex + 1},${zipFileName},${variant.rowIndex},${fileSizeKB},${escapedData}`
+            )
+
+            successCount++
+          } catch (error) {
+            console.error(`❌ Error exporting variant ${globalIndex + 1}:`, error)
+            failedCount++
+          }
+        }
+
+        // Yield control to UI between batches (prevents freezing)
+        await new Promise(resolve => setTimeout(resolve, 10))
+      }
+
+      if (successCount === 0) {
+        throw new Error('No PDFs were successfully generated')
+      }
+
+      // Add manifest.csv to ZIP
+      toast.info('Finalizing ZIP bundle...', {
+        id: progressToastId,
+        description: 'Adding manifest.csv and compressing...',
+      })
+
+      const manifestContent = manifestRows.join('\n')
+      zip.file('manifest.csv', manifestContent)
+
+      console.log(`✅ [BULK EXPORT] All PDFs added to ZIP. Compressing...`)
+
+      // Generate ZIP blob with progress
+      const zipBlob = await zip.generateAsync({
+        type: 'blob',
+        compression: 'DEFLATE',
+        compressionOptions: {
+          level: 6
+        }
+      }, (metadata) => {
+        // Update during compression
+        const compressPercent = Math.round(metadata.percent)
+        if (compressPercent % 10 === 0 || compressPercent === 100) {
+          toast.info(`Compressing ZIP: ${compressPercent}%`, {
+            id: progressToastId,
+            description: `${successCount} PDFs ready for download`,
+          })
+        }
+      })
+
+      // Download ZIP
+      const timestamp = new Date().toISOString().split('T')[0]
+      const safeTemplateName = template.name.toLowerCase().replace(/[^a-z0-9_-]/g, '_')
+      const zipFileName = `${safeTemplateName}-${timestamp}.zip`
+
+      const url = URL.createObjectURL(zipBlob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = zipFileName
+      link.style.display = 'none'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      setTimeout(() => URL.revokeObjectURL(url), 100)
+
+      console.log(`🎉 [BULK EXPORT] ZIP downloaded:`, {
+        fileName: zipFileName,
+        fileSize: `${(zipBlob.size / 1024 / 1024).toFixed(2)} MB`,
+        successCount,
+        failedCount
+      })
+
+      // Final success toast (dismiss progress toast)
+      toast.dismiss(progressToastId)
+      toast.success(`ZIP bundle downloaded!`, {
+        description: `${successCount} PDFs • ${(zipBlob.size / 1024 / 1024).toFixed(2)} MB • ${failedCount > 0 ? `${failedCount} failed` : 'All successful'}`,
+      })
+    } catch (error) {
+      console.error('❌ Error in bulk PDF export:', error)
+      toast.error('Failed to export PDFs', {
+        description: error instanceof Error ? error.message : 'Unknown error'
+      })
+    } finally {
+      setIsExportingPDF(false)
+    }
   }
 
   if (!template) return null
@@ -417,11 +625,11 @@ export function CreateCampaignModal({
                         key={idx}
                         className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200"
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 flex-1">
                           <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-semibold">
                             {idx + 1}
                           </div>
-                          <div>
+                          <div className="flex-1">
                             <p className="text-sm font-medium text-slate-700">
                               {Object.keys(variant.data).slice(0, 2).map(key => variant.data[key]).join(' • ')}
                             </p>
@@ -430,7 +638,21 @@ export function CreateCampaignModal({
                             </p>
                           </div>
                         </div>
-                        <CheckCircle2 className="w-5 h-5 text-green-600" />
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDownloadSinglePDF(variant, idx)}
+                            disabled={exportingIndex === idx}
+                          >
+                            {exportingIndex === idx ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Download className="w-4 h-4" />
+                            )}
+                          </Button>
+                          <CheckCircle2 className="w-5 h-5 text-green-600" />
+                        </div>
                       </div>
                     ))}
                     {variants.length > 10 && (
@@ -445,9 +667,9 @@ export function CreateCampaignModal({
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <h4 className="font-semibold text-blue-900 mb-2">Next Steps:</h4>
                   <ol className="list-decimal list-inside space-y-1 text-sm text-blue-800">
-                    <li>Export variants as high-quality PDFs (300 DPI)</li>
-                    <li>Download all files as ZIP archive</li>
-                    <li>Send to print fulfillment or download individually</li>
+                    <li>Download individual PDFs or click "Download as ZIP"</li>
+                    <li>ZIP includes all PDFs + manifest.csv with metadata</li>
+                    <li>Send to print fulfillment (300 DPI print-ready)</li>
                   </ol>
                 </div>
 
@@ -457,10 +679,21 @@ export function CreateCampaignModal({
                     Close
                   </Button>
                   <Button
-                    disabled
+                    onClick={handleDownloadAllPDFs}
+                    disabled={isExportingPDF || variants.length === 0}
                     className="bg-green-600 hover:bg-green-700"
                   >
-                    Export All as PDF (Coming Soon)
+                    {isExportingPDF ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Creating ZIP bundle...
+                      </>
+                    ) : (
+                      <>
+                        <FileArchive className="w-4 h-4 mr-2" />
+                        Download as ZIP ({variants.length} PDFs)
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>
