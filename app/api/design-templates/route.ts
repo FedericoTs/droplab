@@ -105,6 +105,15 @@ export async function POST(request: NextRequest) {
       canvas_width: body.canvas_width || format.widthPixels,
       canvas_height: body.canvas_height || format.heightPixels,
       variable_mappings: body.variable_mappings || {},
+      // Multi-surface support: Pack current canvas into surfaces[0] with 'front' side
+      surfaces: body.surfaces || [
+        {
+          side: 'front' as const,
+          canvas_json: body.canvas_json,
+          variable_mappings: body.variable_mappings || {},
+          thumbnail_url: body.thumbnail_url || null,
+        },
+      ],
       format_type: body.format_type,
       format_width_inches: format.widthInches,
       format_height_inches: format.heightInches,
@@ -146,6 +155,56 @@ export async function POST(request: NextRequest) {
       {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to create template',
+      },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE /api/design-templates
+ * Delete a design template
+ * Query params:
+ *   - id (required): Template ID to delete
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const searchParams = request.nextUrl.searchParams;
+    const templateId = searchParams.get('id');
+
+    if (!templateId) {
+      return NextResponse.json(
+        { error: 'Template ID is required' },
+        { status: 400 }
+      );
+    }
+
+    console.log('🗑️ Deleting template:', templateId);
+
+    // Use admin client to bypass RLS for server-side operations
+    const supabase = createAdminClient();
+
+    const { error } = await supabase
+      .from('design_templates')
+      .delete()
+      .eq('id', templateId);
+
+    if (error) {
+      throw new Error(`Failed to delete template: ${error.message}`);
+    }
+
+    console.log('✅ Template deleted:', templateId);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Template deleted successfully',
+    });
+  } catch (error) {
+    console.error('❌ Error deleting template:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to delete template',
       },
       { status: 500 }
     );

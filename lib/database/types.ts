@@ -163,6 +163,32 @@ export interface UserProfileUpdate {
 // DESIGN_TEMPLATES TABLE
 // ============================================================================
 
+/**
+ * Multi-Surface Architecture
+ * Enables templates with multiple sides/panels (postcards, self-mailers, brochures)
+ */
+export type SurfaceType =
+  | 'front'
+  | 'back'
+  | 'inside-left'
+  | 'inside-right'
+  | 'panel-1'
+  | 'panel-2'
+  | 'panel-3'
+  | 'panel-4'
+  | 'panel-5'
+  | 'panel-6';
+
+export interface DesignSurface {
+  side: SurfaceType;
+  canvas_json: Record<string, any>; // Fabric.js toJSON() output for this surface
+  variable_mappings?: Record<string, {
+    variableType: string;
+    isReusable: boolean;
+  }>;
+  thumbnail_url?: string | null;
+}
+
 export interface DesignTemplate {
   id: string; // UUID
   organization_id: string; // UUID
@@ -184,6 +210,9 @@ export interface DesignTemplate {
     variableType: string;
     isReusable: boolean;
   }>; // JSONB
+
+  // Multi-Surface Support (NEW - 2025-11-05)
+  surfaces: DesignSurface[]; // JSONB array - supports N surfaces (front, back, panels)
 
   // Format & Dimensions
   format_type: 'postcard_4x6' | 'postcard_6x9' | 'postcard_6x11' | 'letter_8.5x11' | 'selfmailer_11x17' | 'doorhanger_4x11';
@@ -245,6 +274,7 @@ export interface DesignTemplateInsert {
   canvas_width: number;
   canvas_height: number;
   variable_mappings?: Record<string, any>;
+  surfaces?: DesignSurface[]; // Optional - will be auto-generated from canvas_json if not provided
   format_type: string;
   format_width_inches: number;
   format_height_inches: number;

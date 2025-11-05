@@ -1757,13 +1757,58 @@ Allow users to mark canvas objects as variables (e.g., `{{recipient_name}}`).
 - [x] Debugging Infrastructure (first principles logging at 3 stages)
 
 **Pending Features** (Next Priority):
-- [ ] PDF Export Engine (300 DPI, CMYK) - **HIGH PRIORITY**
-- [ ] Bulk Download (ZIP) - **MEDIUM PRIORITY**
+- [ ] **Task 3.10: Multi-Surface Schema** (30 min) - **IMMEDIATE PRIORITY** - Implement multi-surface template architecture (schema only, UI deferred)
+- [ ] **Task 3.11: PDF Export Engine** (3-4 hours) - **HIGH PRIORITY** - 300 DPI, CMYK conversion, print-ready output
+- [ ] **Task 3.12: Bulk Download (ZIP)** (1-2 hours) - **MEDIUM PRIORITY** - Generate ZIP with all PDFs + manifest CSV
 - [ ] PostGrid Integration - **DEFERRED TO PHASE 5**
 
 **Bug Fixes (2025-11-05)**:
 - ✅ **Variable Detection**: Fixed case sensitivity bug (Fabric.js v6 uses 'Textbox' not 'textbox')
 - ✅ **Delete Button**: Fixed z-index stacking issue (added z-20 class)
+
+**Architecture Decision (2025-11-05)**: 🏗️ **MULTI-SURFACE TEMPLATE SCHEMA**
+
+**Context**: Templates currently support single canvas. Need multi-sided formats:
+- **Postcards**: Front + back (2 surfaces)
+- **Self-Mailers**: Outside + inside (2-4 surfaces)
+- **Brochures**: Multiple panels (6+ surfaces)
+
+**Decision**: **HYBRID APPROACH** - Schema NOW, UI Later
+- ✅ **Implement multi-surface schema NOW** (30 min) - Prevents technical debt
+- ⏸️ **Defer multi-surface UI to Phase 4/5** - Keep current Phase 3 UI simple
+
+**Implementation Strategy**:
+```typescript
+// NEW: Multi-surface schema (backward compatible)
+interface DesignSurface {
+  side: 'front' | 'back' | 'inside-left' | 'inside-right' | 'panel-1' | 'panel-2' | ...;
+  canvas_json: any;
+  variable_mappings: Record<string, any>;
+  thumbnail_url?: string;
+}
+
+interface DesignTemplate {
+  surfaces: DesignSurface[];  // Array of N surfaces
+  // ... other fields remain unchanged
+}
+```
+
+**Migration Path**:
+1. Add `surfaces` column to `design_templates` (JSONB array)
+2. Update save logic: Pack single canvas into `surfaces[0]` with `side: 'front'`
+3. Update load logic: Extract `surfaces[0]` for single-surface UI (backward compatible)
+4. Future: UI can loop through `surfaces[]` array for multi-sided editing
+
+**Benefits**:
+- ✅ Supports N surfaces (postcards, letters, self-mailers, brochures)
+- ✅ Backward compatible (existing templates work)
+- ✅ No UI complexity in Phase 3 (just schema change)
+- ✅ Prevents future migration pain
+- ✅ Enables competitive advantage (Canva doesn't do multi-surface DM well)
+
+**Timing Rationale**: Schema changes are cheap NOW (early in Phase 3), expensive LATER (after 10,000 templates). UI can evolve gradually.
+
+**Next Step**: Implement multi-surface schema (Task 3.X - see below)
 
 **Documentation**:
 - Created `PHASE3_VDP_PROGRESS_UPDATE.md` - Complete progress tracking

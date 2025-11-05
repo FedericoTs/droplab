@@ -68,10 +68,20 @@ export default function TemplatesPage() {
         console.warn(`Format ${template.format_type} not found, using default format`);
       }
 
+      // Multi-surface support: Extract from surfaces[0] for current single-surface UI
+      // If surfaces array exists, use it; otherwise fall back to canvas_json (old templates)
+      const canvasData = template.surfaces && template.surfaces.length > 0
+        ? template.surfaces[0].canvas_json
+        : template.canvas_json;
+
+      const variableData = template.surfaces && template.surfaces.length > 0
+        ? template.surfaces[0].variable_mappings
+        : template.variable_mappings;
+
       // Prepare initial data for canvas
       const loadedData = {
-        canvasJSON: JSON.stringify(template.canvas_json),
-        variableMappings: template.variable_mappings,
+        canvasJSON: JSON.stringify(canvasData),
+        variableMappings: variableData,
         format,
       };
 
