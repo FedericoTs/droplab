@@ -252,7 +252,7 @@ export function TeamWidget({ userRole, currentUserId }: TeamWidgetProps) {
       <Card>
         <CardContent className="py-12">
           <div className="flex items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+            <Loader2 className="h-6 w-6 animate-spin-smooth text-emerald-500" />
           </div>
         </CardContent>
       </Card>
@@ -261,15 +261,17 @@ export function TeamWidget({ userRole, currentUserId }: TeamWidgetProps) {
 
   return (
     <>
-      <Card className={pendingUsers.length > 0 ? 'border-2 border-amber-300 bg-amber-50/50' : ''}>
-        <CardHeader className={pendingUsers.length > 0 ? 'border-b border-amber-200 bg-amber-100/50' : ''}>
+      <Card className={pendingUsers.length > 0 ? 'border-2 border-amber-300/80 bg-amber-50/30' : ''}>
+        <CardHeader className={pendingUsers.length > 0 ? 'border-b border-amber-200/60 bg-amber-50/50' : ''}>
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
+                <div className="p-1.5 rounded-lg bg-emerald-50">
+                  <Users className="h-5 w-5 text-emerald-600" />
+                </div>
                 Team Management
                 {pendingUsers.length > 0 && (
-                  <Badge className="bg-amber-500 text-white">
+                  <Badge variant="warning" className="ml-1">
                     {pendingUsers.length} pending
                   </Badge>
                 )}
@@ -279,7 +281,7 @@ export function TeamWidget({ userRole, currentUserId }: TeamWidgetProps) {
                   ? `${pendingUsers.length} ${pendingUsers.length === 1 ? 'user' : 'users'} awaiting approval`
                   : 'Manage your team members, roles, and permissions'}
                 {isOwner && (
-                  <Badge variant="default" className="bg-blue-600 ml-2">
+                  <Badge variant="default" className="ml-2">
                     <Crown className="h-3 w-3 mr-1" />
                     You can edit roles
                   </Badge>
@@ -291,13 +293,13 @@ export function TeamWidget({ userRole, currentUserId }: TeamWidgetProps) {
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowRolesLegend(true)}
-                className="text-slate-600 hover:text-slate-900"
+                className="text-neutral-500 hover:text-emerald-700 hover:bg-emerald-50"
               >
                 <HelpCircle className="h-4 w-4 mr-1" />
                 Roles Guide
               </Button>
               <Link href="/settings?tab=team">
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" className="border-neutral-200 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700">
                   View All
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
@@ -309,31 +311,33 @@ export function TeamWidget({ userRole, currentUserId }: TeamWidgetProps) {
           {/* Pending Approvals - Urgent Section */}
           {pendingUsers.length > 0 && (
             <div className="mb-6 space-y-3">
-              <div className="flex items-center gap-2 text-amber-900 mb-3">
-                <AlertCircle className="h-4 w-4" />
+              <div className="flex items-center gap-2 text-amber-800 mb-3">
+                <div className="p-1 rounded-md bg-amber-100">
+                  <AlertCircle className="h-4 w-4 text-amber-600" />
+                </div>
                 <h3 className="font-semibold text-sm">Pending Approvals</h3>
               </div>
               {pendingUsers.slice(0, 3).map((user) => (
                 <div
                   key={user.id}
-                  className="bg-white rounded-lg border border-amber-200 p-3 space-y-2"
+                  className="bg-white rounded-xl border border-amber-200/80 p-3 space-y-2 shadow-xs hover:shadow-sm transition-shadow duration-fast"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="font-medium text-sm text-slate-900">
+                        <p className="font-medium text-sm text-neutral-800">
                           {user.full_name || 'New User'}
                         </p>
-                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 text-xs">
+                        <Badge variant="warning" className="text-xs">
                           Pending
                         </Badge>
                       </div>
-                      <p className="text-xs text-slate-600 flex items-center gap-1 mt-1">
+                      <p className="text-xs text-neutral-500 flex items-center gap-1 mt-1">
                         <Mail className="h-3 w-3" />
                         {user.email}
                       </p>
                       {user.approval_requested_at && (
-                        <p className="text-xs text-slate-500 mt-1">
+                        <p className="text-xs text-neutral-400 mt-1">
                           {formatDistanceToNow(new Date(user.approval_requested_at), { addSuffix: true })}
                         </p>
                       )}
@@ -349,7 +353,7 @@ export function TeamWidget({ userRole, currentUserId }: TeamWidgetProps) {
                       className="flex-1 h-8 text-xs"
                     >
                       {processingUserId === user.id ? (
-                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                        <Loader2 className="h-3 w-3 animate-spin-smooth mr-1" />
                       ) : (
                         <CheckCircle className="h-3 w-3 mr-1" />
                       )}
@@ -363,7 +367,7 @@ export function TeamWidget({ userRole, currentUserId }: TeamWidgetProps) {
                       className="border-red-200 text-red-600 hover:bg-red-50 h-8"
                     >
                       {processingUserId === user.id ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
+                        <Loader2 className="h-3 w-3 animate-spin-smooth" />
                       ) : (
                         <XCircle className="h-3 w-3" />
                       )}
@@ -374,7 +378,7 @@ export function TeamWidget({ userRole, currentUserId }: TeamWidgetProps) {
               {pendingUsers.length > 3 && (
                 <div className="text-center pt-2">
                   <Link href="/settings?tab=team">
-                    <Button variant="link" size="sm" className="text-amber-700">
+                    <Button variant="link" size="sm" className="text-amber-600 hover:text-amber-700 font-semibold">
                       View {pendingUsers.length - 3} more pending {pendingUsers.length - 3 === 1 ? 'user' : 'users'}
                     </Button>
                   </Link>
@@ -387,9 +391,11 @@ export function TeamWidget({ userRole, currentUserId }: TeamWidgetProps) {
           {teamMembers.length > 0 && (
             <div>
               {pendingUsers.length > 0 && (
-                <div className="border-t border-slate-200 mb-4 pt-4">
-                  <h3 className="font-semibold text-sm text-slate-700 mb-3 flex items-center gap-2">
-                    <Users className="h-4 w-4" />
+                <div className="border-t border-neutral-100 mb-4 pt-4">
+                  <h3 className="font-semibold text-sm text-neutral-700 mb-3 flex items-center gap-2">
+                    <div className="p-1 rounded-md bg-emerald-50">
+                      <Users className="h-4 w-4 text-emerald-600" />
+                    </div>
                     Active Members
                   </h3>
                 </div>
@@ -401,21 +407,21 @@ export function TeamWidget({ userRole, currentUserId }: TeamWidgetProps) {
                   return (
                     <div
                       key={member.id}
-                      className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-slate-50 transition-colors border border-slate-100"
+                      className="group flex items-center justify-between py-2 px-3 rounded-xl hover:bg-emerald-50/40 transition-all duration-fast border border-neutral-100 hover:border-emerald-200/60"
                     >
                       <div className="flex items-center gap-3 flex-1">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                          <span className="text-sm font-semibold text-blue-600">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-100 to-lime-100 flex items-center justify-center flex-shrink-0 shadow-sm">
+                          <span className="text-sm font-semibold text-emerald-700">
                             {member.full_name?.charAt(0) || member.email.charAt(0).toUpperCase()}
                           </span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-900 flex items-center gap-2">
+                          <p className="text-sm font-medium text-neutral-800 flex items-center gap-2 group-hover:text-emerald-700 transition-colors duration-fast">
                             {member.full_name || 'User'}
-                            {member.role === 'owner' && <Crown className="h-3 w-3 text-yellow-600" />}
-                            {isCurrentUser && <span className="text-xs text-slate-500">(You)</span>}
+                            {member.role === 'owner' && <Crown className="h-3 w-3 text-amber-500" />}
+                            {isCurrentUser && <span className="text-xs text-neutral-400">(You)</span>}
                           </p>
-                          <p className="text-xs text-slate-500 truncate">{member.email}</p>
+                          <p className="text-xs text-neutral-500 truncate">{member.email}</p>
                         </div>
                       </div>
 
@@ -428,19 +434,19 @@ export function TeamWidget({ userRole, currentUserId }: TeamWidgetProps) {
                               onValueChange={(newRole) => handleRoleChange(member.id, newRole)}
                               disabled={!isOwner || processingUserId === member.id}
                             >
-                              <SelectTrigger className="h-8 w-32">
+                              <SelectTrigger className="h-8 w-32 border-neutral-200 hover:border-emerald-300 focus:border-emerald-400">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="owner">
                                   <div className="flex items-center gap-2">
-                                    <Crown className="h-3 w-3 text-yellow-600" />
+                                    <Crown className="h-3 w-3 text-amber-500" />
                                     Owner
                                   </div>
                                 </SelectItem>
                                 <SelectItem value="member">
                                   <div className="flex items-center gap-2">
-                                    <Users className="h-3 w-3" />
+                                    <Users className="h-3 w-3 text-neutral-500" />
                                     Member
                                   </div>
                                 </SelectItem>
@@ -450,13 +456,6 @@ export function TeamWidget({ userRole, currentUserId }: TeamWidgetProps) {
                         ) : (
                           <Badge
                             variant={member.role === 'owner' ? 'default' : 'outline'}
-                            className={
-                              member.role === 'owner'
-                                ? 'bg-blue-600'
-                                : member.role === 'admin'
-                                ? 'bg-purple-100 text-purple-700 border-purple-300'
-                                : ''
-                            }
                           >
                             {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
                           </Badge>
@@ -471,9 +470,11 @@ export function TeamWidget({ userRole, currentUserId }: TeamWidgetProps) {
 
           {/* Empty State */}
           {pendingUsers.length === 0 && teamMembers.length === 0 && (
-            <div className="text-center py-8 text-slate-500">
-              <Users className="h-12 w-12 mx-auto mb-3 text-slate-300" />
-              <p className="text-sm">No team members yet</p>
+            <div className="text-center py-8 text-neutral-500">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-neutral-50 flex items-center justify-center">
+                <Users className="h-8 w-8 text-neutral-300" />
+              </div>
+              <p className="text-sm font-medium">No team members yet</p>
             </div>
           )}
         </CardContent>
@@ -484,7 +485,9 @@ export function TeamWidget({ userRole, currentUserId }: TeamWidgetProps) {
         <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-xl">
-              <Shield className="h-6 w-6 text-blue-600" />
+              <div className="p-2 rounded-xl bg-emerald-50">
+                <Shield className="h-6 w-6 text-emerald-600" />
+              </div>
               Roles & Permissions Guide
             </DialogTitle>
             <DialogDescription>
@@ -495,35 +498,35 @@ export function TeamWidget({ userRole, currentUserId }: TeamWidgetProps) {
           <div className="space-y-6 py-4">
             {/* Role Descriptions */}
             <div className="space-y-4">
-              <h3 className="font-semibold text-sm text-slate-700">Role Descriptions</h3>
+              <h3 className="font-semibold text-sm text-neutral-700">Role Descriptions</h3>
 
               {/* Owner */}
-              <div className="border border-blue-200 rounded-lg p-4 bg-blue-50/50">
+              <div className="border border-emerald-200/80 rounded-xl p-4 bg-gradient-to-br from-emerald-50/80 to-lime-50/40">
                 <div className="flex items-center gap-2 mb-2">
-                  <Crown className="h-5 w-5 text-yellow-600" />
-                  <h4 className="font-semibold text-blue-900">Owner</h4>
-                  <Badge className="bg-blue-600">Admin Access</Badge>
+                  <Crown className="h-5 w-5 text-amber-500" />
+                  <h4 className="font-semibold text-emerald-900">Owner</h4>
+                  <Badge variant="default">Admin Access</Badge>
                 </div>
-                <p className="text-sm text-blue-800 mb-3">
+                <p className="text-sm text-emerald-800 mb-3">
                   Organization administrator with full control. Can manage team members, billing, and all settings.
                 </p>
-                <div className="bg-white rounded-md p-3 space-y-1">
-                  <p className="text-xs font-medium text-blue-900 mb-1">Owner Permissions:</p>
-                  <div className="grid grid-cols-2 gap-1 text-xs text-blue-800">
+                <div className="bg-white/80 rounded-lg p-3 space-y-1">
+                  <p className="text-xs font-medium text-emerald-900 mb-1">Owner Permissions:</p>
+                  <div className="grid grid-cols-2 gap-1 text-xs text-emerald-800">
                     <div className="flex items-center gap-1">
-                      <CheckCircle className="h-3 w-3 text-green-600" />
+                      <CheckCircle className="h-3 w-3 text-emerald-600" />
                       Approve new members
                     </div>
                     <div className="flex items-center gap-1">
-                      <CheckCircle className="h-3 w-3 text-green-600" />
+                      <CheckCircle className="h-3 w-3 text-emerald-600" />
                       Change user roles
                     </div>
                     <div className="flex items-center gap-1">
-                      <CheckCircle className="h-3 w-3 text-green-600" />
+                      <CheckCircle className="h-3 w-3 text-emerald-600" />
                       Manage billing
                     </div>
                     <div className="flex items-center gap-1">
-                      <CheckCircle className="h-3 w-3 text-green-600" />
+                      <CheckCircle className="h-3 w-3 text-emerald-600" />
                       Launch campaigns
                     </div>
                   </div>
@@ -531,40 +534,40 @@ export function TeamWidget({ userRole, currentUserId }: TeamWidgetProps) {
               </div>
 
               {/* Member */}
-              <div className="border border-slate-200 rounded-lg p-4 bg-slate-50/50">
+              <div className="border border-neutral-200/80 rounded-xl p-4 bg-neutral-50/50">
                 <div className="flex items-center gap-2 mb-2">
-                  <Users className="h-5 w-5 text-slate-600" />
-                  <h4 className="font-semibold text-slate-900">Member</h4>
-                  <Badge variant="outline" className="border-slate-400">Team Access</Badge>
+                  <Users className="h-5 w-5 text-neutral-600" />
+                  <h4 className="font-semibold text-neutral-900">Member</h4>
+                  <Badge variant="outline">Team Access</Badge>
                 </div>
-                <p className="text-sm text-slate-700 mb-3">
+                <p className="text-sm text-neutral-700 mb-3">
                   Standard team member with full campaign access. Can create, design, and launch campaigns.
                 </p>
-                <div className="bg-white rounded-md p-3 space-y-1">
-                  <p className="text-xs font-medium text-slate-900 mb-1">Member Permissions:</p>
-                  <div className="grid grid-cols-2 gap-1 text-xs text-slate-700">
+                <div className="bg-white rounded-lg p-3 space-y-1">
+                  <p className="text-xs font-medium text-neutral-900 mb-1">Member Permissions:</p>
+                  <div className="grid grid-cols-2 gap-1 text-xs text-neutral-700">
                     <div className="flex items-center gap-1">
-                      <CheckCircle className="h-3 w-3 text-green-600" />
+                      <CheckCircle className="h-3 w-3 text-emerald-600" />
                       Create designs
                     </div>
                     <div className="flex items-center gap-1">
-                      <CheckCircle className="h-3 w-3 text-green-600" />
+                      <CheckCircle className="h-3 w-3 text-emerald-600" />
                       Launch campaigns
                     </div>
                     <div className="flex items-center gap-1">
-                      <CheckCircle className="h-3 w-3 text-green-600" />
+                      <CheckCircle className="h-3 w-3 text-emerald-600" />
                       View analytics
                     </div>
                     <div className="flex items-center gap-1">
-                      <XCircle className="h-3 w-3 text-slate-300" />
+                      <XCircle className="h-3 w-3 text-neutral-300" />
                       Manage billing
                     </div>
                     <div className="flex items-center gap-1">
-                      <XCircle className="h-3 w-3 text-slate-300" />
+                      <XCircle className="h-3 w-3 text-neutral-300" />
                       Approve members
                     </div>
                     <div className="flex items-center gap-1">
-                      <XCircle className="h-3 w-3 text-slate-300" />
+                      <XCircle className="h-3 w-3 text-neutral-300" />
                       Change roles
                     </div>
                   </div>
@@ -573,12 +576,14 @@ export function TeamWidget({ userRole, currentUserId }: TeamWidgetProps) {
             </div>
 
             {/* Important Notes */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="font-semibold text-sm text-blue-900 mb-2 flex items-center gap-2">
-                <AlertCircle className="h-4 w-4" />
+            <div className="bg-lime-50/60 border border-lime-200/80 rounded-xl p-4">
+              <h3 className="font-semibold text-sm text-lime-900 mb-2 flex items-center gap-2">
+                <div className="p-1 rounded-md bg-lime-100">
+                  <AlertCircle className="h-4 w-4 text-lime-700" />
+                </div>
                 Key Points
               </h3>
-              <ul className="space-y-1 text-sm text-blue-800">
+              <ul className="space-y-1 text-sm text-lime-800">
                 <li>• <strong>Everyone can launch campaigns</strong> - both owners and members have full campaign access</li>
                 <li>• <strong>Only owners</strong> can approve new team members and manage billing</li>
                 <li>• You cannot change your own role for security</li>

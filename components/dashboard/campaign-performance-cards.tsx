@@ -35,12 +35,12 @@ export function CampaignPerformanceCards({ data, isLoading }: CampaignPerformanc
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[...Array(4)].map((_, i) => (
-          <Card key={i} className="animate-pulse">
+          <Card key={i}>
             <CardHeader className="pb-3">
-              <div className="h-4 bg-slate-200 rounded w-24"></div>
+              <div className="h-4 bg-neutral-100 rounded w-24 animate-shimmer"></div>
             </CardHeader>
             <CardContent>
-              <div className="h-8 bg-slate-200 rounded w-16"></div>
+              <div className="h-8 bg-neutral-100 rounded w-16 animate-shimmer"></div>
             </CardContent>
           </Card>
         ))}
@@ -55,17 +55,19 @@ export function CampaignPerformanceCards({ data, isLoading }: CampaignPerformanc
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {/* Total Campaigns Sent */}
-      <Card className="hover:shadow-lg transition-shadow">
+      <Card className="group">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium flex items-center gap-2 text-slate-600">
-            <Send className="h-4 w-4 text-blue-600" />
+          <CardTitle className="text-sm font-medium flex items-center gap-2 text-neutral-500">
+            <div className="p-1.5 rounded-lg bg-emerald-50 group-hover:bg-emerald-100 transition-colors">
+              <Send className="h-4 w-4 text-emerald-600" />
+            </div>
             Campaigns Sent
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-1">
-            <p className="text-3xl font-bold text-slate-900">{data.sentCampaigns}</p>
-            <p className="text-xs text-slate-500">
+            <p className="text-3xl font-bold text-neutral-800 metric-value">{data.sentCampaigns}</p>
+            <p className="text-xs text-neutral-400">
               {data.totalCampaigns} total created
             </p>
           </div>
@@ -73,17 +75,19 @@ export function CampaignPerformanceCards({ data, isLoading }: CampaignPerformanc
       </Card>
 
       {/* Active Campaigns */}
-      <Card className="hover:shadow-lg transition-shadow">
+      <Card className="group">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium flex items-center gap-2 text-slate-600">
-            <Activity className="h-4 w-4 text-green-600" />
+          <CardTitle className="text-sm font-medium flex items-center gap-2 text-neutral-500">
+            <div className="p-1.5 rounded-lg bg-lime-50 group-hover:bg-lime-100 transition-colors">
+              <Activity className="h-4 w-4 text-lime-600" />
+            </div>
             Active Campaigns
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-1">
-            <p className="text-3xl font-bold text-green-600">{data.activeCampaigns}</p>
-            <p className="text-xs text-slate-500">
+            <p className="text-3xl font-bold text-lime-600 metric-value">{data.activeCampaigns}</p>
+            <p className="text-xs text-neutral-400">
               Currently running
             </p>
           </div>
@@ -91,19 +95,21 @@ export function CampaignPerformanceCards({ data, isLoading }: CampaignPerformanc
       </Card>
 
       {/* Average Response Rate */}
-      <Card className="hover:shadow-lg transition-shadow">
+      <Card className="group">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium flex items-center gap-2 text-slate-600">
-            <TrendingUp className="h-4 w-4 text-purple-600" />
+          <CardTitle className="text-sm font-medium flex items-center gap-2 text-neutral-500">
+            <div className="p-1.5 rounded-lg bg-emerald-50 group-hover:bg-emerald-100 transition-colors">
+              <TrendingUp className="h-4 w-4 text-emerald-600" />
+            </div>
             Response Rate
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-1">
-            <p className="text-3xl font-bold text-purple-600">
+            <p className="text-3xl font-bold text-emerald-600 metric-value">
               {data.responseRate.toFixed(1)}%
             </p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-neutral-400">
               {data.totalEvents} total events
             </p>
           </div>
@@ -111,19 +117,21 @@ export function CampaignPerformanceCards({ data, isLoading }: CampaignPerformanc
       </Card>
 
       {/* Total ROI/Revenue */}
-      <Card className="hover:shadow-lg transition-shadow">
+      <Card className="group">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium flex items-center gap-2 text-slate-600">
-            <DollarSign className="h-4 w-4 text-orange-600" />
+          <CardTitle className="text-sm font-medium flex items-center gap-2 text-neutral-500">
+            <div className="p-1.5 rounded-lg bg-amber-50 group-hover:bg-amber-100 transition-colors">
+              <DollarSign className="h-4 w-4 text-amber-600" />
+            </div>
             Total Revenue
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-1">
-            <p className="text-3xl font-bold text-orange-600">
+            <p className="text-3xl font-bold text-amber-600 metric-value">
               ${data.totalRevenue.toFixed(2)}
             </p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-neutral-400">
               {data.totalConversions} conversions
             </p>
           </div>

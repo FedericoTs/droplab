@@ -137,13 +137,13 @@ export function Sidebar({ isOpen, onClose, hideButton = false, alwaysCollapsible
               onClose();
             }
           }}
-          className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-slate-900 text-white rounded-lg shadow-lg hover:bg-slate-800 transition-colors"
+          className="lg:hidden fixed top-4 left-4 z-50 p-2.5 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white rounded-lg shadow-emerald hover:shadow-emerald-lg transition-all duration-fast"
           aria-label="Toggle menu"
         >
           {isMobileMenuOpen ? (
-            <X className="h-6 w-6" />
+            <X className="h-5 w-5" />
           ) : (
-            <Menu className="h-6 w-6" />
+            <Menu className="h-5 w-5" />
           )}
         </button>
       )}
@@ -158,31 +158,31 @@ export function Sidebar({ isOpen, onClose, hideButton = false, alwaysCollapsible
 
       {/* Sidebar */}
       <div className={cn(
-        "fixed inset-y-0 left-0 z-40 flex h-screen w-64 flex-col border-r bg-slate-50 transition-transform duration-300 ease-in-out",
+        "fixed inset-y-0 left-0 z-40 flex h-screen w-64 flex-col border-r border-neutral-200/80 bg-white shadow-sm transition-transform duration-300 ease-in-out",
         !alwaysCollapsible && "lg:static",
         isMobileMenuOpen ? "translate-x-0" : alwaysCollapsible ? "-translate-x-full" : "-translate-x-full lg:translate-x-0"
       )}>
-      <div className="flex h-16 items-center justify-between border-b px-6">
-        <div className="flex items-center gap-2">
+      <div className="flex h-16 items-center justify-between border-b border-neutral-100 px-6">
+        <div className="flex items-center gap-2.5">
           <img
             src="/images/logo_icon_tbg.png"
             alt="DropLab"
-            className="h-6 w-auto object-contain"
+            className="h-7 w-auto object-contain"
           />
-          <h1 className="text-xl font-bold text-slate-900">DropLab</h1>
+          <h1 className="text-xl font-bold tracking-tight text-neutral-900 font-display">DropLab</h1>
         </div>
         {/* Close button - only shown when showCloseButton is true */}
         {showCloseButton && (
           <button
             onClick={closeMobileMenu}
-            className="h-8 w-8 rounded-lg hover:bg-slate-200 flex items-center justify-center transition-colors"
+            className="h-8 w-8 rounded-lg hover:bg-neutral-100 flex items-center justify-center transition-colors duration-fast"
             title="Close menu"
           >
-            <X className="h-5 w-5 text-slate-700" />
+            <X className="h-5 w-5 text-neutral-600" />
           </button>
         )}
       </div>
-      <nav className="flex-1 px-3 py-4 overflow-y-auto">
+      <nav className="flex-1 px-3 py-5 overflow-y-auto">
         {sections.map((section) => {
           const sectionItems = navigation.filter((item) => {
             // Filter by section
@@ -203,17 +203,17 @@ export function Sidebar({ isOpen, onClose, hideButton = false, alwaysCollapsible
               {isCollapsible ? (
                 <button
                   onClick={() => toggleSection(section.id)}
-                  className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider hover:bg-slate-100 rounded transition-colors"
+                  className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider hover:bg-neutral-50 rounded-md transition-colors duration-fast"
                 >
                   <span>{section.label}</span>
                   {isCollapsed ? (
-                    <ChevronRight className="h-4 w-4 transition-transform" />
+                    <ChevronRight className="h-4 w-4 transition-transform duration-fast" />
                   ) : (
-                    <ChevronDown className="h-4 w-4 transition-transform" />
+                    <ChevronDown className="h-4 w-4 transition-transform duration-fast" />
                   )}
                 </button>
               ) : (
-                <h3 className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <h3 className="px-3 py-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider">
                   {section.label}
                 </h3>
               )}
@@ -229,16 +229,16 @@ export function Sidebar({ isOpen, onClose, hideButton = false, alwaysCollapsible
                         onClick={closeMobileMenu}
                         data-tour={(item as any).tourId}
                         className={cn(
-                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                          "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-fast",
                           isActive
-                            ? "bg-slate-900 text-white"
-                            : "text-slate-700 hover:bg-slate-200"
+                            ? "bg-emerald-50 text-emerald-700 border-l-[3px] border-emerald-500 ml-[-3px] pl-[calc(0.75rem+3px)] font-semibold"
+                            : "text-neutral-600 hover:bg-emerald-50/60 hover:text-emerald-700"
                         )}
                       >
-                        <Icon className="h-5 w-5" />
+                        <Icon className={cn("h-5 w-5", isActive && "text-emerald-600")} />
                         <span className="flex-1">{item.name}</span>
                         {(item as any).badge && (
-                          <span className="px-2 py-0.5 text-xs font-semibold bg-orange-500 text-white rounded-full">
+                          <span className="px-2 py-0.5 text-xs font-semibold bg-emerald-500 text-white rounded-full">
                             {(item as any).badge}
                           </span>
                         )}
@@ -253,21 +253,21 @@ export function Sidebar({ isOpen, onClose, hideButton = false, alwaysCollapsible
       </nav>
 
       {/* Logout Button */}
-      <div className="border-t p-3">
+      <div className="border-t border-neutral-100 p-3">
         <button
           onClick={handleLogout}
           disabled={isLoggingOut}
           className={cn(
-            "flex items-center gap-3 w-full rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+            "flex items-center gap-3 w-full rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-fast",
             isLoggingOut
-              ? "bg-slate-200 text-slate-400 cursor-not-allowed"
-              : "text-slate-700 hover:bg-red-50 hover:text-red-600"
+              ? "bg-neutral-100 text-neutral-400 cursor-not-allowed"
+              : "text-neutral-600 hover:bg-red-50 hover:text-red-600"
           )}
         >
           <LogOut className="h-5 w-5" />
           <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
         </button>
-        <p className="text-xs text-slate-500 mt-3 px-3">
+        <p className="text-xs text-neutral-400 mt-3 px-3 font-medium tracking-wide">
           DropLab Platform
         </p>
       </div>

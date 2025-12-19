@@ -171,8 +171,11 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      <div className="flex items-center justify-center min-h-screen bg-premium-mesh">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin-smooth text-emerald-600" />
+          <p className="text-sm text-neutral-500 font-medium">Loading dashboard...</p>
+        </div>
       </div>
     );
   }
@@ -180,7 +183,7 @@ export default function DashboardPage() {
   // Show onboarding if no profile exists
   if (user && !profile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 p-8">
+      <div className="min-h-screen bg-premium-mesh p-8">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
@@ -310,32 +313,32 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 p-8">
+    <div className="min-h-screen bg-premium-mesh p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-8 animate-fade-in-up">
           <div className="flex items-center gap-4">
             {organization?.brand_logo_url ? (
               <img
                 src={organization.brand_logo_url}
                 alt={organization.name}
-                className="h-12 w-auto object-contain"
+                className="h-12 w-auto object-contain rounded-lg"
               />
             ) : (
               <div
-                className="h-12 w-12 rounded-lg flex items-center justify-center text-white font-bold text-xl"
-                style={{ backgroundColor: organization?.brand_primary_color || '#3B82F6' }}
+                className="h-12 w-12 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-md"
+                style={{ backgroundColor: organization?.brand_primary_color || '#10B981' }}
               >
                 {organization?.name?.charAt(0) || 'D'}
               </div>
             )}
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">
+              <h1 className="text-3xl font-bold text-neutral-800 font-display tracking-tight">
                 {organization?.name || 'DropLab'}
               </h1>
-              <p className="text-slate-600">
+              <p className="text-neutral-500">
                 {profile?.full_name || user?.email} • {profile?.role && (
-                  <span className="capitalize">{profile.role}</span>
+                  <span className="capitalize font-medium text-emerald-600">{profile.role}</span>
                 )}
               </p>
             </div>
@@ -495,7 +498,7 @@ export default function DashboardPage() {
 
         {/* Campaign Performance Overview */}
         <div className="mb-8">
-          <h2 className="text-xl font-bold text-slate-900 mb-4">Campaign Performance</h2>
+          <h2 className="text-xl font-semibold text-neutral-800 mb-4 font-display tracking-tight">Campaign Performance</h2>
           <CampaignPerformanceCards
             data={dashboardMetrics?.overview || null}
             isLoading={metricsLoading}
