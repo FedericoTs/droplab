@@ -83,7 +83,7 @@ export default function MarketingHomepage() {
                 </Button>
               </Link>
               <Link href="/auth/signup">
-                <Button size="sm" className="bg-gradient-to-r from-indigo-600 to-purple-600">
+                <Button size="sm" className="bg-gradient-to-r from-emerald-600 to-lime-600">
                   Get Started
                 </Button>
               </Link>
@@ -133,7 +133,7 @@ export default function MarketingHomepage() {
                     </Button>
                   </Link>
                   <Link href="/auth/signup" className="block">
-                    <Button size="sm" className="w-full bg-gradient-to-r from-indigo-600 to-purple-600">
+                    <Button size="sm" className="w-full bg-gradient-to-r from-emerald-600 to-lime-600">
                       Get Started
                     </Button>
                   </Link>
@@ -168,7 +168,7 @@ export default function MarketingHomepage() {
       <FAQ />
 
       {/* Demo Section */}
-      <section id="demo" className="py-24 bg-gradient-to-br from-slate-50 to-indigo-50">
+      <section id="demo" className="py-24 bg-gradient-to-br from-slate-50 to-emerald-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Section Header */}
           <div className="text-center mb-12">
@@ -191,7 +191,7 @@ export default function MarketingHomepage() {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="text-center">
-                <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 font-bold mb-3">
+                <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 font-bold mb-3">
                   1
                 </div>
                 <p className="text-sm text-slate-600">
@@ -199,7 +199,7 @@ export default function MarketingHomepage() {
                 </p>
               </div>
               <div className="text-center">
-                <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-purple-100 text-purple-600 font-bold mb-3">
+                <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-lime-100 text-lime-600 font-bold mb-3">
                   2
                 </div>
                 <p className="text-sm text-slate-600">
@@ -220,18 +220,18 @@ export default function MarketingHomepage() {
       </section>
 
       {/* Final CTA Section */}
-      <section className="py-24 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+      <section className="py-24 bg-gradient-to-r from-emerald-600 to-lime-600 text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl sm:text-5xl font-bold mb-6">
             Ready to Prove ROI on Offline Marketing?
           </h2>
-          <p className="text-xl text-indigo-100 mb-8 max-w-2xl mx-auto">
+          <p className="text-xl text-emerald-100 mb-8 max-w-2xl mx-auto">
             Join 500+ marketers who have complete attribution across online and offline channels.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
               onClick={handleDemoClick}
-              className="px-8 py-4 bg-white text-indigo-600 rounded-lg font-semibold hover:bg-indigo-50 transition-colors shadow-lg"
+              className="px-8 py-4 bg-white text-emerald-600 rounded-lg font-semibold hover:bg-emerald-50 transition-colors shadow-lg"
             >
               Try Interactive Demo
             </button>

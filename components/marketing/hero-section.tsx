@@ -70,7 +70,7 @@ export function HeroSection({ onDemoClick }: HeroSectionProps) {
   }, []);
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+    <section className="relative overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-lime-50">
       {/* Background decorative elements */}
       <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10" />
 
@@ -82,7 +82,7 @@ export function HeroSection({ onDemoClick }: HeroSectionProps) {
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-slate-900 mb-6">
               Offline Marketing.
               <br />
-              <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-emerald-600 to-lime-600 bg-clip-text text-transparent">
                 Online Attribution.
               </span>
             </h1>
@@ -110,7 +110,7 @@ export function HeroSection({ onDemoClick }: HeroSectionProps) {
                 {[1, 2, 3, 4].map((i) => (
                   <div
                     key={i}
-                    className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-400 border-2 border-white"
+                    className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-lime-400 border-2 border-white"
                   />
                 ))}
               </div>
@@ -123,7 +123,7 @@ export function HeroSection({ onDemoClick }: HeroSectionProps) {
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <Button
                 size="lg"
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-8 py-6 text-lg font-semibold shadow-lg hover:shadow-xl transition-all"
+                className="bg-gradient-to-r from-emerald-600 to-lime-600 hover:from-emerald-700 hover:to-lime-700 text-white px-8 py-6 text-lg font-semibold shadow-lg hover:shadow-xl transition-all"
                 onClick={onDemoClick}
               >
                 Try Interactive Demo
@@ -164,7 +164,7 @@ export function HeroSection({ onDemoClick }: HeroSectionProps) {
               {/* Header with Live Indicator */}
               <div className="flex items-center justify-between pb-4 border-b border-slate-200">
                 <h3 className="font-bold text-slate-900 flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-indigo-600" />
+                  <Activity className="w-5 h-5 text-emerald-600" />
                   Campaign Performance
                 </h3>
                 <div className="flex items-center gap-2">
@@ -176,27 +176,27 @@ export function HeroSection({ onDemoClick }: HeroSectionProps) {
               {/* Enhanced Metrics Grid */}
               <div className="grid grid-cols-2 gap-3 mt-4">
                 {/* Mail Sent */}
-                <div className="p-3 bg-gradient-to-br from-indigo-50 to-indigo-100/50 rounded-lg border border-indigo-200 transition-all hover:shadow-md">
+                <div className="p-3 bg-gradient-to-br from-emerald-50 to-emerald-100/50 rounded-lg border border-emerald-200 transition-all hover:shadow-md">
                   <div className="flex items-center gap-2 mb-1">
-                    <Mail className="w-4 h-4 text-indigo-600" />
+                    <Mail className="w-4 h-4 text-emerald-600" />
                     <span className="text-xs font-semibold text-slate-600">Mail Sent</span>
                   </div>
-                  <div className="text-2xl font-bold text-indigo-900 tabular-nums">
+                  <div className="text-2xl font-bold text-emerald-900 tabular-nums">
                     {metrics.sent.toLocaleString()}
                   </div>
-                  <div className="text-xs text-indigo-600 mt-1">+12.5% this week</div>
+                  <div className="text-xs text-emerald-600 mt-1">+12.5% this week</div>
                 </div>
 
                 {/* QR Scans */}
-                <div className="p-3 bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-lg border border-purple-200 transition-all hover:shadow-md">
+                <div className="p-3 bg-gradient-to-br from-lime-50 to-lime-100/50 rounded-lg border border-lime-200 transition-all hover:shadow-md">
                   <div className="flex items-center gap-2 mb-1">
-                    <TrendingUp className="w-4 h-4 text-purple-600" />
+                    <TrendingUp className="w-4 h-4 text-lime-600" />
                     <span className="text-xs font-semibold text-slate-600">QR Scans</span>
                   </div>
-                  <div className="text-2xl font-bold text-purple-900 tabular-nums">
+                  <div className="text-2xl font-bold text-lime-900 tabular-nums">
                     {metrics.scans.toLocaleString()}
                   </div>
-                  <div className="text-xs text-purple-600 mt-1">{metrics.responseRate}% response</div>
+                  <div className="text-xs text-lime-600 mt-1">{metrics.responseRate}% response</div>
                 </div>
 
                 {/* Response Rate */}
@@ -249,7 +249,7 @@ export function HeroSection({ onDemoClick }: HeroSectionProps) {
             </div>
 
             {/* Background glow effect */}
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-400 to-purple-400 rounded-2xl blur-3xl opacity-20 -z-10 transform scale-95" />
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-400 to-lime-400 rounded-2xl blur-3xl opacity-20 -z-10 transform scale-95" />
           </div>
         </div>
       </div>

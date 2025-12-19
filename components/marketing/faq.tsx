@@ -98,7 +98,7 @@ export function FAQ() {
           <p className="text-slate-600 mb-4">Still have questions?</p>
           <a
             href="mailto:support@droplab.app"
-            className="text-indigo-600 hover:text-indigo-700 font-semibold"
+            className="text-emerald-600 hover:text-emerald-700 font-semibold"
           >
             Get in touch with our team →
           </a>

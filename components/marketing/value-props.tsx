@@ -20,13 +20,13 @@ const features = [
     icon: Target,
     headline: 'From Mailbox to Conversion',
     body: 'Track the complete customer journey with unique QR codes and personalized landing pages. See every touchpoint from scan to sale.',
-    color: 'from-blue-500 to-cyan-500',
+    color: 'from-emerald-500 to-teal-500',
   },
   {
     icon: BarChart3,
     headline: 'Google Analytics for Direct Mail',
     body: 'See exactly who scanned, when they visited, what they clicked, and how much they spent. Pixel-perfect tracking for offline campaigns.',
-    color: 'from-purple-500 to-pink-500',
+    color: 'from-lime-500 to-green-500',
   },
   {
     icon: DollarSign,
@@ -38,7 +38,7 @@ const features = [
     icon: Link2,
     headline: 'Bridge the Attribution Gap',
     body: 'Connect your physical campaigns to digital infrastructure. One dashboard shows complete attribution across online and offline channels.',
-    color: 'from-orange-500 to-red-500',
+    color: 'from-teal-500 to-cyan-500',
   },
 ];
 
@@ -53,7 +53,7 @@ export function ValueProps() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-16">
-          <h2 className="text-base font-semibold text-indigo-600 mb-2 uppercase tracking-wide">
+          <h2 className="text-base font-semibold text-emerald-600 mb-2 uppercase tracking-wide">
             The Attribution Problem, Solved
           </h2>
           <p className="text-4xl sm:text-5xl font-bold text-slate-900 mb-4">
@@ -74,7 +74,7 @@ export function ValueProps() {
             return (
               <Card
                 key={index}
-                className="p-8 hover:shadow-xl transition-shadow duration-300 border-2 hover:border-indigo-100"
+                className="p-8 hover:shadow-xl transition-shadow duration-300 border-2 hover:border-emerald-100"
               >
                 {/* Icon with gradient */}
                 <div className="mb-6">
@@ -96,7 +96,7 @@ export function ValueProps() {
                 {/* Learn More Link */}
                 <button
                   onClick={handleLearnMore}
-                  className="mt-4 text-indigo-600 hover:text-indigo-700 font-medium text-sm flex items-center gap-1 group"
+                  className="mt-4 text-emerald-600 hover:text-emerald-700 font-medium text-sm flex items-center gap-1 group"
                 >
                   Learn more
                   <svg
@@ -121,19 +121,19 @@ export function ValueProps() {
         {/* Stats Bar */}
         <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 py-12 border-t border-b border-slate-200">
           <div className="text-center">
-            <div className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
+            <div className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-lime-600 bg-clip-text text-transparent mb-2">
               100%
             </div>
             <div className="text-slate-600">Attribution Accuracy</div>
           </div>
           <div className="text-center">
-            <div className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
+            <div className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-lime-600 bg-clip-text text-transparent mb-2">
               3 sec
             </div>
             <div className="text-slate-600">QR Scan to Landing Page</div>
           </div>
           <div className="text-center">
-            <div className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
+            <div className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-lime-600 bg-clip-text text-transparent mb-2">
               24/7
             </div>
             <div className="text-slate-600">Real-Time Analytics</div>

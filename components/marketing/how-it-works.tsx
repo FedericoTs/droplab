@@ -21,21 +21,21 @@ const steps = [
     icon: Palette,
     title: 'Design',
     description: 'Choose a template or start from scratch. AI suggests copy and layouts that convert.',
-    gradient: 'from-blue-500 to-cyan-500',
+    gradient: 'from-emerald-500 to-teal-500',
   },
   {
     number: '02',
     icon: Users,
     title: 'Personalize',
     description: 'Upload your contacts. AI personalizes every piece with names, offers, and QR codes.',
-    gradient: 'from-purple-500 to-pink-500',
+    gradient: 'from-lime-500 to-green-500',
   },
   {
     number: '03',
     icon: TrendingUp,
     title: 'Send & Track',
     description: 'We print and ship. You track scans, clicks, and conversions in real-time.',
-    gradient: 'from-orange-500 to-red-500',
+    gradient: 'from-green-500 to-emerald-500',
   },
 ];
 
@@ -45,7 +45,7 @@ export function HowItWorks({ onDemoClick }: HowItWorksProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-16">
-          <h2 className="text-base font-semibold text-indigo-600 mb-2 uppercase tracking-wide">
+          <h2 className="text-base font-semibold text-emerald-600 mb-2 uppercase tracking-wide">
             Simple Process
           </h2>
           <p className="text-4xl sm:text-5xl font-bold text-slate-900 mb-4">
@@ -59,7 +59,7 @@ export function HowItWorks({ onDemoClick }: HowItWorksProps) {
         {/* Steps */}
         <div className="relative">
           {/* Connecting Line (desktop) */}
-          <div className="hidden lg:block absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-200 via-purple-200 to-orange-200 -translate-y-1/2 -z-10" />
+          <div className="hidden lg:block absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-200 via-lime-200 to-green-200 -translate-y-1/2 -z-10" />
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
             {steps.map((step, index) => {
@@ -67,7 +67,7 @@ export function HowItWorks({ onDemoClick }: HowItWorksProps) {
               return (
                 <div key={index} className="relative">
                   {/* Step Card */}
-                  <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow duration-300 border-2 border-transparent hover:border-indigo-100">
+                  <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow duration-300 border-2 border-transparent hover:border-emerald-100">
                     {/* Number Badge */}
                     <div className="absolute -top-4 -left-4">
                       <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${step.gradient} flex items-center justify-center text-white font-bold text-lg shadow-lg`}>
@@ -114,7 +114,7 @@ export function HowItWorks({ onDemoClick }: HowItWorksProps) {
           </p>
           <button
             onClick={onDemoClick}
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-8 py-4 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all"
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-lime-600 hover:from-emerald-700 hover:to-lime-700 text-white px-8 py-4 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all"
           >
             Try Interactive Demo
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

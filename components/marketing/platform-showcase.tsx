@@ -48,7 +48,7 @@ export function PlatformShowcase() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all ${
                   activeTab === tab.id
-                    ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg'
+                    ? 'bg-gradient-to-r from-emerald-600 to-lime-600 text-white shadow-lg'
                     : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
                 }`}
               >
@@ -88,7 +88,7 @@ export function PlatformShowcase() {
                   </div>
                 </div>
               </div>
-              <div className="bg-gradient-to-br from-slate-100 to-indigo-50 rounded-lg p-6 flex items-center justify-center">
+              <div className="bg-gradient-to-br from-slate-100 to-emerald-50 rounded-lg p-6 flex items-center justify-center">
                 <div className="w-full max-w-md">
                   <InteractiveDesignDemo />
                 </div>
@@ -128,7 +128,7 @@ export function PlatformShowcase() {
                   </div>
                 </div>
               </div>
-              <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg p-6">
+              <div className="bg-gradient-to-br from-lime-50 to-emerald-50 rounded-lg p-6">
                 <InteractiveAudienceDemo />
               </div>
             </div>

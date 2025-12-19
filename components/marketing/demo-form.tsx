@@ -74,7 +74,7 @@ export function DemoForm() {
   return (
     <div className="bg-white rounded-2xl p-8 shadow-xl border border-slate-200" suppressHydrationWarning>
       <div className="text-center mb-6">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 mb-4">
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-lime-500 mb-4">
           <Mail className="w-6 h-6 text-white" />
         </div>
         <h3 className="text-2xl font-bold text-slate-900 mb-2">
@@ -118,7 +118,7 @@ export function DemoForm() {
         <Button
           type="submit"
           disabled={loading}
-          className="w-full h-12 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold shadow-lg"
+          className="w-full h-12 bg-gradient-to-r from-emerald-600 to-lime-600 hover:from-emerald-700 hover:to-lime-700 text-white font-semibold shadow-lg"
         >
           {loading ? (
             <>

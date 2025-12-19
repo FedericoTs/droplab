@@ -66,7 +66,7 @@ export function Testimonials() {
                 ))}
               </div>
 
-              <Quote className="w-8 h-8 text-indigo-200 mb-4" />
+              <Quote className="w-8 h-8 text-emerald-200 mb-4" />
 
               <p className="text-slate-700 mb-6 leading-relaxed">{testimonial.quote}</p>
 
@@ -77,7 +77,7 @@ export function Testimonials() {
                   <div className="text-sm text-slate-600">
                     {testimonial.role}, {testimonial.company}
                   </div>
-                  <div className="text-sm font-semibold text-indigo-600 mt-1">{testimonial.metric}</div>
+                  <div className="text-sm font-semibold text-emerald-600 mt-1">{testimonial.metric}</div>
                 </div>
               </div>
             </Card>

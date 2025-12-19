@@ -106,7 +106,7 @@ function LoginContent() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-emerald-50 to-lime-50 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <div className="flex justify-center mb-4">
@@ -166,7 +166,7 @@ function LoginContent() {
 
             <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              className="w-full bg-gradient-to-r from-emerald-600 to-lime-600 hover:from-emerald-700 hover:to-lime-700"
               disabled={loading || googleLoading}
             >
               {loading ? (
@@ -214,7 +214,7 @@ function LoginContent() {
         <CardFooter className="flex flex-col space-y-4">
           <div className="text-sm text-center text-slate-600">
             Don't have an account?{' '}
-            <Link href="/auth/signup" className="font-semibold text-blue-600 hover:text-blue-700">
+            <Link href="/auth/signup" className="font-semibold text-emerald-600 hover:text-emerald-700">
               Sign up
             </Link>
           </div>
@@ -232,7 +232,7 @@ function LoginContent() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-emerald-50 to-lime-50 p-4">
         <div className="animate-pulse">Loading...</div>
       </div>
     }>
