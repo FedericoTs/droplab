@@ -59,7 +59,13 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Authenticated users trying to access auth pages - redirect to dashboard
-  if (user && request.nextUrl.pathname.startsWith('/auth')) {
+  // EXCEPT for /auth/reset-password (needed after password reset link) and /auth/confirm (token exchange)
+  if (
+    user &&
+    request.nextUrl.pathname.startsWith('/auth') &&
+    !request.nextUrl.pathname.startsWith('/auth/reset-password') &&
+    !request.nextUrl.pathname.startsWith('/auth/confirm')
+  ) {
     const url = request.nextUrl.clone();
     url.pathname = '/dashboard';
     return NextResponse.redirect(url);
