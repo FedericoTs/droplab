@@ -391,7 +391,7 @@ export async function renderBatchTemplatesCluster(
       .then((imageDataUrl) => {
         // Success
         console.log(`✅ Task ${index} completed: ${recipient.name}`);
-        results.set(index, imageDataUrl);
+        results.set(index, imageDataUrl as string);
         completed++;
         success++;
         onProgress?.(completed, recipients.length, success, failed);
