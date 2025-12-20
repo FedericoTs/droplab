@@ -14,7 +14,7 @@
  * - Optimized: ~200-400ms per recipient (reused pages)
  */
 
-import type { Browser, Page } from 'puppeteer'
+import type { Browser, Page } from 'puppeteer-core'
 import { jsPDF } from 'jspdf'
 import { getFormat } from '@/lib/design/print-formats'
 

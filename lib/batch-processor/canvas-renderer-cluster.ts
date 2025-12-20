@@ -3,12 +3,25 @@
  *
  * Provides 4-8x speedup through parallel browser context processing
  * Efficiently manages browser instances and memory
+ *
+ * NOTE: puppeteer-cluster is not available on Vercel serverless.
+ * This file is for local development/batch processing only.
  */
 
-import { Cluster } from 'puppeteer-cluster';
-import type { Page } from 'puppeteer';
+// Dynamic import to avoid build failures on Vercel
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let Cluster: any = null;
+import type { Page } from 'puppeteer-core';
 import { getDMTemplate } from '@/lib/database/template-queries';
 import { PUPPETEER_OPTIONS } from '@/lib/queue/config';
+
+async function getCluster() {
+  if (!Cluster) {
+    const module = await import('puppeteer-cluster' as string);
+    Cluster = module.Cluster;
+  }
+  return Cluster;
+}
 
 /**
  * Recipient data for template rendering
@@ -327,9 +340,10 @@ export async function renderBatchTemplatesCluster(
   const concurrency = parseInt(process.env.BATCH_WORKER_CONCURRENCY || '4');
   console.log(`🚀 Cluster concurrency: ${concurrency}`);
 
-  // Create cluster
-  const cluster = await Cluster.launch({
-    concurrency: Cluster.CONCURRENCY_CONTEXT, // Efficient: single browser, multiple contexts
+  // Create cluster (dynamic import)
+  const ClusterClass = await getCluster();
+  const cluster = await ClusterClass.launch({
+    concurrency: ClusterClass.CONCURRENCY_CONTEXT, // Efficient: single browser, multiple contexts
     maxConcurrency: concurrency,
     puppeteerOptions: PUPPETEER_OPTIONS,
     timeout: 360000, // 6 minutes per task (WSL2 + large templates need extra time)

@@ -6,24 +6,53 @@
  * Phase 9.2.15 - Phase 4: Server-side postcard image generation
  */
 
-import puppeteer, { Browser } from 'puppeteer';
+import type { Browser } from 'puppeteer-core';
 
 let browser: Browser | null = null;
 
 /**
  * Get or create Puppeteer browser instance (reusable for performance)
+ * NOTE: Not available on Vercel serverless - use for local development only
  */
 async function getBrowser(): Promise<Browser> {
+  // Dynamic import to avoid build failures on Vercel
+  const puppeteer = await import('puppeteer-core');
+
+  // Try to find local Chrome installation
+  const possiblePaths = [
+    '/usr/bin/chromium-browser',
+    '/usr/bin/chromium',
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+  ];
+
+  let executablePath: string | undefined;
+  const fs = await import('fs');
+  for (const path of possiblePaths) {
+    if (fs.existsSync(path)) {
+      executablePath = path;
+      break;
+    }
+  }
+
+  if (!executablePath) {
+    throw new Error('Postcard image generation requires Chrome installed locally');
+  }
+
   if (!browser || !browser.isConnected()) {
-    browser = await puppeteer.launch({
+    browser = await puppeteer.default.launch({
       headless: true,
+      executablePath,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage', // Overcome limited resource problems
+        '--disable-dev-shm-usage',
         '--disable-gpu',
       ],
-    });
+    }) as Browser;
   }
   return browser;
 }

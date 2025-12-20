@@ -5,7 +5,7 @@
  * Simplified for direct canvas JSON input without database dependencies
  */
 
-import type { Browser } from 'puppeteer'
+import type { Browser } from 'puppeteer-core'
 import { jsPDF } from 'jspdf'
 import { getFormat } from '@/lib/design/print-formats'
 import { createServiceClient } from '@/lib/supabase/server'

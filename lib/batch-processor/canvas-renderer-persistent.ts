@@ -11,7 +11,7 @@
  * - 1000 DMs: ~5 minutes (vs 16 minutes)
  */
 
-import puppeteer, { Browser, Page } from 'puppeteer';
+import type { Browser, Page } from 'puppeteer-core';
 import { getDMTemplate } from '@/lib/database/template-queries';
 import type { RecipientRenderData } from './canvas-renderer-cluster';
 import { PUPPETEER_OPTIONS } from '@/lib/queue/config';
@@ -38,7 +38,9 @@ class PersistentPageWorker {
   async initialize(): Promise<void> {
     try {
       // Launch browser with same config as cluster
-      this.browser = await puppeteer.launch(PUPPETEER_OPTIONS);
+      // NOTE: This file is for local development only, not Vercel
+      const puppeteer = await import('puppeteer-core');
+      this.browser = await puppeteer.default.launch(PUPPETEER_OPTIONS) as Browser;
       this.page = await this.browser.newPage();
 
       // Get template from database

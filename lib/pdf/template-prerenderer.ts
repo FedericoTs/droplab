@@ -12,7 +12,7 @@
  * - Scalable to millions of recipients
  */
 
-import type { Browser } from 'puppeteer'
+import type { Browser } from 'puppeteer-core'
 import { jsPDF } from 'jspdf'
 import { getFormat } from '@/lib/design/print-formats'
 import { createServiceClient } from '@/lib/supabase/server'
