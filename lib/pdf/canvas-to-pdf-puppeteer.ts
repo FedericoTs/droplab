@@ -47,14 +47,15 @@ async function getBrowserInstance(): Promise<Browser> {
     throw new Error('PDF generation requires local Chrome installation.')
   }
 
-  browserInstance = await puppeteer.default.launch({
+  const browser = await puppeteer.default.launch({
     headless: true,
     executablePath,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
   })
+  browserInstance = browser
   browserRefCount = 1
   console.log('✅ [PDF] Puppeteer browser launched')
-  return browserInstance
+  return browser
 }
 
 async function releaseBrowserInstance(): Promise<void> {
