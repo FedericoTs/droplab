@@ -512,10 +512,14 @@ export async function processCampaignBatch(
     // ==================== STEP 3.5: Initialize Page Pool (Phase C1) ====================
     // OPTIMIZATION: Pre-initialize browser page pool for faster PDF generation
     // Each page reused instead of creating/destroying per recipient
-    const useOptimizedPDF = recipients.length >= 3 // Only use optimization for 3+ recipients
+    // NOTE: Page pooling disabled on Vercel serverless (single invocation context)
+    const isVercel = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME
+    const useOptimizedPDF = !isVercel && recipients.length >= 3 // Only use optimization for 3+ recipients on non-Vercel
     if (useOptimizedPDF) {
       console.log('🚀 [processCampaignBatch] Initializing optimized PDF page pool...')
       await initializePagePool(Math.min(4, recipients.length)) // Max 4 concurrent pages
+    } else if (isVercel) {
+      console.log('☁️ [processCampaignBatch] Running on Vercel - using simple PDF generator (no page pool)')
     }
 
     // ==================== STEP 4: Process Each Recipient (PDF Generation) ====================

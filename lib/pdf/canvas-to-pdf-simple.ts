@@ -1,45 +1,150 @@
 /**
  * Simple Canvas-to-PDF using proven Puppeteer pattern
  *
+ * VERCEL SERVERLESS COMPATIBLE:
+ * - Uses puppeteer-core + @sparticuz/chromium-min on Vercel
+ * - Uses full puppeteer on local development
+ * - Single browser instance per invocation (no pooling on serverless)
+ *
  * KEY INSIGHT: Don't pass personalized canvas JSON to browser
  * Instead: Pass original template + recipient data, let browser personalize
- *
- * This matches the working canvas-renderer-puppeteer.ts pattern
  */
 
-import type { Browser } from 'puppeteer'
+import type { Browser } from 'puppeteer-core'
 import { jsPDF } from 'jspdf'
 import { getFormat } from '@/lib/design/print-formats'
 import { createServiceClient } from '@/lib/supabase/server'
 
-// Browser pool
+// Browser instance management (single instance per invocation on serverless)
 let browserInstance: Browser | null = null
-let browserRefCount = 0
+let browserLock: Promise<Browser> | null = null
 
+/**
+ * Detect if running on Vercel serverless
+ */
+function isVercel(): boolean {
+  return !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME
+}
+
+/**
+ * Get browser instance with Vercel detection
+ * Uses puppeteer-core + @sparticuz/chromium-min on Vercel
+ * Uses puppeteer (full) on local development
+ */
 async function getBrowserInstance(): Promise<Browser> {
+  // If we already have an instance, return it
   if (browserInstance) {
-    browserRefCount++
     return browserInstance
   }
 
-  const puppeteer = await import('puppeteer')
-  browserInstance = await puppeteer.default.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
-  })
-  browserRefCount = 1
-  console.log('✅ [PDF] Browser launched')
-  return browserInstance
+  // If browser is being launched, wait for it
+  if (browserLock) {
+    return browserLock
+  }
+
+  // Launch browser with lock to prevent race conditions
+  browserLock = (async () => {
+    try {
+      if (isVercel()) {
+        // Vercel serverless: Use chromium-min (131MB compressed)
+        console.log('🚀 [PDF] Launching Chromium on Vercel...')
+        const puppeteer = await import('puppeteer-core')
+        const chromium = await import('@sparticuz/chromium-min')
+
+        // Fetch the correct Chromium binary URL for this version
+        const executablePath = await chromium.default.executablePath(
+          'https://github.com/nicholasgriffintn/chromium/releases/download/v133.0.0/chromium-v133.0.0-pack.tar'
+        )
+
+        browserInstance = await puppeteer.default.launch({
+          args: chromium.default.args,
+          defaultViewport: chromium.default.defaultViewport,
+          executablePath,
+          headless: chromium.default.headless,
+        }) as Browser
+
+        console.log('✅ [PDF] Chromium launched on Vercel')
+      } else {
+        // Local development: Use full puppeteer
+        console.log('🚀 [PDF] Launching Puppeteer locally...')
+
+        // Try puppeteer-core first, fall back to puppeteer if needed
+        try {
+          const puppeteer = await import('puppeteer-core')
+
+          // Try to find local Chrome/Chromium installation
+          const possiblePaths = [
+            '/usr/bin/chromium-browser',
+            '/usr/bin/chromium',
+            '/usr/bin/google-chrome',
+            '/usr/bin/google-chrome-stable',
+            'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+            'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+            '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+          ]
+
+          let executablePath: string | undefined
+          for (const path of possiblePaths) {
+            try {
+              const fs = await import('fs')
+              if (fs.existsSync(path)) {
+                executablePath = path
+                break
+              }
+            } catch {
+              // Continue to next path
+            }
+          }
+
+          if (!executablePath) {
+            throw new Error('No local Chrome/Chromium found')
+          }
+
+          browserInstance = await puppeteer.default.launch({
+            headless: true,
+            executablePath,
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+          }) as Browser
+        } catch (localError) {
+          console.warn('⚠️ [PDF] Local Chrome not found, trying puppeteer package...')
+          // Fallback: try full puppeteer package if available
+          try {
+            const puppeteerFull = await import('puppeteer' as string)
+            browserInstance = await puppeteerFull.default.launch({
+              headless: true,
+              args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+            }) as Browser
+          } catch {
+            throw new Error('Failed to launch browser. Install Chrome locally or puppeteer package.')
+          }
+        }
+
+        console.log('✅ [PDF] Browser launched locally')
+      }
+
+      return browserInstance!
+    } catch (error) {
+      browserLock = null
+      throw error
+    }
+  })()
+
+  return browserLock
 }
 
 async function releaseBrowserInstance(): Promise<void> {
-  browserRefCount--
-  if (browserRefCount <= 0 && browserInstance) {
-    await browserInstance.close()
+  // On Vercel serverless, close browser after each use to free memory
+  if (isVercel() && browserInstance) {
+    try {
+      await browserInstance.close()
+    } catch (e) {
+      console.warn('⚠️ [PDF] Error closing browser:', e)
+    }
     browserInstance = null
-    browserRefCount = 0
+    browserLock = null
     console.log('✅ [PDF] Browser closed')
   }
+  // On local development, keep browser open for reuse
 }
 
 /**
