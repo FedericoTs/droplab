@@ -37,7 +37,7 @@ export function WizardStepPreview({ data }: WizardStepPreviewProps) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-6">
+      <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-6">
         <h3 className="text-lg font-semibold text-slate-900 mb-2">
           🎉 Ready to Create Your Campaign!
         </h3>
@@ -64,7 +64,7 @@ export function WizardStepPreview({ data }: WizardStepPreviewProps) {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-purple-600" />
+              <Building2 className="h-4 w-4 text-emerald-600" />
               Company
             </CardTitle>
           </CardHeader>

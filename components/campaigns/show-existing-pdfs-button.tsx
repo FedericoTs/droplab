@@ -94,7 +94,7 @@ export function ShowExistingPDFsButton({
             <Button
               onClick={() => setShowPrintModal(true)}
               size="lg"
-              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+              className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
             >
               <Printer className="h-4 w-4 mr-2" />
               Print Campaign

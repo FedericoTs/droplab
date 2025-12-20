@@ -131,7 +131,7 @@ export default function CampaignDetailsPage() {
       case 'sending':
         return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'sent':
-        return 'bg-purple-100 text-purple-800 border-purple-200';
+        return 'bg-emerald-100 text-emerald-800 border-emerald-200';
       case 'completed':
         return 'bg-green-100 text-green-800 border-green-200';
       case 'failed':

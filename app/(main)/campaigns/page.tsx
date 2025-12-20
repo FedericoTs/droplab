@@ -46,7 +46,7 @@ const STATUS_CONFIG = {
   sent: {
     label: 'Sent',
     icon: Send,
-    color: 'text-purple-600 bg-purple-100',
+    color: 'text-emerald-600 bg-emerald-100',
   },
   paused: {
     label: 'Paused',

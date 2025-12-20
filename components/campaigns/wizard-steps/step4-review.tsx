@@ -161,7 +161,7 @@ export function Step4Review({
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-purple-600" />
+              <Users className="h-5 w-5 text-emerald-600" />
               <CardTitle className="text-base">Audience</CardTitle>
             </div>
           </CardHeader>
@@ -176,12 +176,12 @@ export function Step4Review({
                     </p>
                   )}
                 </div>
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-purple-900">
+                    <div className="text-2xl font-bold text-emerald-900">
                       {selectedRecipientList.total_recipients.toLocaleString()}
                     </div>
-                    <div className="text-xs text-purple-700 mt-1">Recipients</div>
+                    <div className="text-xs text-emerald-700 mt-1">Recipients</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-xs">

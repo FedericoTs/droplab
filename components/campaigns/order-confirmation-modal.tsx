@@ -71,15 +71,15 @@ export function OrderConfirmationModal({
         <div className="space-y-6 py-4">
           {/* Order Summary Cards */}
           <div className="grid grid-cols-3 gap-4">
-            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-purple-600">Total Stores</p>
-                  <p className="text-2xl font-bold text-purple-900">
+                  <p className="text-sm font-medium text-emerald-600">Total Stores</p>
+                  <p className="text-2xl font-bold text-emerald-900">
                     {orderSummary.totalStores}
                   </p>
                 </div>
-                <Store className="h-8 w-8 text-purple-600" />
+                <Store className="h-8 w-8 text-emerald-600" />
               </div>
             </div>
 

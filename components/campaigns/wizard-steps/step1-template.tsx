@@ -147,7 +147,7 @@ export function Step1Template({ selectedTemplate, onTemplateSelect, onNext }: St
                       {template.format_type.replace('_', ' ')}
                     </span>
                     {Object.keys(template.variable_mappings || {}).length > 0 && (
-                      <span className="text-[10px] text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">
+                      <span className="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
                         {Object.keys(template.variable_mappings).length} vars
                       </span>
                     )}

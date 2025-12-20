@@ -451,17 +451,17 @@ export default function PerformanceMatrixPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-purple-200 bg-purple-50">
+        <Card className="border-emerald-200 bg-emerald-50">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-purple-900">
+            <CardTitle className="text-sm font-medium text-emerald-900">
               Total Quantity
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-purple-900">
+            <div className="text-3xl font-bold text-emerald-900">
               {data.summary.total_recommended_quantity.toLocaleString()}
             </div>
-            <p className="text-xs text-purple-700 mt-1">DM pieces recommended</p>
+            <p className="text-xs text-emerald-700 mt-1">DM pieces recommended</p>
           </CardContent>
         </Card>
       </div>
@@ -517,12 +517,12 @@ export default function PerformanceMatrixPage() {
             <div className="flex gap-2">
               <Button
                 onClick={handleOpenPlanDialog}
-                className="bg-purple-600 hover:bg-purple-700 gap-2 relative shadow-lg hover:shadow-xl transition-all animate-pulse hover:animate-none"
+                className="bg-emerald-600 hover:bg-emerald-700 gap-2 relative shadow-lg hover:shadow-xl transition-all animate-pulse hover:animate-none"
               >
                 <LayoutDashboard className="h-4 w-4" />
                 Create AI-Powered Plan
                 {data.summary.auto_approve_count > 0 && (
-                  <Badge className="ml-1 bg-white text-purple-700 hover:bg-white font-bold">
+                  <Badge className="ml-1 bg-white text-emerald-700 hover:bg-white font-bold">
                     {data.summary.auto_approve_count} stores
                   </Badge>
                 )}
@@ -568,7 +568,7 @@ export default function PerformanceMatrixPage() {
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <LayoutDashboard className="h-5 w-5 text-purple-600" />
+              <LayoutDashboard className="h-5 w-5 text-emerald-600" />
               Create AI-Powered Plan
             </DialogTitle>
             <DialogDescription>
@@ -628,11 +628,11 @@ export default function PerformanceMatrixPage() {
             </div>
 
             {/* AI Features Preview */}
-            <div className="rounded-lg bg-purple-50 border border-purple-200 p-3">
-              <h4 className="text-sm font-semibold text-purple-900 mb-2">
+            <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3">
+              <h4 className="text-sm font-semibold text-emerald-900 mb-2">
                 AI will provide:
               </h4>
-              <ul className="space-y-1 text-xs text-purple-800">
+              <ul className="space-y-1 text-xs text-emerald-800">
                 <li className="flex items-start gap-2">
                   <Sparkles className="h-3 w-3 mt-0.5 flex-shrink-0" />
                   <span>4-factor scoring (Store, Creative, Geographic, Timing)</span>
@@ -697,7 +697,7 @@ export default function PerformanceMatrixPage() {
             <Button
               onClick={handleCreatePlan}
               disabled={creatingPlan || !planName.trim() || !selectedCampaignId}
-              className="bg-purple-600 hover:bg-purple-700 gap-2"
+              className="bg-emerald-600 hover:bg-emerald-700 gap-2"
             >
               {creatingPlan ? (
                 <>

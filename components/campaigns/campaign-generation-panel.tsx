@@ -248,7 +248,7 @@ export function CampaignGenerationPanel({
       case 'failed':
         return <AlertCircle className="h-5 w-5 text-red-600" />
       default:
-        return <Sparkles className="h-5 w-5 text-purple-600" />
+        return <Sparkles className="h-5 w-5 text-emerald-600" />
     }
   }
 
@@ -279,11 +279,11 @@ export function CampaignGenerationPanel({
   }
 
   return (
-    <Card className="border-2 border-dashed border-purple-200 hover:border-purple-300 transition-colors">
+    <Card className="border-2 border-dashed border-emerald-200 hover:border-emerald-300 transition-colors">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center">
+            <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
               <Sparkles className="h-6 w-6 text-white" />
             </div>
             <div>
@@ -299,7 +299,7 @@ export function CampaignGenerationPanel({
               onClick={handleGenerate}
               disabled={isGenerating}
               size="lg"
-              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+              className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
             >
               <Sparkles className="h-4 w-4 mr-2" />
               Generate Campaign
@@ -371,7 +371,7 @@ export function CampaignGenerationPanel({
                     variant="default"
                     size="sm"
                     onClick={() => setShowPrintModal(true)}
-                    className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                    className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
                   >
                     <Printer className="h-3 w-3 mr-1" />
                     Print Campaign

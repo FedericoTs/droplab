@@ -280,7 +280,7 @@ export function PerformanceMatrixGrid({ stores }: PerformanceMatrixGridProps) {
                       <div className="flex items-center gap-2">
                         <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-purple-500"
+                            className="h-full bg-emerald-500"
                             style={{ width: `${rec.scores.creative_performance * 100}%` }}
                           />
                         </div>

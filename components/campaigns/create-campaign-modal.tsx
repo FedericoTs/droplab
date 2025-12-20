@@ -430,7 +430,7 @@ export function CreateCampaignModal({
                 <div className="grid grid-cols-2 gap-3">
                   {variables.map((variable, index) => (
                     <div key={index} className="flex items-start gap-2 text-sm">
-                      <Badge variant="secondary" className="bg-purple-100 text-purple-700">
+                      <Badge variant="secondary" className="bg-emerald-100 text-emerald-700">
                         {`{${variable.fieldName}}`}
                       </Badge>
                       <div className="flex-1">

@@ -160,8 +160,8 @@ export default function OrderDetailPage({
       draft: "bg-gray-100 text-gray-800",
       pending: "bg-yellow-100 text-yellow-800",
       sent: "bg-blue-100 text-blue-800",
-      printing: "bg-purple-100 text-purple-800",
-      shipped: "bg-indigo-100 text-indigo-800",
+      printing: "bg-emerald-100 text-emerald-800",
+      shipped: "bg-teal-100 text-teal-800",
       delivered: "bg-green-100 text-green-800",
       cancelled: "bg-red-100 text-red-800",
     };
@@ -352,7 +352,7 @@ export default function OrderDetailPage({
                   {order.total_stores}
                 </p>
               </div>
-              <StoreIcon className="h-8 w-8 text-purple-600" />
+              <StoreIcon className="h-8 w-8 text-emerald-600" />
             </div>
           </CardContent>
         </Card>
@@ -531,7 +531,7 @@ export default function OrderDetailPage({
 
               {order.sent_at && (
                 <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-2 h-2 bg-purple-600 rounded-full mt-2"></div>
+                  <div className="flex-shrink-0 w-2 h-2 bg-emerald-600 rounded-full mt-2"></div>
                   <div>
                     <p className="font-medium text-slate-900">Order Sent</p>
                     <p className="text-sm text-slate-600">

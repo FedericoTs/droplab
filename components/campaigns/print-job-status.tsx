@@ -121,9 +121,9 @@ export function PrintJobStatus({ campaignId, organizationId }: PrintJobStatusPro
       },
       processing: {
         label: 'Processing',
-        color: 'text-purple-600',
+        color: 'text-emerald-600',
         icon: Package,
-        bgColor: 'bg-purple-100',
+        bgColor: 'bg-emerald-100',
       },
       in_production: {
         label: 'Printing',
@@ -133,9 +133,9 @@ export function PrintJobStatus({ campaignId, organizationId }: PrintJobStatusPro
       },
       in_transit: {
         label: 'In Transit',
-        color: 'text-indigo-600',
+        color: 'text-teal-600',
         icon: Truck,
-        bgColor: 'bg-indigo-100',
+        bgColor: 'bg-teal-100',
       },
       completed: {
         label: 'Delivered',

@@ -119,7 +119,7 @@ export function CampaignRecipientsTable({
       <Card>
         <CardContent className="py-12">
           <div className="flex flex-col items-center justify-center gap-3">
-            <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+            <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
             <p className="text-sm text-slate-600">Loading recipients...</p>
           </div>
         </CardContent>
@@ -165,7 +165,7 @@ export function CampaignRecipientsTable({
     <Card>
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
-          <User className="h-5 w-5 text-purple-600" />
+          <User className="h-5 w-5 text-emerald-600" />
           Generated Mail Pieces ({recipients.length})
         </CardTitle>
       </CardHeader>
@@ -196,8 +196,8 @@ export function CampaignRecipientsTable({
                 >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center">
-                        <span className="text-sm font-semibold text-purple-700">
+                      <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                        <span className="text-sm font-semibold text-emerald-700">
                           {recipient.name
                             .split(' ')
                             .map((n) => n[0])
