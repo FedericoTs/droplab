@@ -13,17 +13,30 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get("startDate") || undefined;
     const endDate = searchParams.get("endDate") || undefined;
 
+    console.log('[Analytics Overview] Request received', { startDate, endDate });
+
     const supabase = await createClient();
 
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (authError || !user) {
+    if (authError) {
+      console.error('[Analytics Overview] Auth error:', authError.message);
       return NextResponse.json(
-        errorResponse('Unauthorized', 'AUTH_ERROR'),
+        errorResponse('Authentication failed: ' + authError.message, 'AUTH_ERROR'),
         { status: 401 }
       );
     }
+
+    if (!user) {
+      console.log('[Analytics Overview] No user session found');
+      return NextResponse.json(
+        errorResponse('No authenticated user session', 'AUTH_ERROR'),
+        { status: 401 }
+      );
+    }
+
+    console.log('[Analytics Overview] User authenticated:', user.id.substring(0, 8) + '...', user.email);
 
     // Get user's organization
     const { data: profile, error: profileError } = await supabase
@@ -32,12 +45,23 @@ export async function GET(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    if (profileError || !profile?.organization_id) {
+    if (profileError) {
+      console.error('[Analytics Overview] Profile query error:', profileError.message);
       return NextResponse.json(
-        errorResponse('Organization not found', 'ORG_ERROR'),
+        errorResponse('Failed to fetch user profile: ' + profileError.message, 'PROFILE_ERROR'),
+        { status: 500 }
+      );
+    }
+
+    if (!profile?.organization_id) {
+      console.log('[Analytics Overview] User has no organization:', user.id);
+      return NextResponse.json(
+        errorResponse('User is not assigned to an organization', 'ORG_ERROR'),
         { status: 404 }
       );
     }
+
+    console.log('[Analytics Overview] Organization found:', profile.organization_id.substring(0, 8) + '...');
 
     // Get dashboard stats for this organization
     const stats = await getDashboardStats(profile.organization_id, startDate, endDate);
@@ -80,6 +104,14 @@ export async function GET(request: NextRequest) {
       calls_this_week: 0,
       calls_this_month: 0,
     };
+
+    console.log('[Analytics Overview] Data retrieved:', {
+      totalCampaigns: stats.totalCampaigns,
+      totalRecipients: stats.totalRecipients,
+      totalPageViews: stats.totalPageViews,
+      totalConversions: stats.totalConversions,
+      totalCalls: callMetrics.total_calls
+    });
 
     return NextResponse.json(
       successResponse(
