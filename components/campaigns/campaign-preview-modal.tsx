@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight, Eye, Download, FileText } from 'lucide-react';
+import { toast } from 'sonner';
 import type { DesignTemplate, RecipientList, VariableMapping } from '@/lib/database/types';
 import { cn } from '@/lib/utils';
 
@@ -41,6 +42,7 @@ export function CampaignPreviewModal({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [generatingPreview, setGeneratingPreview] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -408,6 +410,78 @@ export function CampaignPreviewModal({
     });
   }
 
+  // ==================== PDF PREVIEW GENERATION ====================
+  async function handleDownloadPdf() {
+    if (!previewImage) {
+      toast.error('No preview image available');
+      return;
+    }
+
+    setGeneratingPdf(true);
+    try {
+      console.log('📄 [PDF] Starting PDF generation...');
+
+      // Dynamically import jsPDF
+      const { jsPDF } = await import('jspdf');
+
+      // Determine orientation based on template dimensions
+      const isLandscape = template.canvas_width > template.canvas_height;
+      const orientation = isLandscape ? 'landscape' : 'portrait';
+
+      // Create PDF with appropriate dimensions
+      // Standard postcard: 6" x 4" = 432pt x 288pt (landscape)
+      // or 4" x 6" = 288pt x 432pt (portrait)
+      const pdf = new jsPDF({
+        orientation,
+        unit: 'pt',
+        format: isLandscape ? [432, 288] : [288, 432],
+      });
+
+      // Calculate dimensions to fit image in PDF
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+
+      // Calculate aspect ratio and fit image
+      const imgAspect = template.canvas_width / template.canvas_height;
+      const pdfAspect = pdfWidth / pdfHeight;
+
+      let imgX = 0, imgY = 0, imgW = pdfWidth, imgH = pdfHeight;
+
+      if (imgAspect > pdfAspect) {
+        // Image is wider - fit to width
+        imgW = pdfWidth;
+        imgH = pdfWidth / imgAspect;
+        imgY = (pdfHeight - imgH) / 2;
+      } else {
+        // Image is taller - fit to height
+        imgH = pdfHeight;
+        imgW = pdfHeight * imgAspect;
+        imgX = (pdfWidth - imgW) / 2;
+      }
+
+      // Add image to PDF
+      pdf.addImage(previewImage, 'PNG', imgX, imgY, imgW, imgH);
+
+      // Generate filename
+      const recipientName = currentRecipient
+        ? `${currentRecipient.first_name}_${currentRecipient.last_name}`.replace(/[^a-zA-Z0-9]/g, '_')
+        : 'preview';
+      const filename = `campaign_preview_${recipientName}.pdf`;
+
+      // Download PDF
+      pdf.save(filename);
+
+      console.log('✅ [PDF] Generated and downloaded:', filename);
+      toast.success('PDF preview downloaded!');
+
+    } catch (error) {
+      console.error('❌ [PDF] Generation failed:', error);
+      toast.error('Failed to generate PDF');
+    } finally {
+      setGeneratingPdf(false);
+    }
+  }
+
   const currentRecipient = sampleRecipients[currentIndex];
 
   return (
@@ -440,7 +514,24 @@ export function CampaignPreviewModal({
                 <h3 className="font-semibold text-slate-900">
                   Sample {currentIndex + 1} of {sampleRecipients.length}
                 </h3>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
+                  {/* PDF Download Button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDownloadPdf}
+                    disabled={generatingPdf || !previewImage || generatingPreview}
+                    className="gap-2 border-blue-200 text-blue-700 hover:bg-blue-50"
+                  >
+                    {generatingPdf ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <FileText className="h-4 w-4" />
+                    )}
+                    {generatingPdf ? 'Generating...' : 'Download PDF'}
+                  </Button>
+                  <div className="w-px h-6 bg-slate-200" />
+                  {/* Navigation Buttons */}
                   <Button
                     variant="outline"
                     size="sm"

@@ -97,10 +97,10 @@ export function getVariableTypeConfig(type: VariableType) {
  * Visual styling for variable markers
  */
 export const VARIABLE_MARKER_STYLES = {
-  borderColor: '#9333ea', // Purple-600
+  borderColor: '#10b981', // Emerald-500
   borderWidth: 3,
   borderDashArray: [5, 5],
-  cornerColor: '#9333ea',
+  cornerColor: '#10b981', // Emerald-500
   cornerSize: 8,
   transparentCorners: false,
 };

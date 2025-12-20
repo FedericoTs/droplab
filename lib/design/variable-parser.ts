@@ -112,8 +112,8 @@ export function applyVariableChipStyling(
 
   if (variables.length === 0) return;
 
-  const textColor = options.textColor || '#9333ea'; // Purple-600
-  const backgroundColor = options.backgroundColor || 'rgba(147, 51, 234, 0.15)'; // Purple-600 with 15% opacity
+  const textColor = options.textColor || '#10b981'; // Emerald-500
+  const backgroundColor = options.backgroundColor || 'rgba(16, 185, 129, 0.15)'; // Emerald-500 with 15% opacity
   const defaultFill = textObj.fill || '#000000';
   const defaultFontFamily = textObj.fontFamily || 'Inter';
   const defaultFontWeight = textObj.fontWeight || 400;

@@ -206,7 +206,7 @@ export function CanvasEditor({
               variableType: 'custom',
               variableFieldNames: fieldNames, // Store detected field names
               isReusable: false,
-              // Apply visual styling (purple border)
+              // Apply visual styling (emerald border)
               borderColor: VARIABLE_MARKER_STYLES.borderColor,
               borderScaleFactor: VARIABLE_MARKER_STYLES.borderWidth,
               borderDashArray: VARIABLE_MARKER_STYLES.borderDashArray,
@@ -215,7 +215,7 @@ export function CanvasEditor({
               transparentCorners: VARIABLE_MARKER_STYLES.transparentCorners,
             });
 
-            // Apply chip-style highlighting (purple text + background) to {variable} text
+            // Apply chip-style highlighting (emerald text + background) to {variable} text
             // Only apply if NOT in Preview Mode
             if (!isPreviewMode) {
               applyVariableChipStyling(textObj);
@@ -1678,7 +1678,7 @@ export function CanvasEditor({
             // Preview Mode: Remove chip styling (plain text)
             removeVariableChipStyling(obj);
           } else {
-            // Edit Mode: Apply chip styling (purple text + background)
+            // Edit Mode: Apply chip styling (emerald text + background)
             applyVariableChipStyling(obj);
           }
         }
@@ -1916,7 +1916,7 @@ export function CanvasEditor({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 hover:bg-slate-100 hover:bg-purple-50 hover:text-purple-700"
+            className="h-8 w-8 hover:bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700"
             onClick={() => { setSelectedTool('qrcode'); addQRCode(); }}
             title="Add QR Code (for tracking)"
           >
@@ -2010,7 +2010,7 @@ export function CanvasEditor({
           <Button
             variant={isPreviewMode ? "default" : "ghost"}
             size="sm"
-            className={`h-8 text-xs ${isPreviewMode ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'hover:bg-slate-100'}`}
+            className={`h-8 text-xs ${isPreviewMode ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'hover:bg-slate-100'}`}
             onClick={togglePreviewMode}
             title={isPreviewMode ? 'Switch to Edit Mode (show variable styling)' : 'Switch to Preview Mode (hide variable styling)'}
           >

@@ -555,23 +555,23 @@ export function PropertyPanel({ selectedObject, onUpdate, forceUpdate }: Propert
 
               {/* Variable Type Description */}
               {properties.variableType && properties.variableType !== 'none' && (
-                <div className="mt-3 p-3 rounded-md bg-purple-50 border border-purple-200">
+                <div className="mt-3 p-3 rounded-md bg-emerald-50 border border-emerald-200">
                   <div className="flex items-start gap-2">
                     <span className="text-lg">
                       {getVariableTypeConfig(properties.variableType as VariableType).icon}
                     </span>
                     <div className="flex-1">
-                      <p className="text-xs font-medium text-purple-900 mb-1">
+                      <p className="text-xs font-medium text-emerald-900 mb-1">
                         {getVariableTypeConfig(properties.variableType as VariableType).label}
                       </p>
-                      <p className="text-[10px] text-purple-700">
+                      <p className="text-[10px] text-emerald-700">
                         {getVariableTypeConfig(properties.variableType as VariableType).description}
                       </p>
 
                       {/* Reusable Status */}
                       <div className="mt-2 flex items-center gap-1">
-                        <div className={`h-1.5 w-1.5 rounded-full ${properties.isReusable ? 'bg-purple-600' : 'bg-orange-600'}`} />
-                        <span className="text-[10px] text-purple-600 font-medium">
+                        <div className={`h-1.5 w-1.5 rounded-full ${properties.isReusable ? 'bg-emerald-600' : 'bg-orange-600'}`} />
+                        <span className="text-[10px] text-emerald-600 font-medium">
                           {properties.isReusable ? 'Reusable (same for all)' : 'Personalized (unique per recipient)'}
                         </span>
                       </div>
@@ -584,7 +584,7 @@ export function PropertyPanel({ selectedObject, onUpdate, forceUpdate }: Propert
               {properties.variableType && properties.variableType !== 'none' && (
                 <div className="mt-2 p-2 rounded-md bg-slate-50 border border-slate-200">
                   <p className="text-[10px] text-slate-600">
-                    <span className="font-medium">Visual Indicator:</span> This object will display a purple dashed border on the canvas to mark it as a variable.
+                    <span className="font-medium">Visual Indicator:</span> This object will display an emerald dashed border on the canvas to mark it as a variable.
                   </p>
                 </div>
               )}

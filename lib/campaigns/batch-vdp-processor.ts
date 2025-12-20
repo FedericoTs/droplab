@@ -27,6 +27,7 @@ import {
   getCampaignById,
   updateCampaignStatus,
   createCampaignRecipient,
+  createCampaignRecipientsBulk,
   createLandingPage,
 } from '@/lib/database/campaign-supabase-queries'
 
@@ -288,6 +289,17 @@ export async function processCampaignBatch(
     let successCount = 0
     let failureCount = 0
 
+    // OPTIMIZATION: Collect recipients for bulk database insert (Phase 2.3)
+    const recipientBulkData: Array<{
+      campaignId: string;
+      recipientId: string;
+      personalizedCanvasJson: any;
+      trackingCode: string;
+      qrCodeUrl: string;
+      personalizedPdfUrl: string;
+      landingPageUrl: string;
+    }> = [];
+
     for (let i = 0; i < recipients.length; i++) {
       const recipient = recipients[i]
       const recipientName = `${recipient.first_name} ${recipient.last_name}`
@@ -379,15 +391,16 @@ export async function processCampaignBatch(
         // Upload PDF to Supabase Storage
         const pdfUrl = await uploadPersonalizedPDF(campaignId, recipient.id, personalizedPDFBuffer)
 
-        // Save to campaign_recipients table
-        await createCampaignRecipient({
+        // OPTIMIZATION: Collect for bulk insert instead of individual inserts
+        const landingPageUrl = `/lp/campaign/${campaignId}?r=${encodeURIComponent(recipient.id)}&t=${trackingCode}`;
+        recipientBulkData.push({
           campaignId,
           recipientId: recipient.id,
           personalizedCanvasJson: personalizedFrontCanvasJSON, // ✅ Store personalized canvas with unique QR
           trackingCode,
           qrCodeUrl: qrCodeUrl, // Store QR URL for reference
           personalizedPdfUrl: pdfUrl,
-          landingPageUrl: `/lp/campaign/${campaignId}?r=${encodeURIComponent(recipient.id)}&t=${trackingCode}`,
+          landingPageUrl,
         })
 
         // Create landing page if configured
@@ -424,6 +437,26 @@ export async function processCampaignBatch(
           recipientName,
           error: errorMessage,
         })
+      }
+    }
+
+    // ==================== STEP 4.5: Bulk Insert Campaign Recipients ====================
+    // OPTIMIZATION: Single database call instead of N calls (up to 90% faster)
+    if (recipientBulkData.length > 0) {
+      console.log(`📦 [processCampaignBatch] Bulk inserting ${recipientBulkData.length} campaign recipients...`)
+      try {
+        await createCampaignRecipientsBulk(recipientBulkData);
+        console.log(`✅ [processCampaignBatch] Bulk insert complete`)
+      } catch (bulkError) {
+        console.error('❌ [processCampaignBatch] Bulk insert failed, falling back to individual inserts:', bulkError)
+        // Fallback: Insert individually (slower but more reliable)
+        for (const data of recipientBulkData) {
+          try {
+            await createCampaignRecipient(data);
+          } catch (individualError) {
+            console.error(`❌ [processCampaignBatch] Individual insert failed for ${data.recipientId}:`, individualError)
+          }
+        }
       }
     }
 

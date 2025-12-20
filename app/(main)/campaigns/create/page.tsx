@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { WizardProgress } from '@/components/campaigns/wizard-progress';
 import { Step1Template } from '@/components/campaigns/wizard-steps/step1-template';
 import { Step2Audience } from '@/components/campaigns/wizard-steps/step2-audience';
@@ -12,31 +13,136 @@ import { toast } from 'sonner';
 import type { CampaignWizardState, DesignTemplate, RecipientList, VariableMapping, LandingPageConfig } from '@/lib/database/types';
 import { useBillingStatus } from '@/lib/hooks/use-billing-status';
 import { FeatureLocked } from '@/components/billing/feature-locked';
-import { Loader2 } from 'lucide-react';
+import { Loader2, RefreshCw, X } from 'lucide-react';
+
+// ==================== DRAFT AUTO-SAVE CONFIGURATION ====================
+const DRAFT_STORAGE_KEY = 'droplab_campaign_draft';
+const DRAFT_AUTOSAVE_DELAY = 3000; // 3 seconds debounce
+
+// Initial empty state for fresh wizard
+const getEmptyWizardState = (): CampaignWizardState => ({
+  selectedTemplate: null,
+  selectedRecipientList: null,
+  audienceSource: null,
+  variableMappings: [],
+  campaignName: '',
+  campaignDescription: '',
+  currentStep: 1,
+  includeLandingPage: false,
+  landingPageConfig: {
+    headline: '',
+    subheadline: '',
+    cta_text: '',
+    cta_url: '',
+    primary_color: '#3B82F6',
+    secondary_color: '#8B5CF6',
+    background_color: '#FFFFFF',
+  },
+});
 
 export default function CampaignCreatePage() {
   const { isFeatureLocked, isLoading } = useBillingStatus();
   const router = useRouter();
-  const [wizardState, setWizardState] = useState<CampaignWizardState>({
-    selectedTemplate: null,
-    selectedRecipientList: null,
-    audienceSource: null,
-    variableMappings: [],
-    campaignName: '',
-    campaignDescription: '',
-    currentStep: 1,
-    // Landing Page Configuration (Optional)
-    includeLandingPage: false,
-    landingPageConfig: {
-      headline: '',
-      subheadline: '',
-      cta_text: '',
-      cta_url: '',
-      primary_color: '#3B82F6',
-      secondary_color: '#8B5CF6',
-      background_color: '#FFFFFF',
-    },
-  });
+  const [wizardState, setWizardState] = useState<CampaignWizardState>(getEmptyWizardState());
+
+  // ==================== DRAFT AUTO-SAVE STATE ====================
+  const [showDraftBanner, setShowDraftBanner] = useState(false);
+  const [draftTimestamp, setDraftTimestamp] = useState<string | null>(null);
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const hasInitialized = useRef(false);
+
+  // Load saved draft on mount
+  useEffect(() => {
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
+
+    try {
+      const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (savedDraft) {
+        const { state, timestamp } = JSON.parse(savedDraft);
+        const draftDate = new Date(timestamp);
+        const now = new Date();
+        const hoursSinceDraft = (now.getTime() - draftDate.getTime()) / (1000 * 60 * 60);
+
+        // Only show draft recovery if less than 24 hours old
+        if (hoursSinceDraft < 24 && state.currentStep > 1) {
+          setDraftTimestamp(draftDate.toLocaleString());
+          setShowDraftBanner(true);
+          console.log('📋 [Draft] Found saved draft from', draftDate.toLocaleString());
+        } else if (hoursSinceDraft >= 24) {
+          // Clear old drafts
+          localStorage.removeItem(DRAFT_STORAGE_KEY);
+          console.log('🗑️ [Draft] Cleared old draft (>24h old)');
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ [Draft] Error loading draft:', error);
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+    }
+  }, []);
+
+  // Auto-save draft on state changes (debounced)
+  useEffect(() => {
+    // Skip auto-save on initial load or if on step 1 with no data
+    if (!hasInitialized.current) return;
+    if (wizardState.currentStep === 1 && !wizardState.selectedTemplate) return;
+
+    // Clear existing timer
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+
+    // Debounced save
+    autoSaveTimerRef.current = setTimeout(() => {
+      try {
+        const draftData = {
+          state: wizardState,
+          timestamp: new Date().toISOString(),
+        };
+        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftData));
+        console.log('💾 [Draft] Auto-saved at step', wizardState.currentStep);
+      } catch (error) {
+        console.warn('⚠️ [Draft] Error saving draft:', error);
+      }
+    }, DRAFT_AUTOSAVE_DELAY);
+
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, [wizardState]);
+
+  // Restore draft handler
+  const handleRestoreDraft = useCallback(() => {
+    try {
+      const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (savedDraft) {
+        const { state } = JSON.parse(savedDraft);
+        setWizardState(state);
+        setShowDraftBanner(false);
+        toast.success('Draft restored successfully');
+        console.log('✅ [Draft] Restored to step', state.currentStep);
+      }
+    } catch (error) {
+      console.error('❌ [Draft] Error restoring draft:', error);
+      toast.error('Failed to restore draft');
+    }
+  }, []);
+
+  // Dismiss draft handler
+  const handleDismissDraft = useCallback(() => {
+    localStorage.removeItem(DRAFT_STORAGE_KEY);
+    setShowDraftBanner(false);
+    toast.info('Draft discarded');
+    console.log('🗑️ [Draft] Discarded by user');
+  }, []);
+
+  // Clear draft on successful campaign creation
+  const clearDraft = useCallback(() => {
+    localStorage.removeItem(DRAFT_STORAGE_KEY);
+    console.log('✅ [Draft] Cleared after successful campaign creation');
+  }, []);
 
   // Navigate to specific step (only allow going back)
   const handleStepClick = (step: number) => {
@@ -140,6 +246,9 @@ export default function CampaignCreatePage() {
 
     const { data: campaign } = await response.json();
     console.log('✅ Campaign created:', campaign);
+
+    // Clear draft on successful creation
+    clearDraft();
 
     toast.success('Campaign created successfully!');
 
@@ -256,6 +365,44 @@ export default function CampaignCreatePage() {
           </p>
         </div>
       </div>
+
+      {/* Draft Recovery Banner */}
+      {showDraftBanner && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <RefreshCw className="h-5 w-5 text-blue-600" />
+              <div>
+                <p className="text-sm font-medium text-blue-900">
+                  You have an unsaved campaign draft
+                </p>
+                <p className="text-xs text-blue-700">
+                  Last saved: {draftTimestamp}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDismissDraft}
+                className="text-blue-700 border-blue-300 hover:bg-blue-100"
+              >
+                <X className="h-4 w-4 mr-1" />
+                Discard
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleRestoreDraft}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Restore Draft
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Wizard Progress */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -84,15 +84,25 @@ async function downloadCanvasImages(canvasJSON: any): Promise<any> {
 
 /**
  * Create HTML with Fabric.js - uses ORIGINAL template, not personalized JSON
+ * OPTIMIZATION: Preload fonts before canvas rendering for faster text layout
  */
 function createHTML(templateJSON: string, recipientData: any, width: number, height: number, variableMappings?: any[]): string {
   return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
-  <style>body{margin:0;padding:0;overflow:hidden}</style>
+  <!-- OPTIMIZATION: Preload fonts for faster rendering -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Open+Sans:wght@400;600;700&display=block" rel="stylesheet">
+  <style>
+    body{margin:0;padding:0;overflow:hidden}
+    /* Force fonts to load immediately */
+    .font-preload{font-family:'Inter','Poppins','Roboto','Open Sans',sans-serif;visibility:hidden;position:absolute}
+  </style>
 </head>
 <body>
+  <div class="font-preload">Font Preloader</div>
   <canvas id="canvas" width="${width}" height="${height}"></canvas>
 
   <script>
@@ -129,6 +139,12 @@ function createHTML(templateJSON: string, recipientData: any, width: number, hei
 
     async function render() {
       try {
+        // OPTIMIZATION: Wait for fonts to load before rendering (prevents FOUT)
+        if (document.fonts && document.fonts.ready) {
+          await document.fonts.ready;
+          console.log('✅ Fonts loaded');
+        }
+
         await loadFabric();
 
         // Fabric v6: Use Canvas class from fabric namespace

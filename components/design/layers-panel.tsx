@@ -141,7 +141,7 @@ function SortableLayerItem({
       {/* Variable Badge */}
       {layer.variableType && layer.variableType !== 'none' && (
         <div
-          className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-100 border border-purple-300"
+          className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-100 border border-emerald-300"
           title={getVariableTypeConfig(layer.variableType).description}
         >
           <span className="text-xs">{getVariableTypeConfig(layer.variableType).icon}</span>
