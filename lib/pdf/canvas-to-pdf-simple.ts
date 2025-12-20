@@ -640,6 +640,6 @@ export async function cleanup(): Promise<void> {
   if (browserInstance) {
     await browserInstance.close()
     browserInstance = null
-    browserRefCount = 0
+    browserLock = null
   }
 }
