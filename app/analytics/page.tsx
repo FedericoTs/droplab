@@ -52,10 +52,10 @@ function AnalyticsContent() {
     // Initial sync on mount
     syncFromElevenLabs();
   
-    // Auto-sync every 2 minutes
+    // Auto-sync every 5 minutes (optimized: call data doesn't change frequently)
     const syncInterval = setInterval(() => {
       syncFromElevenLabs();
-    }, 120000); // 2 minutes
+    }, 300000); // 5 minutes
   
   return () => clearInterval(syncInterval);
 }, []);

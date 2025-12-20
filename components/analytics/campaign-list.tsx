@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +37,8 @@ export function CampaignList() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortOption, setSortOption] = useState<SortOption>("date-desc");
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -48,6 +50,21 @@ export function CampaignList() {
   useEffect(() => {
     loadCampaigns();
   }, []);
+
+  // Debounce search query for performance
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    searchTimeoutRef.current = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchQuery]);
 
   const loadCampaigns = async () => {
     try {
@@ -316,13 +333,13 @@ export function CampaignList() {
     }
   };
 
-  // Filter and sort campaigns
+  // Filter and sort campaigns (using debounced search for performance)
   const filteredAndSortedCampaigns = useMemo(() => {
     let filtered = [...campaigns];
 
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
+    // Apply search filter (using debounced value)
+    if (debouncedSearch.trim()) {
+      const query = debouncedSearch.toLowerCase();
       filtered = filtered.filter(
         (campaign) =>
           campaign.name.toLowerCase().includes(query) ||
@@ -355,7 +372,7 @@ export function CampaignList() {
     });
 
     return filtered;
-  }, [campaigns, searchQuery, statusFilter, sortOption]);
+  }, [campaigns, debouncedSearch, statusFilter, sortOption]);
 
   if (loading) {
     return (

@@ -58,11 +58,18 @@ export async function getFinancialOverview(
     .in('campaign_id', campaigns.map(c => c.id))
     .eq('event_type', 'qr_scan');
 
-  // Get total conversions
-  const { count: totalConversions } = await supabase
+  // Get total conversions (personalized + generic submissions)
+  const { count: personalizedConversions } = await supabase
     .from('conversions')
     .select('*', { count: 'exact', head: true })
     .in('campaign_id', campaigns.map(c => c.id));
+
+  const { count: genericConversions } = await supabase
+    .from('generic_submissions')
+    .select('*', { count: 'exact', head: true })
+    .in('campaign_id', campaigns.map(c => c.id));
+
+  const totalConversions = (personalizedConversions || 0) + (genericConversions || 0);
 
   return {
     totalInvestment,
@@ -72,8 +79,8 @@ export async function getFinancialOverview(
     averageCostPerPiece: totalRecipients > 0 ? totalInvestment / totalRecipients : 0,
     totalScans: totalScans || 0,
     averageCostPerScan: (totalScans || 0) > 0 ? totalInvestment / (totalScans || 1) : 0,
-    totalConversions: totalConversions || 0,
-    averageCostPerConversion: (totalConversions || 0) > 0 ? totalInvestment / (totalConversions || 1) : 0,
+    totalConversions,
+    averageCostPerConversion: totalConversions > 0 ? totalInvestment / totalConversions : 0,
     campaignsWithBudget,
     totalBudgetAllocated,
     budgetUtilization: totalBudgetAllocated > 0 ? (totalInvestment / totalBudgetAllocated) * 100 : 0,
@@ -140,16 +147,21 @@ export async function getCampaignCostMetrics(
     .eq('campaign_id', campaignId)
     .eq('event_type', 'qr_scan');
 
-  // Get conversion count
-  const { count: conversions } = await supabase
+  // Get conversion count (personalized + generic submissions)
+  const { count: personalizedConversions } = await supabase
     .from('conversions')
+    .select('*', { count: 'exact', head: true })
+    .eq('campaign_id', campaignId);
+
+  const { count: genericConversions } = await supabase
+    .from('generic_submissions')
     .select('*', { count: 'exact', head: true })
     .eq('campaign_id', campaignId);
 
   const costTotal = campaign.cost_total || 0;
   const totalRecipients = campaign.total_recipients || 0;
   const scanCount = scans || 0;
-  const conversionCount = conversions || 0;
+  const conversionCount = (personalizedConversions || 0) + (genericConversions || 0);
   const budget = campaign.budget;
 
   return {
@@ -392,15 +404,20 @@ export async function getCampaignComparisons(
       .eq('campaign_id', campaign.id)
       .eq('event_type', 'qr_scan');
 
-    // Get conversions
-    const { count: conversions } = await supabase
+    // Get conversions (personalized + generic submissions)
+    const { count: personalizedConversions } = await supabase
       .from('conversions')
+      .select('*', { count: 'exact', head: true })
+      .eq('campaign_id', campaign.id);
+
+    const { count: genericConversions } = await supabase
+      .from('generic_submissions')
       .select('*', { count: 'exact', head: true })
       .eq('campaign_id', campaign.id);
 
     const totalRecipients = campaign.total_recipients || 0;
     const scanCount = scans || 0;
-    const conversionCount = conversions || 0;
+    const conversionCount = (personalizedConversions || 0) + (genericConversions || 0);
     const costTotal = campaign.cost_total || 0;
 
     results.push({
@@ -805,7 +822,7 @@ export async function getDashboardStats(
 
     const { count: qrScans } = await qrScanQuery;
 
-    // Count total conversions
+    // Count total conversions (personalized + generic submissions)
     let conversionQuery = supabase
       .from('conversions')
       .select('*', { count: 'exact', head: true })
@@ -817,7 +834,22 @@ export async function getDashboardStats(
         .lte('created_at', endDate);
     }
 
-    const { count: totalConversions } = await conversionQuery;
+    const { count: personalizedConversions } = await conversionQuery;
+
+    // Also count generic submissions
+    let genericQuery = supabase
+      .from('generic_submissions')
+      .select('*', { count: 'exact', head: true })
+      .in('campaign_id', campaignIds);
+
+    if (startDate && endDate) {
+      genericQuery = genericQuery
+        .gte('created_at', startDate)
+        .lte('created_at', endDate);
+    }
+
+    const { count: genericConversions } = await genericQuery;
+    const totalConversions = (personalizedConversions || 0) + (genericConversions || 0);
 
     // Count form submissions
     let formQuery = supabase

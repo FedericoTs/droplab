@@ -1717,7 +1717,19 @@ export function CanvasEditor({
 
     // Set active side
     setActiveSide(side);
-  }, [frontCanvasRef, backCanvasRef]);
+
+    // CRITICAL FIX: Clear selection on the INACTIVE canvas to prevent duplicate event handling
+    const inactiveCanvas = side === 'front' ? backCanvas : frontCanvas;
+    if (inactiveCanvas?.getActiveObject()) {
+      console.log('🧹 Clearing selection on inactive canvas to prevent event conflicts');
+      inactiveCanvas.discardActiveObject();
+      inactiveCanvas.renderAll();
+    }
+
+    // Update selected object state for the newly active canvas
+    const activeCanvas = side === 'front' ? frontCanvas : backCanvas;
+    setSelectedObject(activeCanvas?.getActiveObject() || null);
+  }, [frontCanvasRef, backCanvasRef, frontCanvas, backCanvas]);
 
   // Pan handling (click and drag to move viewport)
   const handlePanStart = useCallback((e: React.MouseEvent) => {

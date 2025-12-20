@@ -173,25 +173,32 @@ export async function GET() {
       .sort((a, b) => b.events - a.events)
       .slice(0, 3);
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        overview: {
-          totalCampaigns: totalCampaigns,
-          sentCampaigns: sentCampaigns.length,
-          activeCampaigns: activeCampaigns.length,
-          responseRate: responseRate,
-          totalRevenue: totalRevenue,
-          totalEvents: totalEvents,
-          totalConversions: conversions.length,
-        },
-        recentCampaigns: recentCampaigns,
-        insights: {
-          topTemplate: topTemplate,
-          topLocations: topLocations,
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          overview: {
+            totalCampaigns: totalCampaigns,
+            sentCampaigns: sentCampaigns.length,
+            activeCampaigns: activeCampaigns.length,
+            responseRate: responseRate,
+            totalRevenue: totalRevenue,
+            totalEvents: totalEvents,
+            totalConversions: conversions.length,
+          },
+          recentCampaigns: recentCampaigns,
+          insights: {
+            topTemplate: topTemplate,
+            topLocations: topLocations,
+          },
         },
       },
-    });
+      {
+        headers: {
+          'Cache-Control': 'private, max-age=30, s-maxage=60'
+        }
+      }
+    );
   } catch (error) {
     console.error('[Dashboard Metrics] Error:', error);
     return NextResponse.json(

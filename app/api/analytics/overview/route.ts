@@ -63,9 +63,11 @@ export async function GET(request: NextRequest) {
 
     console.log('[Analytics Overview] Organization found:', profile.organization_id.substring(0, 8) + '...');
 
-    // Get dashboard stats for this organization
-    const stats = await getDashboardStats(profile.organization_id, startDate, endDate);
-    const engagementMetrics = await getOverallEngagementMetrics(profile.organization_id, startDate, endDate);
+    // Get dashboard stats for this organization (parallelized for performance)
+    const [stats, engagementMetrics] = await Promise.all([
+      getDashboardStats(profile.organization_id, startDate, endDate),
+      getOverallEngagementMetrics(profile.organization_id, startDate, endDate)
+    ]);
 
     // Get REAL call metrics from ElevenLabs calls (Supabase)
     const { createServiceClient } = await import('@/lib/supabase/server');
@@ -126,7 +128,12 @@ export async function GET(request: NextRequest) {
           },
         },
         "Analytics data retrieved successfully"
-      )
+      ),
+      {
+        headers: {
+          'Cache-Control': 'private, max-age=30, s-maxage=60'
+        }
+      }
     );
   } catch (error) {
     console.error("Error fetching dashboard stats:", error);
