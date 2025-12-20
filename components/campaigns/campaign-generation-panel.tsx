@@ -124,8 +124,8 @@ export function CampaignGenerationPanel({
         const response = await fetch(`/api/campaigns/${campaignId}/stats`)
         const data = await response.json()
 
-        if (response.ok && data.success) {
-          const { generatedCount: currentCount, status } = data.stats
+        if (response.ok && data.success && data.data) {
+          const { generatedCount: currentCount, status } = data.data
 
           // Update progress
           setProgress((prev) => ({
@@ -185,10 +185,20 @@ export function CampaignGenerationPanel({
         body: JSON.stringify({ organizationId }),
       })
 
-      const data = await response.json()
-
       // Stop polling when API returns
       stopProgressPolling()
+
+      // Handle non-JSON responses (e.g., 504 Gateway Timeout)
+      let data
+      try {
+        data = await response.json()
+      } catch (parseError) {
+        console.error('❌ Failed to parse response:', parseError)
+        if (response.status === 504) {
+          throw new Error('Request timed out. PDF generation may take longer for large campaigns. Please try again or contact support.')
+        }
+        throw new Error(`Server error: ${response.status} ${response.statusText}`)
+      }
 
       if (!response.ok) {
         throw new Error(data.message || 'Generation failed')

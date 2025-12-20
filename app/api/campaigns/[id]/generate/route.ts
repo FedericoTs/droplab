@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from 'next/server'
 // maxDuration: 300 = Pro plan (5 minutes max)
 export const maxDuration = 60
 export const dynamic = 'force-dynamic'
+
 import { processCampaignBatch } from '@/lib/campaigns/batch-vdp-processor'
 import { successResponse, errorResponse } from '@/lib/utils/api-response'
 
