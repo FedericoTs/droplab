@@ -58,7 +58,7 @@ async function getBrowserInstance(): Promise<Browser> {
 
         browserInstance = await puppeteer.default.launch({
           args: chromium.default.args,
-          defaultViewport: chromium.default.defaultViewport,
+          defaultViewport: { width: 1920, height: 1080 },
           executablePath,
           headless: chromium.default.headless,
         }) as Browser
@@ -106,17 +106,8 @@ async function getBrowserInstance(): Promise<Browser> {
             args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
           }) as Browser
         } catch (localError) {
-          console.warn('⚠️ [PDF] Local Chrome not found, trying puppeteer package...')
-          // Fallback: try full puppeteer package if available
-          try {
-            const puppeteerFull = await import('puppeteer' as string)
-            browserInstance = await puppeteerFull.default.launch({
-              headless: true,
-              args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
-            }) as Browser
-          } catch {
-            throw new Error('Failed to launch browser. Install Chrome locally or puppeteer package.')
-          }
+          console.error('⚠️ [PDF] Failed to launch local Chrome:', localError)
+          throw new Error('Failed to launch browser. Install Chrome locally for PDF generation.')
         }
 
         console.log('✅ [PDF] Browser launched locally')
