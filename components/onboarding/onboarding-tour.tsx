@@ -103,14 +103,14 @@ export function OnboardingTour() {
                 <DialogTitle className="text-2xl">{step.title}</DialogTitle>
               )}
               {step.content && (
-                <DialogDescription className="text-base text-slate-600 whitespace-pre-line pt-4">
+                <DialogDescription className="text-base text-muted-foreground whitespace-pre-line pt-4">
                   {parseMarkdown(step.content)}
                 </DialogDescription>
               )}
             </DialogHeader>
 
             {tour.showProgress && tour.totalSteps > 0 && (
-              <div className="text-sm text-slate-500">
+              <div className="text-sm text-muted-foreground">
                 Step {tour.currentStepIndex + 1} of {tour.totalSteps}
               </div>
             )}
@@ -148,7 +148,7 @@ export function OnboardingTour() {
                   style={{
                     left: `${Math.random() * 100}%`,
                     animationDelay: `${Math.random() * 3}s`,
-                    backgroundColor: ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A'][Math.floor(Math.random() * 5)],
+                    backgroundColor: ['hsl(160, 84%, 39%)', 'hsl(84, 81%, 44%)', 'hsl(156, 72%, 67%)', 'hsl(82, 85%, 67%)', 'hsl(160, 84%, 52%)'][Math.floor(Math.random() * 5)],
                   }}
                 />
               ))}
@@ -188,7 +188,7 @@ export function OnboardingTour() {
 
         {/* Highlighted element outline */}
         <div
-          className="fixed z-[61] border-4 border-blue-500 rounded-lg pointer-events-none animate-pulse"
+          className="fixed z-[61] border-4 border-emerald-500 rounded-lg pointer-events-none animate-pulse"
           style={{
             left: spotlightRect.left - 8,
             top: spotlightRect.top - 8,
@@ -200,7 +200,7 @@ export function OnboardingTour() {
         {/* Tooltip */}
         <div
           className={cn(
-            "fixed z-[62] bg-white rounded-lg shadow-2xl p-6 max-w-md",
+            "fixed z-[62] bg-card rounded-xl shadow-lg border border-border p-6 max-w-md",
             "animate-in fade-in slide-in-from-bottom-4 duration-300"
           )}
           style={{
@@ -211,24 +211,24 @@ export function OnboardingTour() {
           {/* Close button */}
           <button
             onClick={() => tour.skip()}
-            className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"
+            className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
 
           {/* Content */}
           <div className="mb-4">
-            <h3 className="text-xl font-bold text-slate-900 mb-2 pr-8">
+            <h3 className="text-xl font-bold text-foreground mb-2 pr-8">
               {step.title}
             </h3>
-            <p className="text-slate-600 whitespace-pre-line text-sm">
+            <p className="text-muted-foreground whitespace-pre-line text-sm">
               {parseMarkdown(step.content || '')}
             </p>
           </div>
 
           {/* Progress */}
           {tour.showProgress && tour.totalSteps > 0 && (
-            <div className="text-xs text-slate-500 mb-4">
+            <div className="text-xs text-muted-foreground mb-4">
               Step {tour.currentStepIndex + 1} of {tour.totalSteps}
             </div>
           )}

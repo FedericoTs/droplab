@@ -243,7 +243,7 @@ function SettingsContent() {
   if (!isLoaded) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-slate-600">Loading settings...</p>
+        <p className="text-muted-foreground">Loading settings...</p>
       </div>
     );
   }
@@ -252,7 +252,7 @@ function SettingsContent() {
     <div className="p-8 max-w-5xl mx-auto">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Settings</h1>
-        <p className="text-slate-600">
+        <p className="text-muted-foreground">
           Configure your platform settings, company information, and integrations.
         </p>
       </div>
@@ -294,8 +294,8 @@ function SettingsContent() {
             )}
 
             {/* Section 1: Company Profile */}
-            <Card className="border-slate-200 shadow-sm">
-              <CardHeader className="border-b border-slate-100 bg-slate-50/50">
+            <Card className="border-border shadow-sm">
+              <CardHeader className="border-b border-border bg-muted/50">
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-xl flex items-center gap-2">
@@ -363,7 +363,7 @@ function SettingsContent() {
                     required
                     className="resize-none"
                   />
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     Describe how your brand communicates with customers
                   </p>
                 </div>
@@ -382,7 +382,7 @@ function SettingsContent() {
                     required
                     className="resize-none"
                   />
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     Define the primary audience for your marketing content
                   </p>
                 </div>
@@ -399,19 +399,19 @@ function SettingsContent() {
                     placeholder="e.g., Warm and empathetic, Bold and authoritative, Professional and reassuring"
                     className="h-11"
                   />
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     The emotional quality of your brand communication
                   </p>
                 </div>
 
                 {/* AI-Extracted Brand Elements */}
                 {brandProfile && (brandProfile.keyPhrases.length > 0 || brandProfile.values.length > 0 || (brandProfile.communicationStyleNotes && brandProfile.communicationStyleNotes.length > 0)) && (
-                  <div className="pt-4 border-t border-slate-200 space-y-4">
+                  <div className="pt-4 border-t border-border space-y-4">
                     <div className="flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-purple-600" />
-                      <h4 className="text-sm font-semibold text-slate-900">AI-Extracted Brand Guidelines</h4>
+                      <Sparkles className="h-4 w-4 text-emerald-600" />
+                      <h4 className="text-sm font-semibold text-foreground">AI-Extracted Brand Guidelines</h4>
                       {brandProfile.extractedAt && (
-                        <span className="text-xs text-slate-500">
+                        <span className="text-xs text-muted-foreground">
                           • Updated {new Date(brandProfile.extractedAt).toLocaleDateString()}
                         </span>
                       )}
@@ -425,7 +425,7 @@ function SettingsContent() {
                           </div>
                           <Label className="text-sm font-semibold text-amber-900">Communication Style Guidelines</Label>
                         </div>
-                        <ul className="space-y-2 text-sm text-slate-700">
+                        <ul className="space-y-2 text-sm text-foreground">
                           {brandProfile.communicationStyleNotes.map((note, index) => (
                             <li key={index} className="flex items-start gap-2">
                               <span className="text-amber-600 mt-1">▸</span>
@@ -452,7 +452,7 @@ function SettingsContent() {
                             </span>
                           ))}
                         </div>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-muted-foreground">
                           These phrases will be automatically incorporated into AI-generated content
                         </p>
                       </div>
@@ -471,7 +471,7 @@ function SettingsContent() {
                             </span>
                           ))}
                         </div>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-muted-foreground">
                           Core values that guide your brand messaging
                         </p>
                       </div>
@@ -482,8 +482,8 @@ function SettingsContent() {
             </Card>
 
             {/* Section 2: Visual Brand Kit */}
-            <Card className="border-slate-200 shadow-sm">
-              <CardHeader className="border-b border-slate-100 bg-slate-50/50">
+            <Card className="border-border shadow-sm">
+              <CardHeader className="border-b border-border bg-muted/50">
                 <CardTitle className="text-xl flex items-center gap-2">
                   <Palette className="h-5 w-5" />
                   Visual Brand Kit
@@ -520,8 +520,8 @@ function SettingsContent() {
 
           {/* Tab 3: Integrations */}
           <TabsContent value="integrations" className="space-y-6 mt-6">
-            <Card className="border-slate-200 shadow-sm">
-              <CardHeader className="border-b border-slate-100 bg-slate-50/50">
+            <Card className="border-border shadow-sm">
+              <CardHeader className="border-b border-border bg-muted/50">
                 <CardTitle className="text-xl">API Keys</CardTitle>
                 <CardDescription>
                   Configure your API keys to enable AI-powered features
@@ -541,7 +541,7 @@ function SettingsContent() {
                     placeholder="sk-..."
                     className="h-11 font-mono"
                   />
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     Used for copywriting, content generation, and brand intelligence
                   </p>
                 </div>

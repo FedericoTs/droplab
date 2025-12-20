@@ -194,10 +194,10 @@ export default function DashboardPage() {
                 className="h-12 w-auto object-contain"
               />
               <div>
-                <h1 className="text-3xl font-bold text-slate-900">
+                <h1 className="text-3xl font-bold text-foreground">
                   Welcome to DropLab
                 </h1>
-                <p className="text-slate-600">{user.email}</p>
+                <p className="text-muted-foreground">{user.email}</p>
               </div>
             </div>
             <Button variant="outline" onClick={handleSignOut}>
@@ -250,7 +250,7 @@ export default function DashboardPage() {
                         href="https://supabase.com/dashboard/project/egccqmlhzqiirovstpal/sql/new"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
+                        className="text-emerald-600 hover:underline"
                       >
                         Open SQL Editor →
                       </a>
@@ -261,7 +261,7 @@ export default function DashboardPage() {
                         href="https://supabase.com/dashboard/project/egccqmlhzqiirovstpal/auth/users"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
+                        className="text-emerald-600 hover:underline"
                       >
                         Manage Users →
                       </a>
@@ -269,8 +269,8 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                  <p className="text-sm text-blue-800">
+                <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200">
+                  <p className="text-sm text-emerald-800">
                     <strong>💡 Tip:</strong> This setup creates 3 test organizations with 6 users.
                     After setup, you can test multi-tenant isolation by logging in as different users.
                   </p>
@@ -289,20 +289,20 @@ export default function DashboardPage() {
           </Card>
 
           {/* Documentation Card */}
-          <Card className="mt-6 border-blue-200 bg-blue-50">
+          <Card className="mt-6 border-emerald-200 bg-emerald-50">
             <CardHeader>
-              <CardTitle className="text-blue-900">📚 Documentation</CardTitle>
+              <CardTitle className="text-emerald-900">📚 Documentation</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2 text-sm text-blue-800">
+              <div className="space-y-2 text-sm text-emerald-800">
                 <p>✅ <strong>Database Schema:</strong> All tables deployed and ready</p>
                 <p>✅ <strong>RLS Policies:</strong> Multi-tenant isolation configured</p>
                 <p>✅ <strong>Authentication:</strong> Working (you're logged in!)</p>
                 <p>⏳ <strong>Seed Data:</strong> Needs to be created manually</p>
-                <p className="pt-3 border-t border-blue-200">
+                <p className="pt-3 border-t border-emerald-200">
                   <strong>Files to reference:</strong>
-                  <code className="block bg-blue-100 px-2 py-1 rounded mt-1">SEED_DATA_GUIDE.md</code>
-                  <code className="block bg-blue-100 px-2 py-1 rounded mt-1">supabase/seed-data.sql</code>
+                  <code className="block bg-emerald-100 px-2 py-1 rounded mt-1">SEED_DATA_GUIDE.md</code>
+                  <code className="block bg-emerald-100 px-2 py-1 rounded mt-1">supabase/seed-data.sql</code>
                 </p>
               </div>
             </CardContent>
@@ -407,12 +407,12 @@ export default function DashboardPage() {
               <div className="space-y-2">
                 <div>
                   <p className="text-2xl font-bold">{organization?.name || 'Loading...'}</p>
-                  <p className="text-sm text-slate-500 capitalize">
+                  <p className="text-sm text-muted-foreground capitalize">
                     {organization?.plan_tier || 'Free'} Plan • {organization?.billing_status || 'Active'}
                   </p>
                 </div>
                 <div className="pt-2 border-t">
-                  <p className="text-xs text-slate-500">Team Members</p>
+                  <p className="text-xs text-muted-foreground">Team Members</p>
                   <p className="text-lg font-semibold">{teamCount}</p>
                 </div>
               </div>
@@ -431,12 +431,12 @@ export default function DashboardPage() {
               <div className="space-y-2">
                 <div>
                   <p className="text-3xl font-bold">${organization?.credits?.toFixed(2) || '0.00'}</p>
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-muted-foreground">
                     For Data Axle contacts & PostGrid printing
                   </p>
                 </div>
-                <div className="pt-2 border-t">
-                  <p className="text-xs text-slate-500">Monthly Limits</p>
+                <div className="pt-2 border-t border-border">
+                  <p className="text-xs text-muted-foreground">Monthly Limits</p>
                   <p className="text-sm">
                     {organization?.monthly_design_limit || 0} designs • {organization?.monthly_sends_limit || 0} sends
                   </p>
@@ -468,20 +468,20 @@ export default function DashboardPage() {
               <div className="space-y-2">
                 <div>
                   <p className="text-2xl font-bold capitalize">{profile?.role || 'Member'}</p>
-                  <p className="text-sm text-slate-500">{profile?.job_title || 'Team Member'}</p>
+                  <p className="text-sm text-muted-foreground">{profile?.job_title || 'Team Member'}</p>
                 </div>
-                <div className="pt-2 border-t space-y-1">
+                <div className="pt-2 border-t border-border space-y-1">
                   {profile?.can_create_designs && (
-                    <p className="text-xs text-green-600">✓ Create Designs</p>
+                    <p className="text-xs text-emerald-600">✓ Create Designs</p>
                   )}
                   {profile?.can_send_campaigns && (
-                    <p className="text-xs text-green-600">✓ Send Campaigns</p>
+                    <p className="text-xs text-emerald-600">✓ Send Campaigns</p>
                   )}
                   {profile?.can_manage_billing && (
-                    <p className="text-xs text-green-600">✓ Manage Billing</p>
+                    <p className="text-xs text-emerald-600">✓ Manage Billing</p>
                   )}
                   {!profile?.can_manage_billing && profile?.role === 'admin' && (
-                    <p className="text-xs text-slate-400">✗ Manage Billing</p>
+                    <p className="text-xs text-muted-foreground">✗ Manage Billing</p>
                   )}
                 </div>
               </div>

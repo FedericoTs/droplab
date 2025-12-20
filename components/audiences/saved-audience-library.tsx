@@ -123,7 +123,7 @@ export function SavedAudienceLibrary({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
       </div>
     );
   }
@@ -133,7 +133,7 @@ export function SavedAudienceLibrary({
       {/* Search & Actions */}
       <div className="flex items-center justify-between gap-3">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search your contacts..."
             className="pl-10"
@@ -154,7 +154,7 @@ export function SavedAudienceLibrary({
           )}
           <Button
             size="lg"
-            className="bg-purple-600 hover:bg-purple-700"
+            className="bg-emerald-600 hover:bg-emerald-700"
             onClick={onCreateNew}
           >
             <Plus className="mr-2 h-5 w-5" />
@@ -165,20 +165,20 @@ export function SavedAudienceLibrary({
 
       {/* Empty State */}
       {filteredLists.length === 0 && !searchQuery && (
-        <Card className="border-2 border-dashed border-slate-200">
+        <Card className="border-2 border-dashed border-border">
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-blue-100 to-purple-100">
-              <Database className="h-10 w-10 text-blue-600" />
+            <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-emerald-100 to-lime-100">
+              <Database className="h-10 w-10 text-emerald-600" />
             </div>
-            <h3 className="mb-2 text-xl font-bold text-slate-900">
+            <h3 className="mb-2 text-xl font-bold text-foreground">
               No Contacts Yet
             </h3>
-            <p className="mb-6 max-w-md text-center text-slate-600">
+            <p className="mb-6 max-w-md text-center text-muted-foreground">
               You haven't purchased any contacts yet. Start by targeting your audience and purchasing contacts.
             </p>
             <Button
               size="lg"
-              className="bg-purple-600 hover:bg-purple-700"
+              className="bg-emerald-600 hover:bg-emerald-700"
               onClick={onCreateNew}
             >
               <Plus className="mr-2 h-5 w-5" />
@@ -190,13 +190,13 @@ export function SavedAudienceLibrary({
 
       {/* Search No Results */}
       {filteredLists.length === 0 && searchQuery && (
-        <Card className="border-2 border-dashed border-slate-200">
+        <Card className="border-2 border-dashed border-border">
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <Search className="h-12 w-12 text-slate-300 mb-4" />
-            <h3 className="mb-2 text-xl font-bold text-slate-900">
+            <Search className="h-12 w-12 text-muted-foreground/50 mb-4" />
+            <h3 className="mb-2 text-xl font-bold text-foreground">
               No contacts found
             </h3>
-            <p className="mb-6 max-w-md text-center text-slate-600">
+            <p className="mb-6 max-w-md text-center text-muted-foreground">
               No contacts match "{searchQuery}". Try a different search term.
             </p>
           </CardContent>
@@ -209,7 +209,7 @@ export function SavedAudienceLibrary({
           {filteredLists.map((list) => (
             <Card
               key={list.id}
-              className="group transition-all hover:shadow-lg hover:border-purple-300"
+              className="group transition-all hover:shadow-lg hover:border-emerald-300"
             >
               <CardHeader>
                 <div className="flex items-start justify-between">
@@ -235,21 +235,21 @@ export function SavedAudienceLibrary({
                 {/* Metrics */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <div className="flex items-center gap-2 text-slate-600">
+                    <div className="flex items-center gap-2 text-muted-foreground">
                       <Users className="h-4 w-4" />
                       <span className="text-xs">Contacts</span>
                     </div>
-                    <div className="mt-1 text-lg font-bold text-slate-900">
+                    <div className="mt-1 text-lg font-bold text-foreground">
                       {list.total_recipients.toLocaleString()}
                     </div>
                   </div>
 
                   <div>
-                    <div className="flex items-center gap-2 text-slate-600">
+                    <div className="flex items-center gap-2 text-muted-foreground">
                       <DollarSign className="h-4 w-4" />
                       <span className="text-xs">Cost</span>
                     </div>
-                    <div className="mt-1 text-lg font-bold text-slate-900">
+                    <div className="mt-1 text-lg font-bold text-foreground">
                       {list.purchase_info
                         ? formatCurrency(list.purchase_info.total_user_charge)
                         : "—"}
@@ -258,14 +258,14 @@ export function SavedAudienceLibrary({
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-between border-t pt-3 text-xs text-slate-500">
+                <div className="flex items-center justify-between border-t pt-3 text-xs text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
                     <span>
                       {formatDate(list.purchase_info?.purchased_at || list.created_at)}
                     </span>
                   </div>
-                  <span className="text-slate-600">
+                  <span className="text-muted-foreground">
                     {list.created_by_name}
                   </span>
                 </div>

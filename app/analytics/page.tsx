@@ -71,7 +71,7 @@ function AnalyticsContent() {
 
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Analytics Dashboard</h1>
-        <p className="text-slate-600">
+        <p className="text-muted-foreground">
           Track campaign performance, engagement, and conversions in real-time
         </p>
       </div>
@@ -121,8 +121,8 @@ export default function AnalyticsPage() {
     <Suspense fallback={
       <div className="p-8 max-w-7xl mx-auto flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
-          <p className="text-sm text-slate-600">Loading analytics...</p>
+          <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+          <p className="text-sm text-muted-foreground">Loading analytics...</p>
         </div>
       </div>
     }>

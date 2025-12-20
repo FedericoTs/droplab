@@ -43,18 +43,18 @@ export default function AudiencesPage() {
   const DEMO_USER_ID = "00000000-0000-0000-0000-000000000000";
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="border-b bg-white">
+      <div className="border-b bg-card">
         <div className="container mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-700 shadow-lg">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-emerald">
                 <Target className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-slate-900">Audience Explorer</h1>
-                <p className="text-sm text-slate-600">
+                <h1 className="text-3xl font-bold text-foreground">Audience Explorer</h1>
+                <p className="text-sm text-muted-foreground">
                   Target 250M+ contacts with precision • FREE count preview
                 </p>
               </div>
@@ -63,7 +63,7 @@ export default function AudiencesPage() {
             {activeTab === "library" && (
               <Button
                 size="lg"
-                className="bg-purple-600 hover:bg-purple-700"
+                className="bg-emerald-600 hover:bg-emerald-700"
                 onClick={() => {
                   // Block audience creation for unpaid users
                   if (isFeatureLocked('audiences')) {
@@ -154,7 +154,7 @@ export default function AudiencesPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-purple-600" />
+                      <Sparkles className="h-5 w-5 text-emerald-600" />
                       Build Your Audience
                     </CardTitle>
                     <CardDescription>
@@ -162,11 +162,11 @@ export default function AudiencesPage() {
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-4 text-sm">
-                    <div className="flex items-center gap-2 text-slate-600">
+                    <div className="flex items-center gap-2 text-muted-foreground">
                       <Users className="h-4 w-4" />
                       <span className="font-medium">250M+</span> contacts available
                     </div>
-                    <div className="flex items-center gap-2 text-green-600">
+                    <div className="flex items-center gap-2 text-emerald-600">
                       <DollarSign className="h-4 w-4" />
                       <span className="font-medium">FREE</span> count preview
                     </div>

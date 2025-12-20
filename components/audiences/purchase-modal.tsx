@@ -207,10 +207,10 @@ export function PurchaseModal({
                       "h-5 w-5",
                       hasSufficientCredits ? "text-green-600" : "text-red-600"
                     )} />
-                    <span className="font-medium text-slate-700">Current Balance</span>
+                    <span className="font-medium text-foreground">Current Balance</span>
                   </div>
                   {loadingBalance ? (
-                    <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                   ) : (
                     <span className={cn(
                       "text-lg font-bold",
@@ -223,41 +223,41 @@ export function PurchaseModal({
               </div>
 
               {/* Purchase Summary */}
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-3">
-                <h4 className="text-sm font-semibold text-slate-700">Purchase Summary</h4>
+              <div className="rounded-lg border border-border bg-muted p-4 space-y-3">
+                <h4 className="text-sm font-semibold text-foreground">Purchase Summary</h4>
 
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-slate-600">
+                  <div className="flex items-center gap-2 text-muted-foreground">
                     <Users className="h-4 w-4" />
                     <span className="text-sm">Contacts</span>
                   </div>
-                  <span className="font-medium text-slate-900">
+                  <span className="font-medium text-foreground">
                     {contactCount.toLocaleString()}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-slate-600">
+                  <div className="flex items-center gap-2 text-muted-foreground">
                     <DollarSign className="h-4 w-4" />
                     <span className="text-sm">Cost per Contact</span>
                   </div>
-                  <span className="font-medium text-slate-900">
+                  <span className="font-medium text-foreground">
                     {formatCurrency(costPerContact)}
                   </span>
                 </div>
 
-                <div className="pt-2 border-t border-slate-200">
+                <div className="pt-2 border-t border-border">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-slate-700">Total Cost</span>
-                    <span className="text-lg font-bold text-slate-900">
+                    <span className="text-sm font-semibold text-foreground">Total Cost</span>
+                    <span className="text-lg font-bold text-foreground">
                       {formatCurrency(totalCost)}
                     </span>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-slate-200">
+                <div className="pt-2 border-t border-border">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-slate-600">Remaining Credits</span>
+                    <span className="text-sm font-medium text-muted-foreground">Remaining Credits</span>
                     <span className={cn(
                       "font-semibold",
                       hasSufficientCredits ? "text-green-700" : "text-red-700"
@@ -293,7 +293,7 @@ export function PurchaseModal({
                 <Button
                   onClick={handlePurchase}
                   disabled={!hasSufficientCredits || loadingBalance}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700"
                 >
                   {loadingBalance ? (
                     <>
@@ -312,15 +312,15 @@ export function PurchaseModal({
           {stage === "processing" && (
             <div className="py-6 space-y-4">
               <div className="flex flex-col items-center gap-4">
-                <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
+                <Loader2 className="h-12 w-12 animate-spin text-emerald-600" />
                 <div className="w-full">
-                  <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-blue-600 transition-all duration-300 ease-out"
+                      className="h-full bg-emerald-600 transition-all duration-300 ease-out"
                       style={{ width: `${progress}%` }}
                     />
                   </div>
-                  <p className="text-sm text-slate-600 text-center mt-2">
+                  <p className="text-sm text-muted-foreground text-center mt-2">
                     {progress < 30 && "Initiating purchase..."}
                     {progress >= 30 && progress < 60 && "Fetching contacts from Data Axle..."}
                     {progress >= 60 && progress < 90 && "Deducting credits..."}
@@ -339,10 +339,10 @@ export function PurchaseModal({
                   <CheckCircle2 className="h-12 w-12 text-green-600" />
                 </div>
                 <div className="text-center">
-                  <h3 className="text-lg font-semibold text-slate-900 mb-1">
+                  <h3 className="text-lg font-semibold text-foreground mb-1">
                     Purchase Complete!
                   </h3>
-                  <p className="text-sm text-slate-600">
+                  <p className="text-sm text-muted-foreground">
                     {actualImportedCount?.toLocaleString() || contactCount.toLocaleString()} contacts have been added to your recipient list
                   </p>
                   {isMockData && (
@@ -352,14 +352,14 @@ export function PurchaseModal({
                   )}
                 </div>
 
-                <div className="w-full rounded-lg bg-green-50 border border-green-200 p-4 space-y-2">
+                <div className="w-full rounded-lg bg-emerald-50 border border-emerald-200 p-4 space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-600">Credits Used</span>
-                    <span className="font-medium text-slate-900">{formatCurrency(totalCost)}</span>
+                    <span className="text-muted-foreground">Credits Used</span>
+                    <span className="font-medium text-foreground">{formatCurrency(totalCost)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-600">Remaining Balance</span>
-                    <span className="font-semibold text-green-700">
+                    <span className="text-muted-foreground">Remaining Balance</span>
+                    <span className="font-semibold text-emerald-700">
                       {formatCurrency(creditBalance || 0)}
                     </span>
                   </div>
@@ -377,7 +377,7 @@ export function PurchaseModal({
                 {recipientListId && (
                   <Button
                     onClick={() => window.location.href = '/templates'}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700"
                   >
                     Design Mailer
                   </Button>
@@ -394,10 +394,10 @@ export function PurchaseModal({
                   <XCircle className="h-12 w-12 text-red-600" />
                 </div>
                 <div className="text-center">
-                  <h3 className="text-lg font-semibold text-slate-900 mb-1">
+                  <h3 className="text-lg font-semibold text-foreground mb-1">
                     Purchase Failed
                   </h3>
-                  <p className="text-sm text-slate-600">
+                  <p className="text-sm text-muted-foreground">
                     {errorMessage || "An unexpected error occurred"}
                   </p>
                 </div>
@@ -413,7 +413,7 @@ export function PurchaseModal({
                 </Button>
                 <Button
                   onClick={handleRetry}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700"
                 >
                   Try Again
                 </Button>

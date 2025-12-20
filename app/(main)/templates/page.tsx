@@ -284,7 +284,7 @@ export default function TemplatesPage() {
                   onClose={() => setShowTemplateLibrary(false)}
                 />
               ) : (
-                <div className="flex items-center justify-center py-12 text-slate-500">
+                <div className="flex items-center justify-center py-12 text-muted-foreground">
                   Loading organization...
                 </div>
               )}
@@ -311,14 +311,14 @@ export default function TemplatesPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-4 py-4">
-            <div className="bg-slate-50 rounded-lg p-4 space-y-2">
-              <p className="text-sm text-slate-600">
+            <div className="bg-muted rounded-lg p-4 space-y-2">
+              <p className="text-sm text-muted-foreground">
                 ✓ Save unlimited templates
               </p>
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-muted-foreground">
                 ✓ Use templates in campaigns
               </p>
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-muted-foreground">
                 ✓ Access all platform features
               </p>
             </div>
@@ -335,7 +335,7 @@ export default function TemplatesPage() {
             </AlertDialogAction>
             <AlertDialogAction
               onClick={() => setShowUpgradeModal(false)}
-              className="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium py-3"
+              className="w-full bg-muted hover:bg-muted/80 text-foreground font-medium py-3"
             >
               Continue Designing
             </AlertDialogAction>

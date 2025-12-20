@@ -264,11 +264,11 @@ export function AudienceFilterBuilder({
     <div className="grid grid-cols-12 gap-6">
       {/* LEFT PANEL: Filter Categories */}
       <div className="col-span-3 space-y-3">
-        <div className="rounded-lg border bg-white p-4">
+        <div className="rounded-lg border bg-card p-4">
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="font-semibold text-slate-900">Filter Categories</h3>
+            <h3 className="font-semibold text-foreground">Filter Categories</h3>
             {activeFilterCount > 0 && (
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-purple-100 text-xs font-bold text-purple-700">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700">
                 {activeFilterCount}
               </span>
             )}
@@ -325,7 +325,7 @@ export function AudienceFilterBuilder({
             <Button
               variant="ghost"
               size="sm"
-              className="mt-4 w-full text-slate-600 hover:text-red-600"
+              className="mt-4 w-full text-muted-foreground hover:text-destructive"
               onClick={clearAllFilters}
             >
               <X className="mr-2 h-4 w-4" />
@@ -337,10 +337,10 @@ export function AudienceFilterBuilder({
         {/* AI Recommendations */}
         <Button
           variant="outline"
-          className="w-full border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100"
+          className="w-full border-emerald-200 bg-gradient-to-r from-emerald-50 to-lime-50 hover:from-emerald-100 hover:to-lime-100"
         >
-          <Sparkles className="mr-2 h-4 w-4 text-purple-600" />
-          <span className="text-purple-700">AI Recommendations</span>
+          <Sparkles className="mr-2 h-4 w-4 text-emerald-600" />
+          <span className="text-emerald-700">AI Recommendations</span>
         </Button>
       </div>
 
@@ -349,11 +349,11 @@ export function AudienceFilterBuilder({
         <Card className="p-6">
           {expandedCategories.size === 0 ? (
             <div className="py-12 text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
-                <Plus className="h-8 w-8 text-slate-400" />
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+                <Plus className="h-8 w-8 text-muted-foreground" />
               </div>
-              <h3 className="mb-2 text-lg font-semibold text-slate-900">Start Building</h3>
-              <p className="text-sm text-slate-600">
+              <h3 className="mb-2 text-lg font-semibold text-foreground">Start Building</h3>
+              <p className="text-sm text-muted-foreground">
                 Select a category on the left to begin adding filters
               </p>
             </div>
@@ -362,8 +362,8 @@ export function AudienceFilterBuilder({
               {/* Geography Filters */}
               {expandedCategories.has("geography") && (
                 <div className="space-y-4">
-                  <h4 className="flex items-center gap-2 font-semibold text-slate-900">
-                    <MapPin className="h-5 w-5 text-blue-600" />
+                  <h4 className="flex items-center gap-2 font-semibold text-foreground">
+                    <MapPin className="h-5 w-5 text-emerald-600" />
                     Geography
                   </h4>
 
@@ -411,8 +411,8 @@ export function AudienceFilterBuilder({
               {/* Demographics Filters */}
               {expandedCategories.has("demographics") && (
                 <div className="space-y-4">
-                  <h4 className="flex items-center gap-2 font-semibold text-slate-900">
-                    <Users className="h-5 w-5 text-green-600" />
+                  <h4 className="flex items-center gap-2 font-semibold text-foreground">
+                    <Users className="h-5 w-5 text-emerald-500" />
                     Demographics
                   </h4>
 
@@ -481,8 +481,8 @@ export function AudienceFilterBuilder({
               {/* Financial Filters */}
               {expandedCategories.has("financial") && (
                 <div className="space-y-4">
-                  <h4 className="flex items-center gap-2 font-semibold text-slate-900">
-                    <DollarSign className="h-5 w-5 text-orange-600" />
+                  <h4 className="flex items-center gap-2 font-semibold text-foreground">
+                    <DollarSign className="h-5 w-5 text-lime-600" />
                     Financial
                   </h4>
 
@@ -561,8 +561,8 @@ export function AudienceFilterBuilder({
               {/* Lifestyle Filters */}
               {expandedCategories.has("lifestyle") && (
                 <div className="space-y-4">
-                  <h4 className="flex items-center gap-2 font-semibold text-slate-900">
-                    <Heart className="h-5 w-5 text-purple-600" />
+                  <h4 className="flex items-center gap-2 font-semibold text-foreground">
+                    <Heart className="h-5 w-5 text-emerald-400" />
                     Lifestyle
                   </h4>
 
@@ -607,19 +607,19 @@ export function AudienceFilterBuilder({
       {/* RIGHT PANEL: Live Preview */}
       <div className="col-span-3 space-y-4">
         {/* Count Preview */}
-        <Card className="border-purple-200 bg-gradient-to-br from-purple-50 to-white p-6">
+        <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-6">
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-700">Audience Size</h3>
-            {isLoadingCount && <Loader2 className="h-4 w-4 animate-spin text-purple-600" />}
+            <h3 className="text-sm font-semibold text-foreground">Audience Size</h3>
+            {isLoadingCount && <Loader2 className="h-4 w-4 animate-spin text-emerald-600" />}
           </div>
 
           {countData ? (
             <>
               <div className="mb-4">
-                <div className="text-4xl font-bold text-slate-900">
+                <div className="text-4xl font-bold text-foreground">
                   {formatNumber(countData.count)}
                 </div>
-                <div className="text-sm text-slate-600">contacts match your filters</div>
+                <div className="text-sm text-muted-foreground">contacts match your filters</div>
               </div>
 
               {/* Quality Indicator */}
@@ -638,35 +638,35 @@ export function AudienceFilterBuilder({
               )}
 
               {/* Cost Calculator */}
-              <div className="space-y-3 border-t border-purple-100 pt-4">
+              <div className="space-y-3 border-t border-emerald-100 pt-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-semibold text-slate-700">Cost Breakdown</h4>
+                  <h4 className="text-sm font-semibold text-foreground">Cost Breakdown</h4>
                   {/* DEBUG: Show admin status */}
-                  <span className={cn("text-xs px-2 py-1 rounded", isAdmin ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600")}>
+                  <span className={cn("text-xs px-2 py-1 rounded", isAdmin ? "bg-emerald-100 text-emerald-800" : "bg-muted text-muted-foreground")}>
                     {isAdmin ? "Admin Mode" : "User Mode"}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600">Per Contact</span>
-                  <span className="font-semibold text-slate-900">
+                  <span className="text-muted-foreground">Per Contact</span>
+                  <span className="font-semibold text-foreground">
                     {formatCurrency(countData.userCostPerContact)}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600">Total ({formatNumber(countData.count)})</span>
-                  <span className="text-lg font-bold text-purple-700">
+                  <span className="text-muted-foreground">Total ({formatNumber(countData.count)})</span>
+                  <span className="text-lg font-bold text-emerald-700">
                     {formatCurrency(countData.userCharge)}
                   </span>
                 </div>
 
                 {/* Admin-only: Margin display */}
                 {isAdmin && (
-                  <div className="rounded-lg bg-green-50 p-3">
+                  <div className="rounded-lg bg-emerald-50 p-3">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium text-green-900">Your Margin</span>
-                      <span className="font-bold text-green-700">
+                      <span className="font-medium text-emerald-900">Your Margin</span>
+                      <span className="font-bold text-emerald-700">
                         {formatCurrency(countData.margin)}
                       </span>
                     </div>
@@ -676,10 +676,10 @@ export function AudienceFilterBuilder({
             </>
           ) : (
             <div className="py-8 text-center">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
-                <Users className="h-6 w-6 text-slate-400" />
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                <Users className="h-6 w-6 text-muted-foreground" />
               </div>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-muted-foreground">
                 Add filters to see<br />audience size & cost
               </p>
             </div>
@@ -692,7 +692,7 @@ export function AudienceFilterBuilder({
             {mode === "standalone" && !showSaveForm && (
               <>
                 <Button
-                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  className="w-full bg-emerald-600 hover:bg-emerald-700"
                   size="lg"
                   onClick={() => setShowPurchaseModal(true)}
                 >
@@ -700,7 +700,8 @@ export function AudienceFilterBuilder({
                   Purchase Contacts
                 </Button>
                 <Button
-                  className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                  variant="outline"
+                  className="w-full border-emerald-200 hover:bg-emerald-50"
                   size="lg"
                   onClick={() => setShowSaveForm(true)}
                 >
@@ -712,7 +713,7 @@ export function AudienceFilterBuilder({
 
             {mode === "campaign" && (
               <Button
-                className="w-full bg-green-600 hover:bg-green-700"
+                className="w-full bg-emerald-600 hover:bg-emerald-700"
                 size="lg"
                 onClick={() => onPurchase?.(filters, countData.count)}
               >
@@ -726,7 +727,7 @@ export function AudienceFilterBuilder({
         {/* Save Form */}
         {showSaveForm && (
           <Card className="p-4">
-            <h4 className="mb-3 font-semibold text-slate-900">Save Audience</h4>
+            <h4 className="mb-3 font-semibold text-foreground">Save Audience</h4>
             <div className="space-y-3">
               <div>
                 <Label>Name *</Label>
@@ -753,7 +754,7 @@ export function AudienceFilterBuilder({
                   Cancel
                 </Button>
                 <Button
-                  className="flex-1 bg-purple-600 hover:bg-purple-700"
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700"
                   onClick={handleSave}
                   disabled={!saveName.trim() || isSaving}
                 >
@@ -812,18 +813,18 @@ function FilterCategory({
       className={cn(
         "mb-2 flex w-full items-center justify-between rounded-lg p-3 text-left transition-all",
         isExpanded
-          ? "bg-purple-100 text-purple-900"
-          : "hover:bg-slate-50 text-slate-700"
+          ? "bg-emerald-100 text-emerald-900"
+          : "hover:bg-muted text-muted-foreground"
       )}
     >
       <div className="flex items-center gap-3">
-        <Icon className={cn("h-5 w-5", isExpanded ? "text-purple-600" : "text-slate-400")} />
+        <Icon className={cn("h-5 w-5", isExpanded ? "text-emerald-600" : "text-muted-foreground")} />
         <span className="font-medium">{title}</span>
       </div>
       {count > 0 && (
         <span className={cn(
           "flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold",
-          isExpanded ? "bg-purple-600 text-white" : "bg-slate-200 text-slate-700"
+          isExpanded ? "bg-emerald-600 text-white" : "bg-muted text-foreground"
         )}>
           {count}
         </span>

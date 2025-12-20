@@ -88,15 +88,15 @@ export default function LandingPagesPage() {
   const activePagesCount = landingPages.filter(p => p.is_active).length;
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 space-y-6">
+    <div className="min-h-screen bg-background p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
+          <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
             <Globe className="h-8 w-8" />
             Landing Pages
           </h1>
-          <p className="text-slate-600 mt-1">
+          <p className="text-muted-foreground mt-1">
             Manage and analyze all your landing pages in one place
           </p>
         </div>
@@ -116,16 +116,16 @@ export default function LandingPagesPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-slate-600 flex items-center gap-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Globe className="h-4 w-4" />
                 Total Pages
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-slate-900">
+              <div className="text-2xl font-bold text-foreground">
                 {landingPages.length}
               </div>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 {activePagesCount} active
               </p>
             </CardContent>
@@ -133,16 +133,16 @@ export default function LandingPagesPage() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-slate-600 flex items-center gap-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Eye className="h-4 w-4" />
                 Total Views
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-slate-900">
+              <div className="text-2xl font-bold text-foreground">
                 {totalViews.toLocaleString()}
               </div>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Across all pages
               </p>
             </CardContent>
@@ -150,16 +150,16 @@ export default function LandingPagesPage() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-slate-600 flex items-center gap-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4" />
                 Total Conversions
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-2xl font-bold text-emerald-600">
                 {totalConversions.toLocaleString()}
               </div>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 All landing pages
               </p>
             </CardContent>
@@ -167,7 +167,7 @@ export default function LandingPagesPage() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-slate-600 flex items-center gap-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <TrendingUp className="h-4 w-4" />
                 Avg Conversion Rate
               </CardTitle>
@@ -175,14 +175,14 @@ export default function LandingPagesPage() {
             <CardContent>
               <div className={`text-2xl font-bold ${
                 avgConversionRate >= 5
-                  ? 'text-green-600'
+                  ? 'text-emerald-600'
                   : avgConversionRate >= 2
                   ? 'text-yellow-600'
-                  : 'text-slate-900'
+                  : 'text-foreground'
               }`}>
                 {avgConversionRate.toFixed(1)}%
               </div>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Average performance
               </p>
             </CardContent>
@@ -196,7 +196,7 @@ export default function LandingPagesPage() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search by campaign name, template type, or tracking code..."
                   value={searchTerm}
@@ -208,7 +208,7 @@ export default function LandingPagesPage() {
                 <Button
                   variant="ghost"
                   onClick={() => setSearchTerm('')}
-                  className="text-slate-600"
+                  className="text-muted-foreground"
                 >
                   Clear
                 </Button>
@@ -229,11 +229,11 @@ export default function LandingPagesPage() {
         <Card>
           <CardContent className="py-12">
             <div className="text-center">
-              <Search className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-600 font-medium">
+              <Search className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
+              <p className="text-muted-foreground font-medium">
                 No landing pages match "{searchTerm}"
               </p>
-              <p className="text-sm text-slate-500 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 Try adjusting your search terms
               </p>
             </div>
