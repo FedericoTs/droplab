@@ -23,9 +23,36 @@ let browserInstance: Browser | null = null
 async function getBrowserInstance(): Promise<Browser> {
   if (browserInstance) return browserInstance
 
-  const puppeteer = await import('puppeteer')
+  // Dynamic import to avoid build failures - uses puppeteer-core with local Chrome
+  const puppeteer = await import('puppeteer-core' as string)
+
+  // Find local Chrome installation
+  const possiblePaths = [
+    '/usr/bin/chromium-browser',
+    '/usr/bin/chromium',
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+  ]
+
+  let executablePath: string | undefined
+  const fs = await import('fs')
+  for (const path of possiblePaths) {
+    if (fs.existsSync(path)) {
+      executablePath = path
+      break
+    }
+  }
+
+  if (!executablePath) {
+    throw new Error('Template prerender requires local Chrome installation.')
+  }
+
   browserInstance = await puppeteer.default.launch({
     headless: true,
+    executablePath,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
   })
   console.log('✅ [Template Prerender] Browser launched')
