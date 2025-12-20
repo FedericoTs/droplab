@@ -125,13 +125,23 @@ function createHTML(templateJSON: string, recipientData: any, width: number, hei
     function loadFabric() {
       return new Promise((resolve, reject) => {
         const s = document.createElement('script');
-        // CRITICAL: Use Fabric v6 to match editor version (package.json: ^6.7.1)
-        // v5 cannot deserialize v6 JSON format → 0 objects loaded!
-        s.src = 'https://cdn.jsdelivr.net/npm/fabric@6.7.1/dist/index.min.js';
+        // OPTIMIZATION: Load Fabric.js from local server (faster than CDN)
+        // Fabric v6.7.1 to match editor version (package.json: ^6.7.1)
+        // Fallback to CDN if local fails
+        const baseUrl = '${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}';
+        s.src = baseUrl + '/fabric.min.js';
         s.onload = resolve;
         s.onerror = () => {
-          window.renderError = 'Failed to load Fabric.js';
-          reject();
+          // Fallback to CDN
+          console.warn('Local Fabric.js failed, falling back to CDN');
+          const fallbackScript = document.createElement('script');
+          fallbackScript.src = 'https://cdn.jsdelivr.net/npm/fabric@6.7.1/dist/index.min.js';
+          fallbackScript.onload = resolve;
+          fallbackScript.onerror = () => {
+            window.renderError = 'Failed to load Fabric.js';
+            reject();
+          };
+          document.head.appendChild(fallbackScript);
         };
         document.head.appendChild(s);
       });

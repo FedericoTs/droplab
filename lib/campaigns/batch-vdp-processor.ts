@@ -15,6 +15,11 @@
 import { nanoid } from 'nanoid'
 import { personalizeCanvasWithRecipient } from './personalization-engine'
 import { convertCanvasToPDF } from '@/lib/pdf/canvas-to-pdf-simple'
+import {
+  convertCanvasToPDFOptimized,
+  initializePagePool,
+  cleanupPagePool,
+} from '@/lib/pdf/canvas-to-pdf-optimized'
 import { createServiceClient } from '@/lib/supabase/server'
 import type {
   Campaign,
@@ -30,6 +35,152 @@ import {
   createCampaignRecipientsBulk,
   createLandingPage,
 } from '@/lib/database/campaign-supabase-queries'
+
+// ==================== IMAGE PRE-CACHING (Phase B2) ====================
+
+/**
+ * OPTIMIZATION: Pre-cache all images in a canvas JSON
+ * Downloads Supabase images once and converts to base64 data URLs
+ * This eliminates repeated network requests per recipient
+ */
+interface ImageCache {
+  [url: string]: string; // Original URL -> Base64 data URL
+}
+
+/**
+ * Download a single image from Supabase Storage and convert to base64
+ */
+async function downloadImageAsDataURL(url: string): Promise<string> {
+  try {
+    // Handle Supabase Storage URLs
+    const match = url.match(/\/storage\/v1\/object\/(?:sign|public)\/([^/]+)\/(.+?)(?:\?|$)/)
+    if (!match) {
+      // Not a Supabase URL, try direct fetch
+      const response = await fetch(url)
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const buffer = Buffer.from(await response.arrayBuffer())
+      const contentType = response.headers.get('content-type') || 'image/png'
+      return `data:${contentType};base64,${buffer.toString('base64')}`
+    }
+
+    const [, bucket, path] = match
+    const supabase = createServiceClient()
+    const { data, error } = await supabase.storage.from(bucket).download(path)
+
+    if (error) throw new Error(`Storage error: ${error.message}`)
+    if (!data) throw new Error('No data returned')
+
+    const buffer = Buffer.from(await data.arrayBuffer())
+    return `data:image/png;base64,${buffer.toString('base64')}`
+  } catch (err) {
+    console.warn(`⚠️ [ImageCache] Failed to cache image ${url}:`, err)
+    return url // Return original URL as fallback
+  }
+}
+
+/**
+ * Extract all image URLs from a canvas JSON object
+ */
+function extractImageUrls(canvasJSON: any): string[] {
+  const urls: string[] = []
+  const parsed = typeof canvasJSON === 'string' ? JSON.parse(canvasJSON) : canvasJSON
+
+  if (!parsed?.objects) return urls
+
+  for (const obj of parsed.objects) {
+    if (obj.type === 'Image' && obj.src) {
+      // Only cache external URLs, skip already-cached data URLs
+      if (!obj.src.startsWith('data:')) {
+        urls.push(obj.src)
+      }
+    }
+    // Handle background images
+    if (obj.backgroundImage?.src && !obj.backgroundImage.src.startsWith('data:')) {
+      urls.push(obj.backgroundImage.src)
+    }
+  }
+
+  // Also check canvas-level background
+  if (parsed.backgroundImage?.src && !parsed.backgroundImage.src.startsWith('data:')) {
+    urls.push(parsed.backgroundImage.src)
+  }
+
+  return [...new Set(urls)] // Remove duplicates
+}
+
+/**
+ * Pre-cache all images from multiple canvas JSONs
+ * Returns a cache map of original URL -> base64 data URL
+ */
+async function preCacheImages(canvasJSONs: any[]): Promise<ImageCache> {
+  const cache: ImageCache = {}
+  const allUrls: string[] = []
+
+  // Collect all unique image URLs from all canvases
+  for (const canvasJSON of canvasJSONs) {
+    if (canvasJSON) {
+      allUrls.push(...extractImageUrls(canvasJSON))
+    }
+  }
+
+  const uniqueUrls = [...new Set(allUrls)]
+
+  if (uniqueUrls.length === 0) {
+    console.log('📷 [ImageCache] No images to pre-cache')
+    return cache
+  }
+
+  console.log(`📷 [ImageCache] Pre-caching ${uniqueUrls.length} images...`)
+  const startTime = Date.now()
+
+  // Download all images in parallel (with concurrency limit)
+  const CONCURRENT_DOWNLOADS = 5
+  for (let i = 0; i < uniqueUrls.length; i += CONCURRENT_DOWNLOADS) {
+    const batch = uniqueUrls.slice(i, i + CONCURRENT_DOWNLOADS)
+    const results = await Promise.all(
+      batch.map(async (url) => {
+        const dataUrl = await downloadImageAsDataURL(url)
+        return { url, dataUrl }
+      })
+    )
+    for (const { url, dataUrl } of results) {
+      cache[url] = dataUrl
+    }
+  }
+
+  const duration = ((Date.now() - startTime) / 1000).toFixed(1)
+  console.log(`✅ [ImageCache] Pre-cached ${uniqueUrls.length} images in ${duration}s`)
+
+  return cache
+}
+
+/**
+ * Apply image cache to a canvas JSON, replacing URLs with data URLs
+ */
+function applyImageCache(canvasJSON: any, cache: ImageCache): any {
+  const parsed = typeof canvasJSON === 'string' ? JSON.parse(canvasJSON) : { ...canvasJSON }
+
+  if (!parsed?.objects) return parsed
+
+  // Deep clone to avoid mutating original
+  const cloned = JSON.parse(JSON.stringify(parsed))
+
+  for (const obj of cloned.objects) {
+    if (obj.type === 'Image' && obj.src && cache[obj.src]) {
+      obj.src = cache[obj.src]
+    }
+    if (obj.backgroundImage?.src && cache[obj.backgroundImage.src]) {
+      obj.backgroundImage.src = cache[obj.backgroundImage.src]
+    }
+  }
+
+  // Also apply to canvas-level background
+  if (cloned.backgroundImage?.src && cache[cloned.backgroundImage.src]) {
+    cloned.backgroundImage.src = cache[cloned.backgroundImage.src]
+  }
+
+  return cloned
+}
 
 // ==================== TYPES ====================
 
@@ -140,6 +291,60 @@ async function uploadPersonalizedPDF(
 
   console.log('✅ [uploadPersonalizedPDF] PDF uploaded:', fileName)
   return signedUrlData.signedUrl
+}
+
+/**
+ * OPTIMIZATION: Upload multiple PDFs in parallel batches
+ * Uploads in batches of PARALLEL_UPLOAD_BATCH_SIZE to avoid overwhelming the network
+ */
+const PARALLEL_UPLOAD_BATCH_SIZE = 10; // Upload 10 PDFs at a time
+
+interface PendingUpload {
+  campaignId: string;
+  recipientId: string;
+  buffer: Buffer;
+  index: number;
+}
+
+async function uploadPDFsBatch(
+  pendingUploads: PendingUpload[],
+  onProgress?: (completed: number, total: number) => void
+): Promise<Map<number, string>> {
+  const results = new Map<number, string>();
+  let completed = 0;
+
+  console.log(`📤 [uploadPDFsBatch] Starting parallel upload of ${pendingUploads.length} PDFs in batches of ${PARALLEL_UPLOAD_BATCH_SIZE}...`);
+  const uploadStartTime = Date.now();
+
+  // Process in batches
+  for (let i = 0; i < pendingUploads.length; i += PARALLEL_UPLOAD_BATCH_SIZE) {
+    const batch = pendingUploads.slice(i, Math.min(i + PARALLEL_UPLOAD_BATCH_SIZE, pendingUploads.length));
+
+    const batchPromises = batch.map(async (upload) => {
+      try {
+        const pdfUrl = await uploadPersonalizedPDF(upload.campaignId, upload.recipientId, upload.buffer);
+        results.set(upload.index, pdfUrl);
+        completed++;
+        onProgress?.(completed, pendingUploads.length);
+        return { index: upload.index, success: true, url: pdfUrl };
+      } catch (error) {
+        console.error(`❌ [uploadPDFsBatch] Failed to upload PDF for recipient ${upload.recipientId}:`, error);
+        results.set(upload.index, ''); // Empty string indicates failure
+        completed++;
+        onProgress?.(completed, pendingUploads.length);
+        return { index: upload.index, success: false, url: '' };
+      }
+    });
+
+    // Wait for this batch to complete before starting next batch
+    await Promise.all(batchPromises);
+  }
+
+  const uploadDuration = ((Date.now() - uploadStartTime) / 1000).toFixed(1);
+  console.log(`✅ [uploadPDFsBatch] Parallel upload complete: ${results.size} PDFs in ${uploadDuration}s`);
+  console.log(`⚡ [uploadPDFsBatch] Average: ${(results.size / parseFloat(uploadDuration)).toFixed(1)} uploads/sec`);
+
+  return results;
 }
 
 // ==================== MAIN PROCESSOR ====================
@@ -273,6 +478,25 @@ export async function processCampaignBatch(
       console.log('📄 [processCampaignBatch] Template uses blank back page (PostGrid address block)')
     }
 
+    // ==================== STEP 2.5: Pre-cache Template Images (Phase B2) ====================
+    // OPTIMIZATION: Download all template images ONCE and convert to base64
+    // This eliminates redundant network requests per recipient (saves ~100-500ms each)
+    console.log('📷 [processCampaignBatch] Phase B2: Pre-caching template images...')
+    const imageCacheStartTime = Date.now()
+
+    const imageCache = await preCacheImages([frontCanvasJSON, backCanvasJSON])
+
+    // Apply pre-cached images to canvas JSONs
+    const preCachedFrontCanvasJSON = Object.keys(imageCache).length > 0
+      ? applyImageCache(frontCanvasJSON, imageCache)
+      : frontCanvasJSON
+    const preCachedBackCanvasJSON = backCanvasJSON && Object.keys(imageCache).length > 0
+      ? applyImageCache(backCanvasJSON, imageCache)
+      : backCanvasJSON
+
+    const imageCacheDuration = ((Date.now() - imageCacheStartTime) / 1000).toFixed(1)
+    console.log(`✅ [processCampaignBatch] Image pre-caching complete in ${imageCacheDuration}s`)
+
     // ==================== STEP 3: Load Recipients ====================
     const recipients = await getRecipientsByListId(campaign.recipient_list_id)
     if (recipients.length === 0) {
@@ -285,7 +509,19 @@ export async function processCampaignBatch(
     progress.status = 'processing'
     onProgress?.(progress)
 
-    // ==================== STEP 4: Process Each Recipient ====================
+    // ==================== STEP 3.5: Initialize Page Pool (Phase C1) ====================
+    // OPTIMIZATION: Pre-initialize browser page pool for faster PDF generation
+    // Each page reused instead of creating/destroying per recipient
+    const useOptimizedPDF = recipients.length >= 3 // Only use optimization for 3+ recipients
+    if (useOptimizedPDF) {
+      console.log('🚀 [processCampaignBatch] Initializing optimized PDF page pool...')
+      await initializePagePool(Math.min(4, recipients.length)) // Max 4 concurrent pages
+    }
+
+    // ==================== STEP 4: Process Each Recipient (PDF Generation) ====================
+    console.log(`🎨 [processCampaignBatch] Phase 1: Generating ${recipients.length} PDFs (${useOptimizedPDF ? 'optimized' : 'standard'})...`)
+    const pdfGenStartTime = Date.now()
+
     let successCount = 0
     let failureCount = 0
 
@@ -300,13 +536,17 @@ export async function processCampaignBatch(
       landingPageUrl: string;
     }> = [];
 
+    // OPTIMIZATION: Collect PDF buffers for parallel upload (Phase B1)
+    const pendingUploads: PendingUpload[] = [];
+
     for (let i = 0; i < recipients.length; i++) {
       const recipient = recipients[i]
       const recipientName = `${recipient.first_name} ${recipient.last_name}`
 
       progress.current = i + 1
       progress.currentRecipient = recipientName
-      progress.percentage = Math.round((progress.current / progress.total) * 100)
+      // Adjust percentage: PDF generation is 70% of work, upload is 30%
+      progress.percentage = Math.round((progress.current / progress.total) * 70)
       onProgress?.(progress)
 
       console.log(`  [${i + 1}/${recipients.length}] Processing ${recipientName}...`)
@@ -341,35 +581,22 @@ export async function processCampaignBatch(
         }
 
         // ==================== PERSONALIZE CANVAS (QR CODES + VARIABLES) ====================
-        // Step 1: Personalize front canvas (replace QR codes with unique tracking codes)
-        console.log(`    🔍 [DEBUG] Checking personalization for ${recipientName}:`, {
-          hasFrontSurface: !!frontSurface,
-          hasFrontMappings: !!frontSurface.variable_mappings,
-          mappingsType: typeof frontSurface.variable_mappings,
-          mappingsKeys: frontSurface.variable_mappings ? Object.keys(frontSurface.variable_mappings) : 'undefined',
-          mappingsLength: frontSurface.variable_mappings ? Object.keys(frontSurface.variable_mappings).length : 0,
-          mappingsDetail: frontSurface.variable_mappings, // ← Show FULL mappings object
-        })
-
-        let personalizedFrontCanvasJSON = frontCanvasJSON
+        // OPTIMIZATION: Use pre-cached canvas JSONs with embedded base64 images (Phase B2)
+        let personalizedFrontCanvasJSON = preCachedFrontCanvasJSON
         if (frontSurface.variable_mappings && Object.keys(frontSurface.variable_mappings).length > 0) {
-          console.log(`    🎨 Personalizing front canvas for ${recipientName}...`)
           personalizedFrontCanvasJSON = await personalizeCanvasWithRecipient(
-            frontCanvasJSON,
+            preCachedFrontCanvasJSON,
             frontSurface.variable_mappings,
             recipient,
             campaignId
           )
-        } else {
-          console.log(`    ⏭️  Skipping personalization for ${recipientName} - no variable mappings`)
         }
 
         // Step 2: Personalize back canvas if it exists and has variable mappings
-        let personalizedBackCanvasJSON = backCanvasJSON
-        if (backSurface && backCanvasJSON && backSurface.variable_mappings && Object.keys(backSurface.variable_mappings).length > 0) {
-          console.log(`    🎨 Personalizing back canvas for ${recipientName}...`)
+        let personalizedBackCanvasJSON = preCachedBackCanvasJSON
+        if (backSurface && preCachedBackCanvasJSON && backSurface.variable_mappings && Object.keys(backSurface.variable_mappings).length > 0) {
           personalizedBackCanvasJSON = await personalizeCanvasWithRecipient(
-            backCanvasJSON,
+            preCachedBackCanvasJSON,
             backSurface.variable_mappings,
             recipient,
             campaignId
@@ -377,55 +604,76 @@ export async function processCampaignBatch(
         }
 
         // ==================== GENERATE PDF WITH PERSONALIZED CANVASES ====================
-        // Generate personalized PDF (front + back pages with unique QR codes)
-        const pdfResult = await convertCanvasToPDF(
-          personalizedFrontCanvasJSON,  // ✅ Personalized front (unique QR codes)
-          personalizedBackCanvasJSON,   // ✅ Personalized back (unique QR codes if present)
-          recipientData,                // Recipient data for text variable replacement
-          template.format_type,         // Format (e.g., 'postcard_4x6')
-          `${campaign.name}-${recipient.id}`,
-          campaign.variable_mappings_snapshot // User-defined text variable mappings
-        )
+        // OPTIMIZATION: Use optimized page pool for 3+ recipients (Phase C1)
+        const pdfResult = useOptimizedPDF
+          ? await convertCanvasToPDFOptimized(
+              personalizedFrontCanvasJSON,
+              personalizedBackCanvasJSON,
+              recipientData,
+              template.format_type,
+              `${campaign.name}-${recipient.id}`,
+              campaign.variable_mappings_snapshot
+            )
+          : await convertCanvasToPDF(
+              personalizedFrontCanvasJSON,
+              personalizedBackCanvasJSON,
+              recipientData,
+              template.format_type,
+              `${campaign.name}-${recipient.id}`,
+              campaign.variable_mappings_snapshot
+            )
         const personalizedPDFBuffer = pdfResult.buffer
 
-        // Upload PDF to Supabase Storage
-        const pdfUrl = await uploadPersonalizedPDF(campaignId, recipient.id, personalizedPDFBuffer)
-
-        // OPTIMIZATION: Collect for bulk insert instead of individual inserts
+        // OPTIMIZATION: Collect PDF buffer for parallel upload later
         const landingPageUrl = `/lp/campaign/${campaignId}?r=${encodeURIComponent(recipient.id)}&t=${trackingCode}`;
+
+        pendingUploads.push({
+          campaignId,
+          recipientId: recipient.id,
+          buffer: personalizedPDFBuffer,
+          index: i,
+        });
+
+        // Store data for bulk insert (will be updated with PDF URL after upload)
         recipientBulkData.push({
           campaignId,
           recipientId: recipient.id,
-          personalizedCanvasJson: personalizedFrontCanvasJSON, // ✅ Store personalized canvas with unique QR
+          personalizedCanvasJson: personalizedFrontCanvasJSON,
           trackingCode,
-          qrCodeUrl: qrCodeUrl, // Store QR URL for reference
-          personalizedPdfUrl: pdfUrl,
+          qrCodeUrl: qrCodeUrl,
+          personalizedPdfUrl: '', // Will be filled after parallel upload
           landingPageUrl,
         })
 
         // Create landing page if configured
-        if (campaign.description && JSON.parse(campaign.description || '{}').landingPageConfig) {
-          const config = JSON.parse(campaign.description).landingPageConfig
-
-          await createLandingPage({
-            campaignId,
-            trackingCode,
-            templateType: config.template_type || 'default',
-            pageConfig: config,
-            recipientData: {
-              firstName: recipient.first_name,
-              lastName: recipient.last_name,
-              city: recipient.city,
-              state: recipient.state,
-              zip: recipient.zip_code,
-              email: recipient.email || undefined,
-              phone: recipient.phone || undefined,
-            },
-          })
+        if (campaign.description) {
+          try {
+            const descriptionData = JSON.parse(campaign.description || '{}')
+            if (descriptionData.landingPageConfig) {
+              const config = descriptionData.landingPageConfig
+              await createLandingPage({
+                campaignId,
+                trackingCode,
+                templateType: config.template_type || 'default',
+                pageConfig: config,
+                recipientData: {
+                  firstName: recipient.first_name,
+                  lastName: recipient.last_name,
+                  city: recipient.city,
+                  state: recipient.state,
+                  zip: recipient.zip_code,
+                  email: recipient.email || undefined,
+                  phone: recipient.phone || undefined,
+                },
+              })
+            }
+          } catch (parseError) {
+            // Ignore JSON parse errors for description field
+          }
         }
 
         successCount++
-        console.log(`    ✅ Success: ${recipientName}`)
+        console.log(`    ✅ PDF generated: ${recipientName}`)
       } catch (error) {
         failureCount++
         const errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -437,6 +685,39 @@ export async function processCampaignBatch(
           recipientName,
           error: errorMessage,
         })
+      }
+    }
+
+    const pdfGenDuration = ((Date.now() - pdfGenStartTime) / 1000).toFixed(1)
+    console.log(`✅ [processCampaignBatch] Phase 1 complete: ${successCount} PDFs generated in ${pdfGenDuration}s`)
+
+    // ==================== STEP 4.25: Parallel PDF Upload ====================
+    if (pendingUploads.length > 0) {
+      console.log(`📤 [processCampaignBatch] Phase 2: Uploading ${pendingUploads.length} PDFs in parallel...`)
+
+      const uploadResults = await uploadPDFsBatch(pendingUploads, (completed, total) => {
+        // Update progress during upload phase (70-100%)
+        progress.percentage = 70 + Math.round((completed / total) * 30)
+        progress.currentRecipient = `Uploading ${completed}/${total}`
+        onProgress?.(progress)
+      });
+
+      // Update recipientBulkData with PDF URLs
+      for (const [index, pdfUrl] of uploadResults) {
+        if (recipientBulkData[index]) {
+          recipientBulkData[index].personalizedPdfUrl = pdfUrl;
+
+          // If upload failed, mark as failure
+          if (!pdfUrl) {
+            failureCount++;
+            successCount--;
+            progress.errors.push({
+              recipientId: recipientBulkData[index].recipientId,
+              recipientName: `Recipient ${index + 1}`,
+              error: 'PDF upload failed',
+            });
+          }
+        }
       }
     }
 
@@ -471,6 +752,13 @@ export async function processCampaignBatch(
 
     const duration = (Date.now() - startTime) / 1000
 
+    // ==================== STEP 6: Cleanup Page Pool (Phase C1) ====================
+    // OPTIMIZATION: Clean up browser page pool to free resources
+    if (useOptimizedPDF) {
+      console.log('🧹 [processCampaignBatch] Cleaning up page pool...')
+      await cleanupPagePool()
+    }
+
     console.log(`✅ [processCampaignBatch] Batch complete: ${successCount} success, ${failureCount} failures (${duration}s)`)
 
     return {
@@ -487,6 +775,13 @@ export async function processCampaignBatch(
 
     progress.status = 'failed'
     onProgress?.(progress)
+
+    // Cleanup page pool on error (Phase C1)
+    try {
+      await cleanupPagePool()
+    } catch (cleanupError) {
+      // Ignore cleanup errors
+    }
 
     // Update campaign to failed status
     await updateCampaignStatus(campaignId, organizationId, 'failed')
