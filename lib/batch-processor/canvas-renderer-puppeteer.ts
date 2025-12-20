@@ -67,14 +67,15 @@ async function getBrowserInstance(): Promise<Browser> {
     throw new Error('Batch renderer requires local Chrome installation.');
   }
 
-  browserInstance = await puppeteer.default.launch({
+  const browser = await puppeteer.default.launch({
     ...PUPPETEER_OPTIONS,
     executablePath,
   });
+  browserInstance = browser;
   browserRefCount = 1;
 
   console.log("✅ Puppeteer browser launched");
-  return browserInstance;
+  return browser;
 }
 
 /**
