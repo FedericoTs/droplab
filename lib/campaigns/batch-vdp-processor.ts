@@ -211,7 +211,15 @@ export interface VDPResult {
   failureCount: number
   errors: VDPProgress['errors']
   duration: number
+  // Chunking support
+  isComplete: boolean
+  processedInChunk: number
+  remainingRecipients: number
 }
+
+// Maximum recipients to process per API call (to stay under 60s timeout)
+// Each PDF takes ~10-15s on Vercel, so 2 PDFs = ~30s (safe margin)
+const CHUNK_SIZE = 2
 
 // ==================== HELPERS ====================
 
@@ -504,14 +512,59 @@ export async function processCampaignBatch(
     console.log(`✅ [processCampaignBatch] Image pre-caching complete in ${imageCacheDuration}s`)
 
     // ==================== STEP 3: Load Recipients ====================
-    const recipients = await getRecipientsByListId(campaign.recipient_list_id)
-    if (recipients.length === 0) {
+    const allRecipients = await getRecipientsByListId(campaign.recipient_list_id)
+    if (allRecipients.length === 0) {
       throw new Error('No recipients found in list')
     }
 
-    console.log(`👥 [processCampaignBatch] Loaded ${recipients.length} recipients`)
+    console.log(`👥 [processCampaignBatch] Loaded ${allRecipients.length} total recipients`)
 
-    progress.total = recipients.length
+    // ==================== STEP 3.1: Filter Already-Processed Recipients (Chunking) ====================
+    // Check which recipients have already been processed
+    const supabase = createServiceClient()
+    const { data: existingRecipients, error: existingError } = await supabase
+      .from('campaign_recipients')
+      .select('recipient_id')
+      .eq('campaign_id', campaignId)
+
+    if (existingError) {
+      console.warn('⚠️ [processCampaignBatch] Could not check existing recipients:', existingError)
+    }
+
+    const processedIds = new Set(existingRecipients?.map(r => r.recipient_id) || [])
+    const pendingRecipients = allRecipients.filter(r => !processedIds.has(r.id))
+
+    console.log(`📊 [processCampaignBatch] Progress: ${processedIds.size}/${allRecipients.length} already processed, ${pendingRecipients.length} pending`)
+
+    // If all recipients are already processed, return completed
+    if (pendingRecipients.length === 0) {
+      console.log('✅ [processCampaignBatch] All recipients already processed!')
+
+      await updateCampaignStatus(campaignId, organizationId, 'completed')
+
+      return {
+        success: true,
+        campaignId,
+        totalRecipients: allRecipients.length,
+        successCount: processedIds.size,
+        failureCount: 0,
+        errors: [],
+        duration: (Date.now() - startTime) / 1000,
+        isComplete: true,
+        processedInChunk: 0,
+        remainingRecipients: 0,
+      }
+    }
+
+    // ==================== STEP 3.2: Limit to CHUNK_SIZE Recipients ====================
+    // Only process CHUNK_SIZE recipients per API call to stay under Vercel's 60s timeout
+    const recipients = pendingRecipients.slice(0, CHUNK_SIZE)
+    const remainingAfterChunk = pendingRecipients.length - recipients.length
+
+    console.log(`⚡ [processCampaignBatch] Processing chunk: ${recipients.length} recipients (${remainingAfterChunk} remaining after this chunk)`)
+
+    progress.total = allRecipients.length
+    progress.current = processedIds.size // Start from already-processed count
     progress.status = 'processing'
     onProgress?.(progress)
 
@@ -827,11 +880,25 @@ export async function processCampaignBatch(
     }
 
     // ==================== STEP 5: Update Campaign Status ====================
-    const finalStatus = failureCount === 0 ? 'completed' : failureCount === recipients.length ? 'failed' : 'completed'
+    // Determine if this chunk completes the campaign
+    const totalProcessedNow = processedIds.size + successCount
+    const isChunkComplete = remainingAfterChunk === 0 // No more recipients after this chunk
+    const allProcessed = totalProcessedNow >= allRecipients.length
+
+    // Only mark as 'completed' if ALL recipients are processed
+    // Keep as 'sending' if more chunks remain
+    let finalStatus: 'sending' | 'completed' | 'failed'
+    if (failureCount === recipients.length) {
+      finalStatus = 'failed'
+    } else if (isChunkComplete && allProcessed) {
+      finalStatus = 'completed'
+    } else {
+      finalStatus = 'sending' // More chunks to process
+    }
 
     await updateCampaignStatus(campaignId, organizationId, finalStatus)
 
-    progress.status = 'completed'
+    progress.status = isChunkComplete && allProcessed ? 'completed' : 'processing'
     progress.currentRecipient = null
     onProgress?.(progress)
 
@@ -844,16 +911,20 @@ export async function processCampaignBatch(
       await cleanupPagePool()
     }
 
-    console.log(`✅ [processCampaignBatch] Batch complete: ${successCount} success, ${failureCount} failures (${duration}s)`)
+    console.log(`✅ [processCampaignBatch] Chunk complete: ${successCount}/${recipients.length} success (${totalProcessedNow}/${allRecipients.length} total, ${remainingAfterChunk} remaining) in ${duration}s`)
 
     return {
       success: failureCount < recipients.length,
       campaignId,
-      totalRecipients: recipients.length,
-      successCount,
+      totalRecipients: allRecipients.length,
+      successCount: totalProcessedNow,
       failureCount,
       errors: progress.errors,
       duration,
+      // Chunking info for client polling
+      isComplete: isChunkComplete && allProcessed,
+      processedInChunk: successCount,
+      remainingRecipients: remainingAfterChunk,
     }
   } catch (error) {
     console.error('❌ [processCampaignBatch] Fatal error:', error)
@@ -887,6 +958,10 @@ export async function processCampaignBatch(
         },
       ],
       duration,
+      // Chunking info for error case
+      isComplete: false,
+      processedInChunk: 0,
+      remainingRecipients: progress.total,
     }
   }
 }

@@ -80,15 +80,22 @@ export async function POST(
           failureCount: 0,
           duration: 0,
           errors: [],
-          message: 'Campaign already generated'
+          message: 'Campaign already generated',
+          // Chunking info - campaign is complete
+          isComplete: true,
+          processedInChunk: 0,
+          remainingRecipients: 0,
         })
       )
     }
 
-    // Process campaign batch (synchronous for Phase 3A)
+    // Process campaign batch (chunked for Vercel timeout limits)
+    // Each call processes CHUNK_SIZE recipients to stay under 60s timeout
     const result = await processCampaignBatch(campaignId, organizationId)
 
-    if (!result.success) {
+    // Only treat as failure if the batch processing itself failed
+    // (not if there are more chunks to process)
+    if (!result.success && result.failureCount === result.totalRecipients) {
       console.error('❌ [Campaign Generate API] Generation failed:', result.errors)
 
       return NextResponse.json(
@@ -100,9 +107,16 @@ export async function POST(
       )
     }
 
-    console.log(
-      `✅ [Campaign Generate API] Generation complete: ${result.successCount}/${result.totalRecipients} succeeded in ${result.duration}s`
-    )
+    // Log progress
+    if (result.isComplete) {
+      console.log(
+        `✅ [Campaign Generate API] Generation COMPLETE: ${result.successCount}/${result.totalRecipients} succeeded in ${result.duration}s`
+      )
+    } else {
+      console.log(
+        `⏳ [Campaign Generate API] Chunk processed: ${result.processedInChunk} PDFs, ${result.remainingRecipients} remaining`
+      )
+    }
 
     return NextResponse.json(
       successResponse({
@@ -112,6 +126,10 @@ export async function POST(
         failureCount: result.failureCount,
         duration: result.duration,
         errors: result.errors,
+        // Chunking info for client polling
+        isComplete: result.isComplete,
+        processedInChunk: result.processedInChunk,
+        remainingRecipients: result.remainingRecipients,
       })
     )
   } catch (error) {

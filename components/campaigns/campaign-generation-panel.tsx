@@ -174,50 +174,97 @@ export function CampaignGenerationPanel({
 
       console.log('🚀 Starting campaign generation...')
 
-      // Start progress polling
+      // Start progress polling for real-time updates
       startProgressPolling()
 
-      const response = await fetch(`/api/campaigns/${campaignId}/generate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ organizationId }),
-      })
+      let totalDuration = 0
+      let allErrors: GenerationError[] = []
+      let isComplete = false
+      let chunkCount = 0
 
-      // Stop polling when API returns
+      // Process in chunks until complete (each chunk processes ~2 recipients)
+      while (!isComplete) {
+        chunkCount++
+        console.log(`📦 Processing chunk ${chunkCount}...`)
+
+        const response = await fetch(`/api/campaigns/${campaignId}/generate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ organizationId }),
+        })
+
+        // Handle non-JSON responses (e.g., 504 Gateway Timeout)
+        let data
+        try {
+          data = await response.json()
+        } catch (parseError) {
+          console.error('❌ Failed to parse response:', parseError)
+          if (response.status === 504) {
+            // On timeout, continue polling - server may still be processing
+            console.warn('⚠️ Request timed out, continuing to poll...')
+            await new Promise((r) => setTimeout(r, 2000)) // Wait 2s before retry
+            continue
+          }
+          throw new Error(`Server error: ${response.status} ${response.statusText}`)
+        }
+
+        if (!response.ok) {
+          throw new Error(data.message || 'Generation failed')
+        }
+
+        // Accumulate results from this chunk
+        const chunkData = data.data
+        totalDuration += chunkData.duration || 0
+        allErrors = [...allErrors, ...(chunkData.errors || [])]
+
+        // Check if complete
+        isComplete = chunkData.isComplete === true
+
+        // Update progress
+        const successCount = chunkData.successCount || 0
+        const remaining = chunkData.remainingRecipients || 0
+        const percentage = Math.round((successCount / totalRecipients) * 100)
+
+        console.log(
+          `📊 Chunk ${chunkCount}: ${chunkData.processedInChunk} processed, ${remaining} remaining, ${percentage}% complete`
+        )
+
+        setProgress({
+          current: successCount,
+          total: totalRecipients,
+          percentage,
+          currentRecipient: isComplete ? null : `Processing chunk ${chunkCount + 1}...`,
+          status: isComplete ? 'completed' : 'processing',
+        })
+
+        // If not complete, brief pause before next chunk to avoid rate limiting
+        if (!isComplete) {
+          await new Promise((r) => setTimeout(r, 500))
+        }
+      }
+
+      // Stop polling when done
       stopProgressPolling()
 
-      // Handle non-JSON responses (e.g., 504 Gateway Timeout)
-      let data
-      try {
-        data = await response.json()
-      } catch (parseError) {
-        console.error('❌ Failed to parse response:', parseError)
-        if (response.status === 504) {
-          throw new Error('Request timed out. PDF generation may take longer for large campaigns. Please try again or contact support.')
-        }
-        throw new Error(`Server error: ${response.status} ${response.statusText}`)
-      }
+      // Final result
+      const finalSuccessCount = totalRecipients - allErrors.length
+      const finalFailureCount = allErrors.length
 
-      if (!response.ok) {
-        throw new Error(data.message || 'Generation failed')
-      }
-
-      // Success!
       setProgress({
-        current: data.data.totalRecipients,
-        total: data.data.totalRecipients,
+        current: totalRecipients,
+        total: totalRecipients,
         percentage: 100,
         currentRecipient: null,
         status: 'completed',
       })
 
       setResult({
-        successCount: data.data.successCount,
-        failureCount: data.data.failureCount,
-        duration: data.data.duration,
-        errors: data.data.errors || [],
+        successCount: finalSuccessCount,
+        failureCount: finalFailureCount,
+        duration: totalDuration,
+        errors: allErrors,
       })
 
       // Show recipients table
@@ -228,15 +275,15 @@ export function CampaignGenerationPanel({
         onGenerationComplete()
       }
 
-      if (data.data.failureCount > 0) {
+      if (finalFailureCount > 0) {
         toast.warning(
-          `Generation complete with ${data.data.failureCount} error${data.data.failureCount > 1 ? 's' : ''}`
+          `Generation complete with ${finalFailureCount} error${finalFailureCount > 1 ? 's' : ''}`
         )
       } else {
-        toast.success('🎉 All designs generated successfully!')
+        toast.success(`🎉 All ${totalRecipients} designs generated successfully in ${chunkCount} chunk${chunkCount > 1 ? 's' : ''}!`)
       }
 
-      console.log('✅ Generation complete:', data.data)
+      console.log(`✅ Generation complete: ${finalSuccessCount}/${totalRecipients} in ${chunkCount} chunks (${totalDuration.toFixed(1)}s total)`)
     } catch (error) {
       console.error('❌ Generation error:', error)
 
