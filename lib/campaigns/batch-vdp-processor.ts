@@ -518,19 +518,24 @@ export async function processCampaignBatch(
     // ==================== STEP 3.5: Initialize Page Pool (Phase C1) ====================
     // OPTIMIZATION: Pre-initialize browser page pool for faster PDF generation
     // Each page reused instead of creating/destroying per recipient
-    // NOTE: On Vercel, we use @pdfme for 50x faster generation (no Puppeteer needed)
     const isVercel = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME
 
-    // ULTRA-FAST PDF: Use @pdfme on Vercel (10-100ms per PDF vs 3-5s with Puppeteer)
-    // This is critical for staying within Vercel's 60s timeout on Hobby plan
-    const usePdfme = isVercel // Always use @pdfme on Vercel for speed
-    const useOptimizedPDF = !isVercel && !usePdfme && recipients.length >= 3
+    // NOTE: @pdfme CANNOT render Fabric.js canvas designs - it's a form-filling library
+    // that places text/images on PDFs, but cannot render complex graphics with layers/effects.
+    // Fabric.js templates MUST be rendered via Puppeteer to maintain visual fidelity.
+    //
+    // FUTURE OPTIMIZATION: Implement template pre-rendering strategy:
+    // 1. Render static template parts ONCE to PNG (expensive, but cached)
+    // 2. For each recipient, use pdf-lib to overlay ONLY variable data (fast)
+    // This would reduce 3-5s/PDF to ~100ms/PDF while maintaining visual fidelity.
+    const usePdfme = false // Disabled - @pdfme cannot render Fabric.js designs
+    const useOptimizedPDF = !isVercel && recipients.length >= 3
 
-    if (usePdfme) {
-      console.log('⚡ [processCampaignBatch] Using @pdfme for ULTRA-FAST PDF generation (10-100ms per PDF)')
-    } else if (useOptimizedPDF) {
+    if (useOptimizedPDF) {
       console.log('🚀 [processCampaignBatch] Initializing optimized PDF page pool...')
       await initializePagePool(Math.min(4, recipients.length)) // Max 4 concurrent pages
+    } else if (isVercel) {
+      console.log('☁️ [processCampaignBatch] Running on Vercel - using simple PDF generator')
     } else {
       console.log('📄 [processCampaignBatch] Using standard PDF generator')
     }
