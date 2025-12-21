@@ -10,12 +10,23 @@
  * - 95% faster for large batches (1000+ recipients)
  * - 90% less computational resources
  * - Scalable to millions of recipients
+ *
+ * Ultra-Fast PDF Generation Integration:
+ * - Strips variable content before rendering (clears text, hides QR)
+ * - Extracts variable positions for dynamic overlay
+ * - Returns both base PDF buffer and ExtractedPositions
  */
 
 import type { Browser } from 'puppeteer-core'
 import { jsPDF } from 'jspdf'
 import { getFormat } from '@/lib/design/print-formats'
 import { createServiceClient } from '@/lib/supabase/server'
+import {
+  extractVariablePositions,
+  stripVariableContent,
+  type VariableMappings,
+  type ExtractedPositions,
+} from './position-extractor'
 
 // Browser pool (reuse across renders)
 let browserInstance: Browser | null = null
@@ -191,6 +202,8 @@ export interface BaseTemplateResult {
     heightPixels: number
     dpi: number
   }
+  /** Extracted variable positions for dynamic overlay (Ultra-Fast PDF) */
+  variablePositions?: ExtractedPositions
 }
 
 /**
@@ -199,25 +212,59 @@ export interface BaseTemplateResult {
  * This base PDF is stored and reused for all recipients
  * Variable data is overlaid in Phase 2 (variable-overlay.ts)
  *
+ * Ultra-Fast PDF Mode:
+ * - When variableMappings provided, strips variable content before rendering
+ * - Extracts variable positions for dynamic overlay
+ * - Returns both base PDF and ExtractedPositions
+ *
  * @param templateCanvasJSON - Template canvas JSON (with variable placeholders)
  * @param formatType - Print format (e.g., "postcard_4x6")
- * @returns Base PDF buffer + metadata
+ * @param variableMappings - Optional variable mappings for ultra-fast mode
+ * @returns Base PDF buffer + metadata + optional positions
  */
 export async function prerenderTemplate(
   templateCanvasJSON: any,
-  formatType: string
+  formatType: string,
+  variableMappings?: VariableMappings
 ): Promise<BaseTemplateResult> {
+  const ultraFastMode = !!variableMappings && Object.keys(variableMappings).length > 0
+
   console.log('🎯 [Template Prerender] Starting one-time template rendering...')
+  if (ultraFastMode) {
+    console.log('⚡ [Template Prerender] Ultra-fast mode enabled - stripping variables')
+  }
 
   const browser = await getBrowserInstance()
   const page = await browser.newPage()
+
+  // Extract variable positions BEFORE any modifications (for ultra-fast mode)
+  let extractedPositions: ExtractedPositions | undefined
 
   try {
     const format = getFormat(formatType)
     console.log(`📐 [Template Prerender] Format: ${format.widthPixels}×${format.heightPixels}px`)
 
+    // In ultra-fast mode, extract positions from original canvas first
+    if (ultraFastMode && variableMappings) {
+      console.log('📍 [Template Prerender] Extracting variable positions...')
+      extractedPositions = extractVariablePositions(
+        templateCanvasJSON,
+        variableMappings,
+        formatType
+      )
+      console.log(
+        `✅ [Template Prerender] Extracted ${extractedPositions.variables.length} variable positions`
+      )
+    }
+
     // Download images in template
-    const processedTemplate = await downloadCanvasImages(templateCanvasJSON)
+    let processedTemplate = await downloadCanvasImages(templateCanvasJSON)
+
+    // In ultra-fast mode, strip variable content (hide text, QR placeholders)
+    if (ultraFastMode && variableMappings) {
+      console.log('🧹 [Template Prerender] Stripping variable content for base PDF...')
+      processedTemplate = stripVariableContent(processedTemplate, variableMappings)
+    }
 
     await page.setViewport({
       width: format.widthPixels,
@@ -225,7 +272,7 @@ export async function prerenderTemplate(
       deviceScaleFactor: 2,
     })
 
-    // Create HTML with template (no personalization)
+    // Create HTML with template (stripped in ultra-fast mode)
     const templateString = JSON.stringify(processedTemplate)
     const html = createHTML(templateString, format.widthPixels, format.heightPixels)
 
@@ -275,6 +322,10 @@ export async function prerenderTemplate(
     const pdfBuffer = Buffer.from(pdf.output('arraybuffer'))
     console.log(`✅ [Template Prerender] Base PDF created: ${(pdfBuffer.length / 1024).toFixed(2)} KB`)
 
+    if (ultraFastMode) {
+      console.log('⚡ [Template Prerender] Ultra-fast mode complete - ready for variable overlay')
+    }
+
     return {
       pdfBuffer,
       metadata: {
@@ -285,6 +336,8 @@ export async function prerenderTemplate(
         heightPixels: format.heightPixels,
         dpi: format.dpi,
       },
+      // Include extracted positions for ultra-fast overlay
+      variablePositions: extractedPositions,
     }
   } catch (error) {
     console.error('❌ [Template Prerender] Failed:', error)

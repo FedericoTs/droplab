@@ -26,6 +26,11 @@ import {
   fabricTosPdfmeTemplate,
   type PdfmeRecipientData,
 } from '@/lib/pdf/pdfme-generator'
+// Ultra-Fast PDF Generation (50-100ms per PDF vs 3-5s with Puppeteer)
+import { prerenderTemplate, type BaseTemplateResult } from '@/lib/pdf/template-prerenderer'
+import { getCachedBasePDF, cacheBasePDF } from '@/lib/pdf/template-cache'
+import { overlayWithDynamicPositions, type RecipientData as OverlayRecipientData } from '@/lib/pdf/variable-overlay'
+import { type VariableMappings as ExtractorMappings } from '@/lib/pdf/position-extractor'
 import { createServiceClient } from '@/lib/supabase/server'
 import type {
   Campaign,
@@ -219,7 +224,27 @@ export interface VDPResult {
 
 // Maximum recipients to process per API call (to stay under 60s timeout)
 // Each PDF takes ~10-15s on Vercel, so 2 PDFs = ~30s (safe margin)
+// With Ultra-Fast mode: 50-100ms per PDF, so 50 PDFs = ~5s (can increase CHUNK_SIZE)
 const CHUNK_SIZE = 2
+
+// ==================== FEATURE FLAGS ====================
+
+/**
+ * ULTRA-FAST PDF GENERATION MODE
+ *
+ * When enabled:
+ * - Template is pre-rendered ONCE to a base PDF (10-15s, cached)
+ * - Variable data is overlaid using pdf-lib (50-100ms per recipient)
+ * - 30-50x faster than Puppeteer rendering per recipient
+ *
+ * Requirements:
+ * - Template must have variable_mappings defined
+ * - Supabase Storage bucket 'base-pdfs' must exist
+ * - Database migration 035_template_pdf_cache must be applied
+ *
+ * Set to false to use legacy Puppeteer rendering for all PDFs
+ */
+const USE_ULTRA_FAST_PDF = process.env.ULTRA_FAST_PDF !== 'false' // Default: enabled
 
 // ==================== HELPERS ====================
 
@@ -568,33 +593,116 @@ export async function processCampaignBatch(
     progress.status = 'processing'
     onProgress?.(progress)
 
-    // ==================== STEP 3.5: Initialize Page Pool (Phase C1) ====================
-    // OPTIMIZATION: Pre-initialize browser page pool for faster PDF generation
-    // Each page reused instead of creating/destroying per recipient
+    // ==================== STEP 3.5: Determine PDF Generation Mode ====================
     const isVercel = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME
 
-    // NOTE: @pdfme CANNOT render Fabric.js canvas designs - it's a form-filling library
-    // that places text/images on PDFs, but cannot render complex graphics with layers/effects.
-    // Fabric.js templates MUST be rendered via Puppeteer to maintain visual fidelity.
-    //
-    // FUTURE OPTIMIZATION: Implement template pre-rendering strategy:
-    // 1. Render static template parts ONCE to PNG (expensive, but cached)
-    // 2. For each recipient, use pdf-lib to overlay ONLY variable data (fast)
-    // This would reduce 3-5s/PDF to ~100ms/PDF while maintaining visual fidelity.
-    const usePdfme = false // Disabled - @pdfme cannot render Fabric.js designs
-    const useOptimizedPDF = !isVercel && recipients.length >= 3
+    // Check if we can use Ultra-Fast PDF mode
+    // Requirements: feature flag enabled AND variable mappings exist
+    const hasVariableMappings = frontSurface?.variable_mappings &&
+                                Object.keys(frontSurface.variable_mappings).length > 0
+    const useUltraFastPDF = USE_ULTRA_FAST_PDF && hasVariableMappings
 
-    if (useOptimizedPDF) {
-      console.log('🚀 [processCampaignBatch] Initializing optimized PDF page pool...')
-      await initializePagePool(Math.min(4, recipients.length)) // Max 4 concurrent pages
-    } else if (isVercel) {
-      console.log('☁️ [processCampaignBatch] Running on Vercel - using simple PDF generator')
-    } else {
-      console.log('📄 [processCampaignBatch] Using standard PDF generator')
+    // Legacy modes (only used if ultra-fast is disabled)
+    const usePdfme = false // Disabled - @pdfme cannot render Fabric.js designs
+    const useOptimizedPDF = !useUltraFastPDF && !isVercel && recipients.length >= 3
+
+    // ==================== STEP 3.6: Ultra-Fast PDF - Pre-render Template (ONCE) ====================
+    let basePdfData: {
+      pdfBuffer: Buffer
+      variablePositions: import('@/lib/pdf/position-extractor').ExtractedPositions
+    } | null = null
+
+    if (useUltraFastPDF) {
+      console.log('⚡ [processCampaignBatch] Ultra-Fast PDF mode enabled!')
+      console.log('   📋 Variable mappings found:', Object.keys(frontSurface.variable_mappings || {}).length)
+
+      // Convert variable mappings to ExtractorMappings format
+      const extractorMappings: ExtractorMappings = {}
+      if (frontSurface.variable_mappings) {
+        Object.entries(frontSurface.variable_mappings).forEach(([idx, mapping]: [string, any]) => {
+          extractorMappings[idx] = {
+            variableType: mapping.variableType || mapping.type,
+            isReusable: mapping.isReusable ?? false,
+          }
+        })
+      }
+
+      // Step 1: Check cache for pre-rendered base PDF
+      console.log('🔍 [processCampaignBatch] Checking template cache...')
+      const cacheResult = await getCachedBasePDF(
+        template.id,
+        'front',
+        frontCanvasJSON
+      )
+
+      if (cacheResult.hit && cacheResult.data) {
+        console.log('✅ [processCampaignBatch] Cache HIT! Using pre-rendered base PDF')
+        console.log(`   📊 Cache stats: ${cacheResult.data.hitCount} previous hits`)
+        basePdfData = {
+          pdfBuffer: cacheResult.data.pdfBuffer,
+          variablePositions: cacheResult.data.variablePositions,
+        }
+      } else {
+        // Step 2: Pre-render template (one-time operation)
+        console.log('📭 [processCampaignBatch] Cache MISS - pre-rendering template...')
+        console.log('   ⏱️ This takes 10-15s but only happens ONCE per template')
+
+        const prerenderResult = await prerenderTemplate(
+          preCachedFrontCanvasJSON, // Use pre-cached images
+          template.format_type,
+          extractorMappings
+        )
+
+        if (!prerenderResult.variablePositions) {
+          console.warn('⚠️ [processCampaignBatch] Pre-rendering did not extract positions, falling back to legacy mode')
+        } else {
+          basePdfData = {
+            pdfBuffer: prerenderResult.pdfBuffer,
+            variablePositions: prerenderResult.variablePositions,
+          }
+
+          // Step 3: Cache for future use
+          console.log('💾 [processCampaignBatch] Caching base PDF for future batches...')
+          const cacheStoreResult = await cacheBasePDF(
+            template.id,
+            'front',
+            frontCanvasJSON,
+            prerenderResult.pdfBuffer,
+            prerenderResult.variablePositions,
+            template.format_type
+          )
+
+          if (cacheStoreResult.success) {
+            console.log('✅ [processCampaignBatch] Base PDF cached successfully')
+          } else {
+            console.warn('⚠️ [processCampaignBatch] Failed to cache base PDF:', cacheStoreResult.error)
+          }
+        }
+      }
+    }
+
+    // ==================== STEP 3.7: Initialize Page Pool (Legacy Mode) ====================
+    // Only needed for legacy Puppeteer rendering
+    if (!useUltraFastPDF || !basePdfData) {
+      if (useOptimizedPDF) {
+        console.log('🚀 [processCampaignBatch] Initializing optimized PDF page pool...')
+        await initializePagePool(Math.min(4, recipients.length)) // Max 4 concurrent pages
+      } else if (isVercel) {
+        console.log('☁️ [processCampaignBatch] Running on Vercel - using simple PDF generator')
+      } else {
+        console.log('📄 [processCampaignBatch] Using standard PDF generator')
+      }
     }
 
     // ==================== STEP 4: Process Each Recipient (PDF Generation) ====================
-    console.log(`🎨 [processCampaignBatch] Phase 1: Generating ${recipients.length} PDFs (${usePdfme ? '@pdfme ultra-fast' : useOptimizedPDF ? 'optimized' : 'standard'})...`)
+    const pdfModeDescription = basePdfData
+      ? '⚡ ultra-fast overlay'
+      : usePdfme
+        ? '@pdfme'
+        : useOptimizedPDF
+          ? 'optimized Puppeteer'
+          : 'standard Puppeteer'
+    console.log(`🎨 [processCampaignBatch] Phase 1: Generating ${recipients.length} PDFs (${pdfModeDescription})...`)
     const pdfGenStartTime = Date.now()
 
     let successCount = 0
@@ -679,10 +787,54 @@ export async function processCampaignBatch(
         }
 
         // ==================== GENERATE PDF WITH PERSONALIZED CANVASES ====================
-        // ULTRA-FAST: Use @pdfme on Vercel (50x faster than Puppeteer)
         let personalizedPDFBuffer: Buffer
 
-        if (usePdfme) {
+        // ULTRA-FAST PATH: Use pre-rendered base PDF + overlay (50-100ms per PDF)
+        if (basePdfData) {
+          try {
+            // Convert recipient data to overlay format
+            const overlayRecipientData: OverlayRecipientData = {
+              name: recipient.first_name,
+              firstName: recipient.first_name,
+              first_name: recipient.first_name,
+              lastName: recipient.last_name,
+              last_name: recipient.last_name,
+              lastname: recipient.last_name,
+              address: recipient.address_line1 || '',
+              address_line1: recipient.address_line1 || '',
+              address_line2: recipient.address_line2 ?? undefined,
+              city: recipient.city,
+              state: recipient.state,
+              zip: recipient.zip_code,
+              zip_code: recipient.zip_code,
+              phone: recipient.phone ?? undefined,
+              email: recipient.email ?? undefined,
+            }
+
+            // Generate personalized PDF using ultra-fast overlay
+            personalizedPDFBuffer = await overlayWithDynamicPositions(basePdfData.pdfBuffer, {
+              positions: basePdfData.variablePositions,
+              recipientData: overlayRecipientData,
+              qrCodeUrl: qrCodeUrl,
+              campaignId,
+              recipientId: recipient.id,
+            })
+
+            console.log(`    ⚡ Ultra-fast overlay: ${recipientName} (${(personalizedPDFBuffer.length / 1024).toFixed(1)} KB)`)
+          } catch (ultraFastError) {
+            // Fall back to Puppeteer if ultra-fast fails
+            console.warn(`    ⚠️ Ultra-fast overlay failed for ${recipientName}, falling back to Puppeteer:`, ultraFastError)
+            const pdfResult = await convertCanvasToPDF(
+              personalizedFrontCanvasJSON,
+              personalizedBackCanvasJSON,
+              recipientData,
+              template.format_type,
+              `${campaign.name}-${recipient.id}`,
+              campaign.variable_mappings_snapshot
+            )
+            personalizedPDFBuffer = pdfResult.buffer
+          }
+        } else if (usePdfme) {
           // @pdfme path: 10-100ms per PDF
           try {
             // Convert Fabric.js canvas to @pdfme template format
