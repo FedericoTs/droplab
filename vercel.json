@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "fluid": true,
+  "functions": {
+    "app/api/campaigns/*/generate/route.ts": {
+      "maxDuration": 300,
+      "memory": 1024
+    },
+    "app/api/batch-jobs/*/route.ts": {
+      "maxDuration": 300,
+      "memory": 1024
+    },
+    "app/api/**/*": {
+      "maxDuration": 60
+    }
+  }
+}

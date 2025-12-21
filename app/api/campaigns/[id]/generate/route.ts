@@ -10,10 +10,10 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 
-// Vercel serverless configuration
-// maxDuration: 60 = Hobby plan (60s max)
-// maxDuration: 300 = Pro plan (5 minutes max)
-export const maxDuration = 60
+// Vercel serverless configuration with Fluid Compute
+// Fluid Compute enables up to 800s on Pro/Enterprise
+// Setting to 300s (5 minutes) for batch PDF generation
+export const maxDuration = 300
 export const dynamic = 'force-dynamic'
 
 import { processCampaignBatch } from '@/lib/campaigns/batch-vdp-processor'
